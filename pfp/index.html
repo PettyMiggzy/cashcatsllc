@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CashCats LLC — PFP Studio</title>
+<link rel="icon" type="image/png" href="/assets/cashcat.png"/>
+<style>
+  :root{
+    --bg:#07090a; --panel:#0f1416; --panel-2:#151c1f; --line:#243033;
+    --ink:#e8f2ec; --muted:#8fa39a; --green:#00c805; --green-dim:#0a3d12; --gold:#f5c518;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:20px 26px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:19px;letter-spacing:.14em;text-transform:uppercase}
+  header h1 b{color:var(--green)}
+  header .sub{color:var(--muted);font-size:13px}
+  main{display:grid;grid-template-columns:minmax(320px,1fr) 400px;gap:26px;
+    padding:26px;max-width:1400px;margin:0 auto;align-items:start}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;position:sticky;top:20px}
+  .canvas-wrap{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
+    background:repeating-conic-gradient(#1b2325 0 25%,#141a1c 0 50%) 0 0/28px 28px}
+  canvas{width:100%;height:100%;display:block;image-rendering:auto}
+  .canvas-wrap.busy::after{content:"";position:absolute;inset:0;background:#000a;
+    backdrop-filter:blur(1px)}
+
+  .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  button{font:inherit;font-weight:600;color:var(--ink);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;
+    transition:.14s border-color,.14s background,.14s transform}
+  button:hover:not(:disabled){border-color:var(--green);background:#18211f}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--green);color:#04180a;border-color:var(--green)}
+  button.primary:hover:not(:disabled){background:#00e006;border-color:#00e006}
+  button.icon{padding:10px 13px;font-family:ui-monospace,monospace}
+
+  .panel{display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h2{margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+  .layer{display:grid;grid-template-columns:96px 1fr auto auto;gap:8px;align-items:center;
+    padding:7px 0;border-top:1px solid #1b2426}
+  .layer:first-of-type{border-top:0}
+  .layer .name{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  select{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:8px;padding:8px 9px;cursor:pointer}
+  select:focus{outline:2px solid var(--green);outline-offset:-1px}
+  .lock{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
+    font-size:13px;line-height:1;filter:grayscale(1) opacity(.5)}
+  .lock[aria-pressed="true"]{filter:none;border-color:var(--gold);background:#2a230a}
+  .step{display:flex;gap:4px}
+  .step button{padding:7px 9px;font-size:12px;line-height:1}
+
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  label.field{display:flex;flex-direction:column;gap:5px;font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);flex:1;min-width:110px}
+  input[type=number]{font:inherit;color:var(--ink);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:8px;padding:8px 9px;width:100%}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);
+    text-transform:none;letter-spacing:0;cursor:pointer}
+  input[type=checkbox]{accent-color:var(--green);width:16px;height:16px}
+
+  table.traits{width:100%;border-collapse:collapse;font-size:13px}
+  table.traits td{padding:5px 0;border-top:1px solid #1b2426;vertical-align:top}
+  table.traits tr:first-child td{border-top:0}
+  table.traits td:first-child{color:var(--muted);font-size:10.5px;letter-spacing:.07em;
+    text-transform:uppercase;width:96px;white-space:nowrap;padding-right:10px}
+  table.traits td:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;
+    font-size:12px;white-space:nowrap}
+  .pct.rare{color:var(--gold)}
+
+  .status{font-size:13px;color:var(--muted);min-height:20px}
+  .status.err{color:#ff6b6b}
+  .bar{height:4px;border-radius:2px;background:#1b2426;overflow:hidden;margin-top:8px;display:none}
+  .bar.on{display:block}
+  .bar i{display:block;height:100%;background:var(--green);width:0;transition:width .18s}
+  kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 6px;font:12px ui-monospace,monospace}
+  footer{padding:0 26px 30px;color:var(--muted);font-size:12.5px;max-width:1400px;margin:0 auto}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><a href="/" style="color:inherit;text-decoration:none">&#8592; CASHCATS <b>LLC</b></a> &nbsp;·&nbsp; PFP STUDIO</h1>
+  <span class="sub" id="comboCount">loading traits…</span>
+  <a href="/memes.html" style="margin-left:auto;color:var(--green);font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">Meme Vault &#8594;</a>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="pfp" width="1024" height="1024"></canvas>
+    </div>
+    <div class="actions">
+      <button class="primary" id="roll">Generate</button>
+      <button class="icon" id="prev" title="Previous (←)">←</button>
+      <button class="icon" id="next" title="Next (→)">→</button>
+      <button id="download">Download PNG</button>
+      <button id="copy">Copy</button>
+    </div>
+    <p class="status" id="status"><kbd>space</kbd> roll · <kbd>←</kbd> <kbd>→</kbd> history · <kbd>D</kbd> download</p>
+  </section>
+
+  <aside class="panel">
+    <div class="card">
+      <h2>Traits</h2>
+      <div id="layers"></div>
+    </div>
+
+    <div class="card">
+      <h2>Export</h2>
+      <div class="row">
+        <label class="field">Size
+          <select id="size">
+            <option value="512">512 px</option>
+            <option value="1024" selected>1024 px</option>
+            <option value="2048">2048 px</option>
+          </select>
+        </label>
+        <label class="field">Batch
+          <input type="number" id="batchCount" value="20" min="1" max="500">
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="check"><input type="checkbox" id="transparent"> Transparent cutout <span style="color:var(--muted)">(drops background, finish &amp; effect)</span></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="mint">Mint batch → ZIP</button>
+      </div>
+      <div class="bar" id="bar"><i></i></div>
+    </div>
+
+    <div class="card">
+      <h2>This one</h2>
+      <table class="traits"><tbody id="readout"></tbody></table>
+    </div>
+  </aside>
+</main>
+
+<footer id="footnote"></footer>
+
+<script type="module">
+/* ══════════════════════════════════════════════════════════════════
+   $CASHCAT PFP generator
+   Layered canvas compositor driven entirely by traits.json.
+   Add art to traits/<layer>/, re-run scripts/build-manifest.mjs, reload.
+   ══════════════════════════════════════════════════════════════════ */
+
+const SIZE = 1024;
+const els = id => document.getElementById(id);
+const canvas = els('pfp');
+const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+let manifest = null;
+let layers = [];               // [{key,label,optional,traits:[...],blend}]
+const locked = new Set();
+let current = [];              // [{key, trait|null}]
+let history = [];
+let cursor = -1;
+let busy = false;
+
+const NONE = '__none__';
+const imgCache = new Map();
+
+/* ---------- helpers ---------- */
+const setStatus = (msg, isErr = false) => {
+  const s = els('status');
+  s.textContent = msg;
+  s.classList.toggle('err', isErr);
+};
+
+function loadImage(src) {
+  if (imgCache.has(src)) return imgCache.get(src);
+  const p = new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error(`missing asset: ${src}`));
+    im.src = encodeURI(src);
+  });
+  imgCache.set(src, p);
+  return p;
+}
+
+/** Weighted pick across a layer's traits, plus a "None" slot for optional layers. */
+function rollLayer(layer) {
+  const opts = layer.traits.map(t => [t, t.weight ?? 100]);
+  if (layer.optional) opts.push([null, layer.noneWeight ?? 100]);
+  const total = opts.reduce((n, [, w]) => n + w, 0);
+  let r = Math.random() * total;
+  for (const [t, w] of opts) { if ((r -= w) <= 0) return t; }
+  return opts[opts.length - 1][0];
+}
+
+const rarity = (layer, trait) => {
+  const total = layer.traits.reduce((n, t) => n + (t.weight ?? 100), 0)
+    + (layer.optional ? (layer.noneWeight ?? 100) : 0);
+  const w = trait ? (trait.weight ?? 100) : (layer.noneWeight ?? 100);
+  return (w / total) * 100;
+};
+
+const comboKey = sel => sel.map(s => s.trait ? s.trait.file : NONE).join('|');
+
+/* ---------- rendering ---------- */
+async function paint(sel, target = canvas, size = SIZE, transparent = false) {
+  const c = target.getContext('2d');
+  const pics = await Promise.all(sel.map(s =>
+    s.trait ? loadImage(`${manifest.traitDir}/${s.key}/${s.trait.file}`) : null));
+
+  c.clearRect(0, 0, size, size);
+  sel.forEach((s, i) => {
+    const im = pics[i];
+    if (!im) return;
+    const layer = layers.find(l => l.key === s.key);
+    if (transparent && layer.fullFrame) return;
+    c.globalCompositeOperation = s.trait.blend ?? layer.blend ?? 'source-over';
+    c.drawImage(im, 0, 0, size, size);
+  });
+  c.globalCompositeOperation = 'source-over';
+}
+
+async function show(sel, { push = true } = {}) {
+  if (busy) return false;
+  busy = true;
+  els('canvasWrap').classList.add('busy');
+  try {
+    await paint(sel, canvas, SIZE, els('transparent').checked);
+    current = sel;
+    if (push) {
+      history = [...history.slice(0, cursor + 1), sel];
+      cursor = history.length - 1;
+    }
+    syncControls();
+    setStatus(`${cursor + 1} / ${history.length}  ·  space to roll`);
+    return true;
+  } catch (err) {
+    setStatus(err.message, true);
+    return false;
+  } finally {
+    busy = false;
+    els('canvasWrap').classList.remove('busy');
+  }
+}
+
+/* ---------- selection state ---------- */
+function rollAll() {
+  return layers.map(l => {
+    if (locked.has(l.key)) {
+      const keep = current.find(s => s.key === l.key);
+      if (keep) return keep;
+    }
+    return { key: l.key, trait: rollLayer(l) };
+  });
+}
+
+function setLayer(key, file) {
+  const layer = layers.find(l => l.key === key);
+  const trait = file === NONE ? null : layer.traits.find(t => t.file === file);
+  return current.map(s => s.key === key ? { key, trait } : s);
+}
+
+function stepLayer(key, dir) {
+  const layer = layers.find(l => l.key === key);
+  const opts = [...layer.traits.map(t => t.file), ...(layer.optional ? [NONE] : [])];
+  const cur = current.find(s => s.key === key);
+  const at = opts.indexOf(cur?.trait ? cur.trait.file : NONE);
+  return setLayer(key, opts[(at + dir + opts.length) % opts.length]);
+}
+
+/* ---------- UI ---------- */
+function buildControls() {
+  els('layers').innerHTML = '';
+  for (const l of layers) {
+    if (!l.traits.length) continue;
+    const row = document.createElement('div');
+    row.className = 'layer';
+    row.innerHTML = `
+      <span class="name">${l.label}</span>
+      <select data-key="${l.key}" aria-label="${l.label}">
+        ${l.traits.map(t => `<option value="${t.file}">${t.name}</option>`).join('')}
+        ${l.optional ? `<option value="${NONE}">None</option>` : ''}
+      </select>
+      <span class="step">
+        <button data-step="-1" data-key="${l.key}" title="Previous ${l.label}">‹</button>
+        <button data-step="1"  data-key="${l.key}" title="Next ${l.label}">›</button>
+      </span>
+      <button class="lock" data-lock="${l.key}" aria-pressed="false" title="Lock ${l.label}">🔒</button>`;
+    els('layers').append(row);
+  }
+
+  els('layers').addEventListener('change', e => {
+    const key = e.target.dataset.key;
+    if (key) show(setLayer(key, e.target.value));
+  });
+  els('layers').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.step) show(stepLayer(btn.dataset.key, Number(btn.dataset.step)));
+    if (btn.dataset.lock) {
+      const k = btn.dataset.lock;
+      locked.has(k) ? locked.delete(k) : locked.add(k);
+      btn.setAttribute('aria-pressed', String(locked.has(k)));
+    }
+  });
+}
+
+function syncControls() {
+  for (const s of current) {
+    const sel = document.querySelector(`select[data-key="${s.key}"]`);
+    if (sel) sel.value = s.trait ? s.trait.file : NONE;
+  }
+  els('readout').innerHTML = current.map(s => {
+    const l = layers.find(x => x.key === s.key);
+    if (!l.traits.length) return '';
+    const pct = rarity(l, s.trait);
+    return `<tr><td>${l.label}</td><td>${s.trait ? s.trait.name : '—'}</td>
+      <td class="pct${pct < 6 ? ' rare' : ''}">${pct.toFixed(1)}%</td></tr>`;
+  }).join('');
+  els('prev').disabled = cursor <= 0;
+  els('next').disabled = cursor >= history.length - 1;
+}
+
+/* ---------- export ---------- */
+async function renderTo(sel, size) {
+  const off = document.createElement('canvas');
+  off.width = off.height = size;
+  await paint(sel, off, size, els('transparent').checked);
+  return off;
+}
+
+const blobOf = cv => new Promise(res => cv.toBlob(res, 'image/png'));
+
+async function downloadCurrent() {
+  const size = Number(els('size').value);
+  const cv = await renderTo(current, size);
+  const blob = await blobOf(cv);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cashcat-pfp-${Date.now()}.png`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+async function copyCurrent() {
+  try {
+    const blob = await blobOf(await renderTo(current, Number(els('size').value)));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    setStatus('copied to clipboard');
+  } catch { setStatus('clipboard blocked — use Download instead', true); }
+}
+
+/* ---------- batch mint (unique combos + metadata, zipped) ---------- */
+async function mintBatch() {
+  const n = Math.max(1, Math.min(500, Number(els('batchCount').value) || 1));
+  const size = Number(els('size').value);
+  const bar = els('bar'), fill = bar.querySelector('i');
+  bar.classList.add('on');
+  els('mint').disabled = true;
+
+  const files = [];
+  const meta = [];
+  const seen = new Set(current.length ? [] : []);
+  let made = 0, tries = 0;
+
+  while (made < n && tries < n * 60) {
+    tries++;
+    const sel = rollAll();
+    const key = comboKey(sel);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const cv = await renderTo(sel, size);
+    const buf = new Uint8Array(await (await blobOf(cv)).arrayBuffer());
+    const name = `${String(made + 1).padStart(4, '0')}.png`;
+    files.push({ name: `images/${name}`, data: buf });
+    meta.push({
+      name: `$CASHCAT #${made + 1}`,
+      image: `images/${name}`,
+      attributes: sel.filter(s => s.trait).map(s => ({
+        trait_type: layers.find(l => l.key === s.key).label,
+        value: s.trait.name,
+      })),
+    });
+    made++;
+    fill.style.width = `${(made / n) * 100}%`;
+    setStatus(`minting ${made} / ${n}…`);
+    if (made % 4 === 0) await new Promise(r => setTimeout(r));
+  }
+
+  files.push({ name: 'metadata.json', data: new TextEncoder().encode(JSON.stringify(meta, null, 2)) });
+
+  const zip = makeZip(files);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
+  a.download = `cashcat-pfp-batch-${made}.zip`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+
+  bar.classList.remove('on');
+  fill.style.width = '0';
+  els('mint').disabled = false;
+  setStatus(`minted ${made} unique PFP${made === 1 ? '' : 's'}`);
+}
+
+/* Minimal STORE-method ZIP writer — PNGs are already compressed. */
+const CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[i] = c >>> 0;
+  }
+  return bytes => {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = t[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+})();
+
+function makeZip(entries) {
+  const enc = new TextEncoder();
+  const chunks = [], central = [];
+  let offset = 0;
+
+  const u16 = v => [v & 255, (v >> 8) & 255];
+  const u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+
+  for (const { name, data } of entries) {
+    const nameBytes = enc.encode(name);
+    const crc = CRC(data);
+    const local = new Uint8Array([
+      0x50, 0x4b, 3, 4, ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(data.length), ...u32(data.length),
+      ...u16(nameBytes.length), ...u16(0), ...nameBytes,
+    ]);
+    chunks.push(local, data);
+    central.push(new Uint8Array([
+      0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(data.length), ...u32(data.length),
+      ...u16(nameBytes.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0),
+      ...u32(offset), ...nameBytes,
+    ]));
+    offset += local.length + data.length;
+  }
+
+  const centralSize = central.reduce((n, c) => n + c.length, 0);
+  const end = new Uint8Array([
+    0x50, 0x4b, 5, 6, ...u16(0), ...u16(0),
+    ...u16(entries.length), ...u16(entries.length),
+    ...u32(centralSize), ...u32(offset), ...u16(0),
+  ]);
+
+  const all = [...chunks, ...central, end];
+  const out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
+  let p = 0;
+  for (const c of all) { out.set(c, p); p += c.length; }
+  return out;
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  try {
+    manifest = await fetch('traits.json').then(r => {
+      if (!r.ok) throw new Error('traits.json not found — run: node scripts/build-manifest.mjs');
+      return r.json();
+    });
+  } catch (err) {
+    setStatus(err.message, true);
+    els('comboCount').textContent = 'no traits loaded';
+    return;
+  }
+
+  layers = manifest.layers.filter(l => l.traits.length || !l.optional);
+  const combos = layers.reduce((n, l) =>
+    n * Math.max(1, l.traits.length + (l.optional ? 1 : 0)), 1);
+  const total = layers.reduce((n, l) => n + l.traits.length, 0);
+  const mine = layers.reduce((n, l) => n + l.traits.filter(t => t.origin === 'original').length, 0);
+  els('comboCount').textContent =
+    `${total} traits · ${combos.toLocaleString('en-US')} combinations`;
+  els('footnote').textContent =
+    `${total} trait layers across ${layers.length} slots, ${mine} of them generated locally by scripts/make-extra-traits.mjs. ` +
+    `Drop new PNGs into traits/<layer>/ and re-run scripts/build-manifest.mjs to extend the set.`;
+
+  buildControls();
+  await show(rollAll());
+}
+
+/* ---------- wiring ---------- */
+els('roll').onclick = () => show(rollAll());
+els('prev').onclick = () => { if (cursor > 0) { cursor--; show(history[cursor], { push: false }); } };
+els('next').onclick = () => { if (cursor < history.length - 1) { cursor++; show(history[cursor], { push: false }); } };
+els('download').onclick = downloadCurrent;
+els('copy').onclick = copyCurrent;
+els('mint').onclick = mintBatch;
+els('transparent').onchange = () => show(current, { push: false });
+
+addEventListener('keydown', e => {
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); els('roll').click(); }
+  else if (e.code === 'ArrowLeft') els('prev').click();
+  else if (e.code === 'ArrowRight') els('next').click();
+  else if (e.key.toLowerCase() === 'd') downloadCurrent();
+});
+
+boot();
+</script>
+</body>
+</html>

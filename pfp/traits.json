@@ -1,0 +1,548 @@
+{
+  "size": 1024,
+  "traitDir": "traits",
+  "layers": [
+    {
+      "key": "background",
+      "label": "Background",
+      "optional": false,
+      "fullFrame": true,
+      "traits": [
+        {
+          "file": "BG.png",
+          "name": "Plain",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Cheker.png",
+          "name": "Checker",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Height.png",
+          "name": "Height",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Minecraft.png",
+          "name": "Minecraft",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0000_Layer-9.png",
+          "name": "Neon Glow",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0000s_0000_Moon.png",
+          "name": "Moon",
+          "weight": 40,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0001_Layer-6.png",
+          "name": "Underwater",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0002_Layer-5.png",
+          "name": "Heaven",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0003_Layer-4.png",
+          "name": "Stonks Chart",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0004_Layer-3.png",
+          "name": "Bliss",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0005_Group-2-copy.png",
+          "name": "Lunar Surface",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0006_Layer-2.png",
+          "name": "Galaxy",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0007_oLEEGLqETF2HnknDV6Oc_DARgallery3.png",
+          "name": "Yacht",
+          "weight": 35,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0008_Layer-2-copy-4.png",
+          "name": "Hood Pattern",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0009_Color-and-vibrance-2.png",
+          "name": "Times Square",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0010_56eac22e-6b46-4070-a6e4-dc912425cb96_f78ffdb1-copy.png",
+          "name": "Money Rain",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0007s_0011_Layer-1.png",
+          "name": "Jungle",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Spiral.png",
+          "name": "Spiral",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "x-blueprint.png",
+          "name": "Blueprint",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-bokeh-night.png",
+          "name": "Bokeh Night",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-confetti.png",
+          "name": "Confetti",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-cyber-sunset.png",
+          "name": "Cyber Sunset",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-diagonal-stripes.png",
+          "name": "Diagonal Stripes",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-gold-foil.png",
+          "name": "Gold Foil",
+          "weight": 30,
+          "origin": "original"
+        },
+        {
+          "file": "x-green-candles.png",
+          "name": "Green Candles",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-halftone-cash.png",
+          "name": "Halftone Cash",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-matrix-rain.png",
+          "name": "Matrix Rain",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-nebula.png",
+          "name": "Nebula",
+          "weight": 45,
+          "origin": "original"
+        },
+        {
+          "file": "x-radial-pop.png",
+          "name": "Radial Pop",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-red-candles.png",
+          "name": "Red Candles",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-starfield.png",
+          "name": "Starfield",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-sunburst.png",
+          "name": "Sunburst",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-ticker-tape.png",
+          "name": "Ticker Tape",
+          "weight": 100,
+          "origin": "original"
+        },
+        {
+          "file": "x-vaporwave-grid.png",
+          "name": "Vaporwave Grid",
+          "weight": 60,
+          "origin": "original"
+        }
+      ]
+    },
+    {
+      "key": "back",
+      "label": "Back",
+      "optional": true,
+      "noneWeight": 60,
+      "traits": [
+        {
+          "file": "NFT_0006s_0000_Levels-1-copy-3.png",
+          "name": "Green Candles",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0006s_0001_Hue_Saturation-1.png",
+          "name": "Baseball Bat",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0006s_0002_Clarity-and-dehaze-2.png",
+          "name": "Katana",
+          "weight": 40,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0006s_0003_Layer-10.png",
+          "name": "Money Bag",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0006s_0004_Levels-1.png",
+          "name": "AK-47",
+          "weight": 25,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0006s_0005_CASHCAT.png",
+          "name": "CASHCAT Flag",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "body",
+      "label": "Body",
+      "optional": false,
+      "traits": [
+        {
+          "file": "NFT_0001_Cash-Cat-Body.png",
+          "name": "Cash Cat",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "clothes",
+      "label": "Clothes",
+      "optional": true,
+      "noneWeight": 60,
+      "traits": [
+        {
+          "file": "NFT_0003s_0000_Halloween-Costumes-Ninja-No-Background.png",
+          "name": "Ninja",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0004s_0000_Clarity-and-dehaze-4.png",
+          "name": "Astronaut Suit",
+          "weight": 30,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0004s_0001_Clarity-and-dehaze-3.png",
+          "name": "Pink Polo",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0004s_0002_Mafia.png",
+          "name": "Mafia",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Shirt.png",
+          "name": "Shirt",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Suit.png",
+          "name": "Suit",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "hat",
+      "label": "Hat",
+      "optional": true,
+      "noneWeight": 60,
+      "traits": [
+        {
+          "file": "Cook.png",
+          "name": "Chef Hat",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0001_019fb3ef-f174-70c2-9354-02760376c691.png",
+          "name": "Ninja Headband",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0003_Helm1.png",
+          "name": "Helmet",
+          "weight": 45,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0004_104573_04210026_1000x.png",
+          "name": "Fedora",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0005_Cash-Cat.png",
+          "name": "Cash Cat Cap",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0006_HatCash-Cat.png",
+          "name": "Cash Cat Bucket",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0003s_0007_Color-and-vibrance-1.png",
+          "name": "Straw Hat",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "mouth",
+      "label": "Mouth",
+      "optional": true,
+      "noneWeight": 90,
+      "traits": [
+        {
+          "file": "Cigar.png",
+          "name": "Cigar",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Free NFTS.png",
+          "name": "Free NFTs",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Pizza.png",
+          "name": "Pizza",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Shy.png",
+          "name": "Shy",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "front",
+      "label": "Front",
+      "optional": true,
+      "noneWeight": 60,
+      "traits": [
+        {
+          "file": "Arm.png",
+          "name": "Arm",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Knife.png",
+          "name": "Knife",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Monster.png",
+          "name": "Monster",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0000s_0001_Group-1-copy-3.png",
+          "name": "Fistful Of Cash",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0000s_0003_Color-and-vibrance-3.png",
+          "name": "Middle Finger",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0000s_0004_Group-1.png",
+          "name": "Thumbs Up",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "NFT_0000s_0005_Group-1-copy-2.png",
+          "name": "Wine Glass",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Pick.png",
+          "name": "Pickaxe",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Pistol.png",
+          "name": "Pistol",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Sushi.png",
+          "name": "Sushi",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        },
+        {
+          "file": "Tenev.png",
+          "name": "Tenev",
+          "weight": 15,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "overlay",
+      "label": "Finish",
+      "optional": false,
+      "blend": "screen",
+      "fullFrame": true,
+      "traits": [
+        {
+          "file": "NFT_0000_Overlayt.png",
+          "name": "Classic",
+          "weight": 100,
+          "origin": "cashcat.cc"
+        }
+      ]
+    },
+    {
+      "key": "effect",
+      "label": "Effect",
+      "optional": true,
+      "noneWeight": 220,
+      "fullFrame": true,
+      "traits": [
+        {
+          "file": "x-frost.png",
+          "name": "Frost",
+          "weight": 100,
+          "origin": "original",
+          "blend": "screen"
+        },
+        {
+          "file": "x-gold-dust.png",
+          "name": "Gold Dust",
+          "weight": 100,
+          "origin": "original",
+          "blend": "screen"
+        },
+        {
+          "file": "x-golden-hour.png",
+          "name": "Golden Hour",
+          "weight": 100,
+          "origin": "original",
+          "blend": "screen"
+        },
+        {
+          "file": "x-neon-rim.png",
+          "name": "Neon Rim",
+          "weight": 100,
+          "origin": "original",
+          "blend": "screen"
+        },
+        {
+          "file": "x-prism-leak.png",
+          "name": "Prism Leak",
+          "weight": 100,
+          "origin": "original",
+          "blend": "screen"
+        },
+        {
+          "file": "x-scanlines.png",
+          "name": "Scanlines",
+          "weight": 100,
+          "origin": "original",
+          "blend": "multiply"
+        },
+        {
+          "file": "x-vignette.png",
+          "name": "Vignette",
+          "weight": 100,
+          "origin": "original",
+          "blend": "multiply"
+        }
+      ]
+    }
+  ]
+}
