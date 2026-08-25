@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#f4f0e3"/>
+<title>CashCats LLC — Meme Vault</title>
+<meta name="description" content="The CashCats LLC meme vault. Grab a cat, post a cat."/>
+<meta property="og:title" content="CashCats LLC — Meme Vault"/>
+<meta property="og:image" content="/assets/banner.png"/>
+<link rel="icon" type="image/png" href="/assets/cashcat.png"/>
+<link rel="apple-touch-icon" href="/assets/cashcat.png"/>
+<style>
+:root{
+  --paper:#f4f0e3;--paper2:#efe9d7;--card:#fbf8ee;--ink:#16150f;--ink2:#4a4736;--ink3:#8a8262;
+  --green:#1a7f4b;--green-d:#0f5c35;--gold:#a9812a;--red:#a8322a;--line:#d8d0b8;--line2:#c9bf9f;
+  --serif:"Times New Roman",Georgia,serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);
+  background-image:repeating-linear-gradient(0deg,rgba(26,127,75,.045) 0 1px,transparent 1px 28px),radial-gradient(ellipse at 50% -8%,rgba(169,129,42,.10),transparent 60%);}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--mono)}
+nav{position:sticky;top:0;z-index:50;background:rgba(244,240,227,.92);backdrop-filter:blur(6px);border-bottom:2px double var(--line2)}
+.navin{display:flex;align-items:center;gap:14px;padding:12px 24px;max-width:1040px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+.brand .llc{font-style:italic;color:var(--gold)}
+.brand svg{width:36px;height:36px}
+.nav-links{margin-left:auto;display:flex;gap:18px;font-family:var(--mono);font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink2)}
+.nav-links a:hover{color:var(--green-d)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fbf7ea;font-family:var(--mono);font-weight:700;padding:9px 16px;border-radius:3px;font-size:12px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--green-d);cursor:pointer}
+.btn:hover{background:var(--green-d)}
+header.head{text-align:center;padding:40px 0 8px}
+.filed{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--ink2);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,8vw,74px);line-height:.95;margin:10px 0 6px}
+h1 .llc{font-style:italic;color:var(--gold)}
+.sub{color:var(--ink2);font-size:18px;max-width:600px;margin:12px auto 0}
+.tools{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 8px}
+.count{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--green-d);text-transform:uppercase;text-align:center;margin:26px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding-bottom:20px}
+@media(max-width:860px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--card);border:1px solid var(--line2);border-radius:6px;overflow:hidden;transition:.15s;position:relative}
+.tile:hover{border-color:var(--green-d);transform:translateY(-3px);box-shadow:0 12px 26px rgba(0,0,0,.12)}
+.tile .imgbox{aspect-ratio:1;background:repeating-conic-gradient(#eee7d2 0 25%,#e6ddc4 0 50%) 0 0/24px 24px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-top:1px solid var(--line)}
+.tile .nm{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--ink2);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .dl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--green-d);border:1px solid var(--line2);border-radius:3px;padding:4px 8px;text-transform:uppercase;cursor:pointer;background:none}
+.tile .dl:hover{background:rgba(26,127,75,.1)}
+footer{border-top:2px double var(--line2);margin-top:24px;padding:34px 0;text-align:center;background:var(--paper2)}
+.disc{max-width:640px;margin:0 auto;font-family:var(--mono);font-size:11px;color:var(--ink2);line-height:1.7}
+.socials{display:flex;gap:12px;justify-content:center;margin:14px 0}
+.socials a{font-family:var(--mono);font-size:12px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line2);border-radius:3px;padding:8px 14px;color:var(--green-d)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="seal" viewBox="0 0 200 200">
+    <defs><path id="arcTop" d="M 36 100 A 64 64 0 0 1 164 100"/><path id="arcBot" d="M 34 100 A 66 66 0 0 0 166 100"/></defs>
+    <g stroke="#1a7f4b" fill="none"><circle cx="100" cy="100" r="94" stroke-width="2.5"/><circle cx="100" cy="100" r="86" stroke-width="1"/></g>
+    <g fill="#1a7f4b" font-family="'Times New Roman',serif" font-weight="700" letter-spacing="2.5" stroke="none">
+      <text font-size="13"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">CASHCATS · LLC</textPath></text>
+      <text font-size="10.5" letter-spacing="2"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">ROBINHOOD CHAIN</textPath></text></g>
+    <g transform="translate(100 104)">
+      <g stroke="#a9812a" fill="none" stroke-width="1.6"><rect x="-30" y="18" width="60" height="20" rx="2"/><rect x="-27" y="14" width="54" height="20" rx="2"/><line x1="-6" y1="14" x2="-6" y2="34"/><line x1="6" y1="14" x2="6" y2="34"/><text x="0" y="30" font-family="serif" font-weight="700" font-size="13" fill="#a9812a" stroke="none" text-anchor="middle">$</text></g>
+      <g stroke="#1a7f4b" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M -18 12 L -18 -6 L -11 -18 L -5 -8 L 5 -8 L 11 -18 L 18 -6 L 18 12 Z"/><path d="M 18 12 C 26 6 26 -4 20 -6"/><circle cx="-7" cy="-1" r="1.4" fill="#1a7f4b"/><circle cx="7" cy="-1" r="1.4" fill="#1a7f4b"/><path d="M -2 4 L 0 6 L 2 4"/><path d="M -1 6 L -1 9 M 1 6 L 1 9"/></g>
+    </g>
+  </symbol>
+</defs></svg>
+
+<nav><div class="navin">
+  <a class="brand" href="/"><svg viewBox="0 0 200 200"><use href="#seal"/></svg>CashCats <span class="llc">LLC</span></a>
+  <div class="nav-links"><a href="/">Home</a><a href="/pfp.html">PFP Studio</a><a href="/#swap">Buy&nbsp;&amp;&nbsp;Burn</a></div>
+  <a class="btn" href="/#buy">Buy $CASHCATSLLC</a>
+</div></nav>
+
+<header class="head"><div class="wrap">
+  <div class="filed">Exhibit C · For Distribution</div>
+  <h1>The Meme <span class="llc">Vault</span></h1>
+  <p class="sub">Every cat on file. Grab one, post it, spread the name. Click a tile to save the full image.</p>
+  <div class="tools">
+    <button class="btn" id="dlAll">⤓ Download All</button>
+    <a class="btn" href="/pfp.html" style="background:var(--gold);border-color:#8a6a1f;color:#231a06">Make a PFP →</a>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <div class="count" id="count">— cats on file</div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<footer><div class="wrap">
+  <div class="socials">
+    <a href="https://x.com/i/communities/1952824333966970935" target="_blank" rel="noopener">X Community</a>
+    <a href="https://t.me/cashcatsllc" target="_blank" rel="noopener">Telegram</a>
+    <a href="/">Home</a>
+  </div>
+  <p class="disc">Fan-made meme gallery. $CASHCATSLLC is a meme token with no intrinsic value. Not affiliated with or endorsed by Robinhood Markets. Images are community memes; if you own one and want it removed, reach out on Telegram.</p>
+</div></footer>
+
+<script>
+const MEMES=["catchart.png","catcoin.png","cateyes.png","catgreen.png","catinair.png","catinpalm.png","catinwater.png","catmic.png","catonchair.png","catoon.png","cattv.png","catwiftiger.png","fatcat.png","kingcat.png","oldcat.png","richcat.png","rsi.jpg","tenev.png","tenevlight.png","twin.png"];
+const nice=f=>f.replace(/\.(png|jpg)$/,'').replace(/([a-z])([A-Z])/g,'$1 $2');
+const grid=document.getElementById('grid');
+document.getElementById('count').textContent=MEMES.length+" cats on file";
+async function download(file){
+  try{const r=await fetch('/memes/'+file);const b=await r.blob();const u=URL.createObjectURL(b);
+    const a=document.createElement('a');a.href=u;a.download='cashcatsllc-'+file;a.click();URL.revokeObjectURL(u);}
+  catch(e){window.open('/memes/'+file,'_blank');}
+}
+MEMES.forEach(file=>{
+  const t=document.createElement('div');t.className='tile';
+  t.innerHTML=`<div class="imgbox"><img loading="lazy" src="/memes/${file}" alt="${nice(file)}"></div>
+    <div class="bar"><span class="nm">${nice(file)}</span><button class="dl">Save</button></div>`;
+  t.querySelector('.dl').addEventListener('click',e=>{e.stopPropagation();download(file);});
+  t.querySelector('.imgbox').addEventListener('click',()=>download(file));
+  grid.appendChild(t);
+});
+document.getElementById('dlAll').addEventListener('click',async()=>{
+  for(const f of MEMES){await download(f);await new Promise(r=>setTimeout(r,350));}
+});
+</script>
+</body>
+</html>
