@@ -137,7 +137,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
       <button onclick="copyCA()" id="copyBtn">COPY CA</button></div>
   </div>
   <div class="cta-row">
-    <a class="btn" id="buyTop" target="_blank" rel="noopener">🐱 BUY ON UNISWAP</a>
+    <a class="btn" id="buyTop" target="_blank" rel="noopener">🐱 BUY ON ROBIN LABS</a>
     <a class="btn ghost" href="#chart">📈 LIVE CHART</a>
   </div>
 </div></div>
@@ -207,7 +207,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
   <div class="steps">
     <div class="step"><div class="n">01</div><h4>Get on Robinhood Chain</h4><p>Add the Robinhood Chain network (Chain ID 8F) to your wallet and bridge in some ETH for gas + swaps.</p></div>
     <div class="step"><div class="n">02</div><h4>Copy the CA</h4><p>Use only this contract:<br><code style="color:var(--green-b);font-size:11px;word-break:break-all">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</code></p></div>
-    <div class="step"><div class="n">03</div><h4>Swap on Uniswap</h4><p>Paste the CA into <a id="buyStep" target="_blank" rel="noopener">Uniswap on Robinhood Chain</a>, set your slippage, and grab your cats.</p></div>
+    <div class="step"><div class="n">03</div><h4>Swap on Uniswap</h4><p>Paste the CA into <a id="buyStep" target="_blank" rel="noopener">Robin Labs swap desk</a>, set your slippage, and grab your cats.</p></div>
   </div>
 </div></section>
 
@@ -217,7 +217,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
   <h2>Where the <span class="gold">cats</span> live.</h2>
   <p class="lead">One token, on one chain. Always verify the CA against this page before you trade.</p>
   <div class="steps" style="grid-template-columns:repeat(4,1fr)">
-    <a class="step" id="lnkUni" target="_blank" rel="noopener"><div class="n">🦄</div><h4>Uniswap</h4><p>Swap on Robinhood Chain</p></a>
+    <a class="step" id="lnkUni" target="_blank" rel="noopener" style="border-color:var(--gold)"><div class="n">🐱</div><h4>Robin Labs</h4><p>Swap desk · robinlab.io</p></a>
     <a class="step" target="_blank" rel="noopener" href="https://dexscreener.com/robinhood/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">📊</div><h4>DexScreener</h4><p>Live pair + banner</p></a>
     <a class="step" target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">🦎</div><h4>GeckoTerminal</h4><p>Chart + on-chain</p></a>
     <a class="step" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc"><div class="n">🔎</div><h4>Explorer</h4><p>Verify contract</p></a>
@@ -271,6 +271,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
   <div class="socials">
     <a id="fX" target="_blank" rel="noopener">X / TWITTER</a>
     <a id="fTg" target="_blank" rel="noopener">TELEGRAM</a>
+    <a target="_blank" rel="noopener" href="https://robinlab.io">ROBIN LABS</a>
     <a target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e">CHART</a>
     <a target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc">CONTRACT</a>
   </div>
@@ -283,9 +284,10 @@ const CA="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc";
 const POOL="0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e";
 const NET="robinhood";
 const UNI="https://app.uniswap.org/swap?chain=robinhood&outputCurrency="+CA;
+const ROBINLAB="https://www.robinlab.io/swap.html?c="+CA.toLowerCase();
 const X_URL="https://x.com/pmtrenches", TG_URL="https://t.me/";
-document.getElementById('buyTop').href=UNI;
-document.getElementById('buyStep').href=UNI;
+document.getElementById('buyTop').href=ROBINLAB;
+document.getElementById('buyStep').href=ROBINLAB;
 document.getElementById('fX').href=X_URL;
 document.getElementById('fTg').href=TG_URL;
 function copyCA(){navigator.clipboard.writeText(CA).then(()=>{const b=document.getElementById('copyBtn');b.textContent="COPIED ✓";setTimeout(()=>b.textContent="COPY CA",1400);});}
@@ -333,7 +335,7 @@ async function loadChart(){
   }
 }
 
-document.getElementById('lnkUni').href=UNI;
+document.getElementById('lnkUni').href=ROBINLAB;
 (function(){
   const cv=document.getElementById('pfp'),ctx=cv.getContext('2d');let img=null,frame="green",cat=false;
   const catImg=new Image();catImg.src="/assets/cashcat.png";
