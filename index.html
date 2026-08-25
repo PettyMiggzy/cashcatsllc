@@ -120,7 +120,7 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
 <nav><div class="navin">
   <a class="brand" href="#top"><img src="/assets/cashcat.png" alt="CashCats LLC"/> CASHCATS <span class="gold">LLC</span></a>
   <div class="nav-links">
-    <a href="#memo">The Memo</a><a href="#chart">Chart</a><a href="#receipts">Receipts</a><a href="#buy">How to Buy</a><a href="#faq">FAQ</a>
+    <a href="#memo">The Memo</a><a href="#chart">Chart</a><a href="#receipts">Receipts</a><a href="#trade">Trade</a><a href="#pfp">PFP</a><a href="#buy">How to Buy</a><a href="#faq">FAQ</a>
   </div>
   <a class="btn" href="#buy">BUY $CASHCATSLLC</a>
 </div></nav>
@@ -211,6 +211,50 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
   </div>
 </div></section>
 
+
+<section id="trade"><div class="wrap">
+  <div class="tag">FIND IT · TRADE IT</div>
+  <h2>Where the <span class="gold">cats</span> live.</h2>
+  <p class="lead">One token, on one chain. Always verify the CA against this page before you trade.</p>
+  <div class="steps" style="grid-template-columns:repeat(4,1fr)">
+    <a class="step" id="lnkUni" target="_blank" rel="noopener"><div class="n">🦄</div><h4>Uniswap</h4><p>Swap on Robinhood Chain</p></a>
+    <a class="step" target="_blank" rel="noopener" href="https://dexscreener.com/robinhood/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">📊</div><h4>DexScreener</h4><p>Live pair + banner</p></a>
+    <a class="step" target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">🦎</div><h4>GeckoTerminal</h4><p>Chart + on-chain</p></a>
+    <a class="step" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc"><div class="n">🔎</div><h4>Explorer</h4><p>Verify contract</p></a>
+  </div>
+</div></section>
+
+<section id="tokenomics"><div class="wrap">
+  <div class="tag">TOKENOMICS · NO SPIN</div>
+  <h2>Issued once. <span class="gold">One billion cats.</span></h2>
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="k">TOTAL SUPPLY</div><div class="v">1,000,000,000</div></div>
+    <div class="stat"><div class="k">MINT</div><div class="v grn">Fixed · no new mint</div></div>
+    <div class="stat"><div class="k">TAX</div><div class="v">0 / 0</div></div>
+  </div>
+  <p class="lead" style="margin-top:18px">We don't fake locks or invent listings. The honest part — early supply was <b class="rd">bundled</b> (see the Receipts). What we've got is the realest thing on the whole chain: the <b class="gold">exact original name</b>. The chart tells the rest.</p>
+</div></section>
+
+<section id="pfp"><div class="wrap">
+  <div class="tag">PFP GENERATOR</div>
+  <h2>Turn your face into a <span class="gold">cash cat.</span></h2>
+  <p class="lead">Drop a photo, get a CashCats LLC profile pic. Everything runs in your browser — nothing is uploaded.</p>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;margin-top:22px" id="pfpGrid">
+    <canvas id="pfp" width="420" height="420" style="width:min(420px,86vw);height:auto;border-radius:16px;border:1px solid var(--line);background:#081d13"></canvas>
+    <div>
+      <label class="btn" for="pfpUp" style="display:inline-block">📷 UPLOAD PHOTO</label>
+      <input id="pfpUp" type="file" accept="image/*" style="display:none"/>
+      <div style="margin:14px 0;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" data-fr="green">Green Ring</button>
+        <button class="btn ghost" data-fr="gold">Gold Ring</button>
+        <button class="btn ghost" data-fr="cat">+ Cash Cat</button>
+      </div>
+      <button class="btn" id="pfpDl">⬇ DOWNLOAD PFP</button>
+      <p class="mono" style="font-size:12px;color:#5f8a70;margin-top:12px">Private — image never leaves your device.</p>
+    </div>
+  </div>
+</div></section>
+
 <section id="faq"><div class="wrap">
   <div class="tag">FAQ</div>
   <h2>Furrequently asked.</h2>
@@ -288,6 +332,26 @@ async function loadChart(){
       const yo=Y(o),yc=Y(c);ctx.fillRect(X(i)-cw/2,Math.min(yo,yc),cw,Math.max(1.5,Math.abs(yc-yo)));});
   }
 }
+
+document.getElementById('lnkUni').href=UNI;
+(function(){
+  const cv=document.getElementById('pfp'),ctx=cv.getContext('2d');let img=null,frame="green",cat=false;
+  const catImg=new Image();catImg.src="/assets/cashcat.png";
+  function draw(){
+    ctx.clearRect(0,0,420,420);ctx.fillStyle="#081d13";ctx.fillRect(0,0,420,420);
+    if(img){const s=Math.max(420/img.width,420/img.height),w=img.width*s,hh=img.height*s;ctx.drawImage(img,(420-w)/2,(420-hh)/2,w,hh);}
+    else{ctx.fillStyle="#2a5c44";ctx.font="16px ui-monospace";ctx.textAlign="center";ctx.fillText("upload a photo",210,210);}
+    if(cat&&catImg.complete){const cw=150,chh=cw*catImg.height/catImg.width;ctx.drawImage(catImg,420-cw-6,420-chh-6,cw,chh);}
+    ctx.lineWidth=18;ctx.strokeStyle=frame==="gold"?"#E9C34A":"#12b76a";ctx.strokeRect(9,9,402,402);
+    ctx.fillStyle=frame==="gold"?"#E9C34A":"#12b76a";ctx.fillRect(0,420-34,420,34);
+    ctx.fillStyle="#03110a";ctx.font="bold 18px ui-monospace";ctx.textAlign="center";ctx.fillText("CASHCATS LLC",210,420-11);
+  }
+  document.getElementById('pfpUp').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{img=new Image();img.onload=draw;img.src=r.result;};r.readAsDataURL(f);});
+  document.querySelectorAll('[data-fr]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.fr;if(v==="cat")cat=!cat;else frame=v;draw();}));
+  document.getElementById('pfpDl').addEventListener('click',()=>{const a=document.createElement('a');a.download="cashcatsllc-pfp.png";a.href=cv.toDataURL();a.click();});
+  catImg.onload=draw;draw();
+})();
+
 loadStats();loadChart();setInterval(loadStats,30000);
 </script>
 </body>
