@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 200" fill="none" role="img" aria-label="CashCats LLC seal">
+  <defs>
+    <path id="arcTop" d="M 36 100 A 64 64 0 0 1 164 100"/>
+    <path id="arcBot" d="M 34 100 A 66 66 0 0 0 166 100"/>
+  </defs>
+  <g stroke="#1a7f4b" fill="none">
+    <circle cx="100" cy="100" r="94" stroke-width="2.5"/>
+    <circle cx="100" cy="100" r="86" stroke-width="1"/>
+    <circle cx="100" cy="100" r="52" stroke-width="1" stroke-dasharray="1 4"/>
+  </g>
+  <g fill="#1a7f4b" font-family="'Times New Roman',Georgia,serif" font-weight="700" letter-spacing="2.5">
+    <text font-size="13"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">CASHCATS · LLC</textPath></text>
+    <text font-size="10.5" letter-spacing="2"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">ROBINHOOD CHAIN</textPath></text>
+  </g>
+  <g fill="#1a7f4b" stroke="none">
+    <circle cx="60" cy="100" r="1.6"/><circle cx="140" cy="100" r="1.6"/>
+  </g>
+  <!-- cat sitting on a bundle of cash -->
+  <g transform="translate(100 104)">
+    <!-- cash bundle -->
+    <g stroke="#a9812a" fill="none" stroke-width="1.6">
+      <rect x="-30" y="18" width="60" height="20" rx="2"/>
+      <rect x="-27" y="14" width="54" height="20" rx="2"/>
+      <line x1="-6" y1="14" x2="-6" y2="34"/><line x1="6" y1="14" x2="6" y2="34"/>
+      <text x="0" y="30" font-family="'Times New Roman',serif" font-weight="700" font-size="13" fill="#a9812a" stroke="none" text-anchor="middle">$</text>
+    </g>
+    <!-- cat -->
+    <g stroke="#1a7f4b" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M -18 12 L -18 -6 L -11 -18 L -5 -8 L 5 -8 L 11 -18 L 18 -6 L 18 12 Z"/>
+      <path d="M 18 12 C 26 6 26 -4 20 -6"/>
+      <circle cx="-7" cy="-1" r="1.4" fill="#1a7f4b"/>
+      <circle cx="7" cy="-1" r="1.4" fill="#1a7f4b"/>
+      <path d="M -2 4 L 0 6 L 2 4"/>
+      <path d="M -1 6 L -1 9 M 1 6 L 1 9"/>
+      <path d="M -17 -6 L -8 -3 M -17 0 L -8 -1 M 17 -6 L 8 -3 M 17 0 L 8 -1"/>
+    </g>
+  </g>
+</svg>
