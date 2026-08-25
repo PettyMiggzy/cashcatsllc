@@ -3,279 +3,323 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<meta name="theme-color" content="#05130d"/>
+<meta name="theme-color" content="#f4f0e3"/>
 <title>CashCats LLC — The Original Name</title>
 <meta name="description" content="CashCats LLC. Robinhood's original name — the exact one, with the LLC — now a token on Robinhood Chain."/>
 <meta property="og:title" content="CashCats LLC — The Original Name"/>
-<meta property="og:description" content="Before the app. Before the $32B IPO. The memo said CashCats LLC. Now it's back, on Robinhood Chain."/>
-<meta property="og:image" content="/assets/cashcat.png"/>
+<meta property="og:description" content="Before the app. Before the $32B IPO. The investment memo said CashCats LLC. Now it's incorporated on-chain."/>
+<meta property="og:image" content="/assets/banner.png"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <link rel="icon" href="/assets/cashcat.png"/>
 <style>
 :root{
-  --bg:#05130d; --bg2:#08201593; --green:#12b76a; --green-b:#3ce68f; --gold:#E9C34A;
-  --cream:#f2 efe0; --cream:#f3efe1; --dim:#8fb79f; --red:#ff5a4a; --panel:#0a2417; --line:rgba(60,230,143,.22);
+  --paper:#f4f0e3; --paper2:#efe9d7; --ink:#16150f; --ink2:#4a4736;
+  --green:#1a7f4b; --green-d:#0f5c35; --gold:#a9812a; --red:#a8322a;
+  --line:#d8d0b8; --line2:#c9bf9f; --seal:#1a7f4b;
+  --serif:"Times New Roman",Georgia,"Iowan Old Style",serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --sans:"Trebuchet MS",system-ui,-apple-system,sans-serif;
+  --sans:"Helvetica Neue",Arial,system-ui,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--cream);font-family:var(--sans);overflow-x:hidden;
-  background-image:radial-gradient(ellipse at 50% -10%,rgba(18,183,106,.16),transparent 55%),
-    repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);overflow-x:hidden;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(26,127,75,.045) 0 1px,transparent 1px 28px),
+    radial-gradient(ellipse at 50% -8%,rgba(169,129,42,.10),transparent 60%);}
 a{color:inherit;text-decoration:none}
-.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
 .mono{font-family:var(--mono)}
-.glow{text-shadow:0 0 18px rgba(60,230,143,.5)}
-.gold{color:var(--gold)}.grn{color:var(--green-b)}.rd{color:var(--red)}
-/* nav */
-nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(8px);background:rgba(5,19,13,.82);border-bottom:1px solid var(--line)}
-.navin{display:flex;align-items:center;gap:14px;padding:12px 20px;max-width:1100px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.5px}
-.brand img{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
-.nav-links{display:flex;gap:18px;margin-left:auto;font-size:13px;color:var(--dim)}
-.nav-links a:hover{color:var(--green-b)}
-.btn{background:var(--green);color:#03110a;font-weight:900;padding:10px 18px;border-radius:30px;font-family:var(--mono);
-  font-size:13px;letter-spacing:.5px;box-shadow:0 0 22px rgba(18,183,106,.5);white-space:nowrap;border:0;cursor:pointer;transition:.15s}
-.btn:hover{background:var(--green-b);transform:translateY(-1px)}
-.btn.ghost{background:transparent;border:1px solid var(--green);color:var(--green-b);box-shadow:none}
-@media(max-width:720px){.nav-links{display:none}}
-/* hero */
-.hero{position:relative;padding:70px 0 40px;text-align:center}
-.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:4px;color:var(--gold);margin-bottom:14px}
-.hero h1{font-size:clamp(52px,13vw,140px);font-weight:900;line-height:.86;letter-spacing:-1px}
-.hero h1 .llc{color:var(--gold);-webkit-text-stroke:1px rgba(233,195,74,.4)}
-.hero .sub{max-width:640px;margin:22px auto 0;font-size:clamp(16px,2.4vw,21px);color:#d7ecdd;line-height:1.5}
-.catwrap{margin:26px auto 8px;position:relative;width:min(320px,72vw)}
-.catwrap img{width:100%;filter:drop-shadow(0 18px 40px rgba(0,0,0,.6))}
-.cash-emojis{font-size:26px;letter-spacing:6px;opacity:.9}
-.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:26px}
-.ca-pill{display:inline-flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
-  border-radius:30px;padding:9px 10px 9px 16px;font-family:var(--mono);font-size:13px;max-width:94vw}
-.ca-pill .addr{color:var(--green-b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
-.ca-pill button{background:var(--green);border:0;color:#03110a;font-weight:800;border-radius:22px;padding:6px 12px;cursor:pointer;font-family:var(--mono);font-size:12px}
+.gold{color:var(--gold)}.grn{color:var(--green-d)}.rd{color:var(--red)}
+.rule{height:1px;background:var(--line2)}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--green-d)}
+/* nav / letterhead bar */
+nav{position:sticky;top:0;z-index:50;background:rgba(244,240,227,.92);backdrop-filter:blur(6px);border-bottom:2px double var(--line2)}
+.navin{display:flex;align-items:center;gap:16px;padding:12px 24px;max-width:1040px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:11px}
+.brand img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line2);background:#fff}
+.brand .bt{font-family:var(--serif);font-weight:700;font-size:20px;letter-spacing:.3px}
+.brand .bt .llc{font-style:italic;color:var(--gold)}
+.nav-links{display:flex;gap:20px;margin-left:auto;font-family:var(--mono);font-size:12px;letter-spacing:.5px;color:var(--ink2);text-transform:uppercase}
+.nav-links a:hover{color:var(--green-d)}
+.btn{background:var(--green);color:#fbf7ea;font-family:var(--mono);font-weight:700;padding:10px 18px;border-radius:3px;
+  font-size:12px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border:1px solid var(--green-d);cursor:pointer;transition:.15s}
+.btn:hover{background:var(--green-d)}
+.btn.ghost{background:transparent;color:var(--green-d);border:1px solid var(--green-d)}
+.btn.ghost:hover{background:rgba(26,127,75,.08)}
+@media(max-width:760px){.nav-links{display:none}}
+/* masthead / hero */
+.masthead{text-align:center;padding:30px 0 8px}
+.filed{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--ink2);text-transform:uppercase}
+.masthead h1{font-family:var(--serif);font-weight:700;font-size:clamp(46px,11vw,120px);line-height:.92;letter-spacing:-1px;margin:14px 0 4px}
+.masthead h1 .llc{font-style:italic;color:var(--gold);font-weight:400}
+.estd{font-family:var(--mono);font-size:12px;letter-spacing:5px;color:var(--green-d);text-transform:uppercase;margin-top:6px}
+.masthead .sub{max-width:660px;margin:22px auto 0;font-size:clamp(17px,2.5vw,22px);line-height:1.5;color:var(--ink2)}
+.masthead .sub b{color:var(--ink)}
+.catwrap{margin:26px auto 6px;width:min(260px,60vw)}
+.catwrap img{width:100%;filter:drop-shadow(0 14px 30px rgba(0,0,0,.22))}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.ca-pill{display:inline-flex;align-items:center;gap:10px;background:#fbf8ee;border:1px solid var(--line2);
+  border-radius:3px;padding:8px 8px 8px 16px;font-family:var(--mono);font-size:13px;max-width:94vw}
+.ca-pill .addr{color:var(--green-d);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
+.ca-pill button{background:var(--green);border:1px solid var(--green-d);color:#fbf7ea;font-family:var(--mono);font-weight:700;border-radius:2px;padding:6px 12px;cursor:pointer;font-size:11px;letter-spacing:.5px}
+/* filing strip */
+.strip{border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);background:#efe9d7;
+  overflow:hidden;white-space:nowrap;padding:9px 0;margin-top:30px}
+.strip span{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:3px;color:var(--green-d);text-transform:uppercase;animation:mq 26s linear infinite}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 /* sections */
-section{padding:64px 0;border-top:1px solid rgba(60,230,143,.1)}
-.tag{font-family:var(--mono);font-size:12px;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
-h2{font-size:clamp(30px,5.5vw,52px);font-weight:900;line-height:1;letter-spacing:-.5px;margin-bottom:16px}
-.lead{font-size:17px;color:#cfe6d6;line-height:1.65;max-width:720px}
-/* memo card */
-.memo{background:linear-gradient(180deg,#0c2b1c,#081d13);border:1px solid var(--line);border-radius:16px;
-  padding:30px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.memo:before{content:"CONFIDENTIAL · GV INVESTMENT MEMO";position:absolute;top:0;left:0;right:0;
-  font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#6f9a80;padding:10px 16px;border-bottom:1px dashed var(--line)}
-.memo .q{margin-top:26px;font-size:clamp(19px,3vw,26px);line-height:1.5;color:#eafff0}
-.memo .q b{color:var(--gold)}
-.memo .src{margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--dim)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center}
-@media(max-width:800px){.two{grid-template-columns:1fr}}
-/* vs card */
-.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;margin-top:26px}
-.vs .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
-.vs .card.win{border-color:var(--gold);box-shadow:0 0 30px rgba(233,195,74,.15)}
-.vs .mid{display:flex;align-items:center;font-family:var(--mono);color:var(--gold);font-weight:900;font-size:22px}
-.vs h3{font-family:var(--mono);font-size:15px;letter-spacing:1px;margin-bottom:10px}
-.vs .card p{font-size:14px;color:#cfe6d6;line-height:1.5}
+section{padding:58px 0;border-top:1px solid var(--line)}
+.sec-h{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.artn{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--gold)}
+h2{font-family:var(--serif);font-weight:700;font-size:clamp(28px,5vw,46px);line-height:1.05;letter-spacing:-.4px}
+h2 .llc{font-style:italic;color:var(--gold);font-weight:400}
+.lead{font-size:18px;color:var(--ink2);line-height:1.65;max-width:720px}
+.lead b{color:var(--ink)}
+/* memo document */
+.memo{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:0;position:relative;
+  box-shadow:0 16px 44px rgba(0,0,0,.10);margin-top:8px}
+.memo .head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px double var(--line2);padding:14px 26px;font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--ink2);text-transform:uppercase}
+.memo .body{padding:26px 30px 30px}
+.memo .rows{font-family:var(--mono);font-size:12px;color:var(--ink2);line-height:2;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}
+.memo .rows b{color:var(--ink)}
+.memo .q{font-size:clamp(19px,2.8vw,25px);line-height:1.55;color:var(--ink)}
+.memo .q b{color:var(--green-d);font-style:italic}
+.memo .src{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.stamp{position:absolute;top:22px;right:26px;transform:rotate(-11deg);border:2px solid var(--red);color:var(--red);
+  font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:2px;padding:5px 10px;border-radius:3px;opacity:.85;text-transform:uppercase}
+@media(max-width:600px){.stamp{position:static;display:inline-block;transform:rotate(-4deg);margin-bottom:14px}}
+/* vs */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;margin-top:22px}
+.vs .card{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:22px}
+.vs .card.win{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.vs .card h3{font-family:var(--mono);font-size:14px;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+.vs .card p{font-size:15px;color:var(--ink2);line-height:1.55}
+.vs .mid{display:flex;align-items:center;font-family:var(--serif);font-style:italic;color:var(--gold);font-weight:700;font-size:26px}
 @media(max-width:720px){.vs{grid-template-columns:1fr;text-align:center}.vs .mid{justify-content:center}}
 /* stats + chart */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
 @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
-.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--dim)}
-.stat .v{font-size:24px;font-weight:900;margin-top:6px}
-#chartCard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
-#chartHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.stat{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:15px}
+.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink2);text-transform:uppercase}
+.stat .v{font-family:var(--serif);font-size:26px;font-weight:700;margin-top:6px}
+#chartCard{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:18px}
+#chartHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:13px}
 #chart{width:100%;height:340px;display:block}
-.pill{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:4px 10px}
-/* receipts */
-.receipt{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:12px;padding:20px;margin-top:14px}
-.receipt h3{font-family:var(--mono);color:var(--red);font-size:14px;letter-spacing:1px;margin-bottom:8px}
-.receipt code{font-family:var(--mono);color:var(--green-b);font-size:13px;word-break:break-all}
-.receipt ul{margin:10px 0 0 18px;font-size:14px;color:#cfe6d6;line-height:1.7}
+.pill{font-family:var(--mono);font-size:11px;color:var(--ink2);border:1px solid var(--line2);border-radius:3px;padding:3px 8px;text-transform:uppercase;letter-spacing:1px}
+/* receipts / disclosure */
+.receipt{background:#fbf8ee;border:1px solid var(--line2);border-left:4px solid var(--red);border-radius:4px;padding:22px 24px;margin-top:16px}
+.receipt h3{font-family:var(--mono);color:var(--red);font-size:13px;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+.receipt code{font-family:var(--mono);color:var(--green-d);font-size:13px;word-break:break-all}
+.receipt ul{margin:10px 0 0 18px;font-size:15px;color:var(--ink2);line-height:1.75}
+.receipt ul b{color:var(--ink)}
 /* steps */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
 @media(max-width:720px){.steps{grid-template-columns:1fr}}
-.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
-.step .n{font-family:var(--mono);color:var(--gold);font-weight:900;font-size:26px}
-.step h4{margin:8px 0 6px;font-size:17px}
-.step p{font-size:14px;color:#cfe6d6;line-height:1.5}
-.step a{color:var(--green-b);text-decoration:underline}
+.step{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:20px}
+.step .n{font-family:var(--serif);color:var(--gold);font-weight:700;font-size:30px}
+.step h4{font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 6px;font-size:14px}
+.step p{font-size:15px;color:var(--ink2);line-height:1.55}
+.step a{color:var(--green-d);text-decoration:underline}
+.linkgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+@media(max-width:720px){.linkgrid{grid-template-columns:repeat(2,1fr)}}
+.linkgrid .step{text-align:center}
+.linkgrid .n{font-size:26px}
 /* faq */
-.faq details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px}
-.faq summary{cursor:pointer;font-weight:800;font-family:var(--mono);font-size:15px;list-style:none}
+.faq details{background:#fbf8ee;border:1px solid var(--line2);border-radius:4px;padding:14px 18px;margin-bottom:10px}
+.faq summary{cursor:pointer;font-family:var(--mono);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.5px;list-style:none}
 .faq summary::-webkit-details-marker{display:none}
-.faq p{margin-top:10px;color:#cfe6d6;font-size:14px;line-height:1.6}
+.faq p{margin-top:10px;color:var(--ink2);font-size:15px;line-height:1.65}
+/* pfp */
+#pfpGrid{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;margin-top:22px}
+@media(max-width:640px){#pfpGrid{grid-template-columns:1fr;justify-items:center}}
+#pfp{width:min(420px,86vw);height:auto;border-radius:4px;border:1px solid var(--line2);background:#fff}
 /* footer */
-footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:var(--dim);font-size:13px}
-.socials{display:flex;gap:14px;justify-content:center;margin:16px 0}
-.socials a{font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:20px;padding:8px 16px;color:var(--green-b)}
-.socials a:hover{background:rgba(18,183,106,.1)}
-.disc{max-width:640px;margin:20px auto 0;font-size:11px;color:#5f8a70;line-height:1.6}
-.marquee{overflow:hidden;white-space:nowrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 0;font-family:var(--mono);color:var(--gold);letter-spacing:2px;font-size:14px}
-.marquee span{display:inline-block;animation:mq 22s linear infinite}
-@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;background:#efe9d7}
+.seal{width:74px;height:74px;border-radius:50%;border:2px solid var(--green-d);display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--green-d);text-align:center;line-height:1.3;text-transform:uppercase;padding:6px}
+.footwordmark{font-family:var(--serif);font-weight:700;font-size:24px;letter-spacing:.3px}
+.footwordmark .llc{font-style:italic;color:var(--gold)}
+.socials{display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap}
+.socials a{font-family:var(--mono);font-size:12px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line2);border-radius:3px;padding:8px 16px;color:var(--green-d)}
+.socials a:hover{background:rgba(26,127,75,.08)}
+.disc{max-width:680px;margin:20px auto 0;font-family:var(--mono);font-size:11px;color:var(--ink2);line-height:1.7}
+.exhibit{margin-top:22px}
+.exhibit img{width:100%;border-radius:4px;border:1px solid var(--line2);display:block;box-shadow:0 12px 34px rgba(0,0,0,.12)}
+.exhibit .cap{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--ink2);text-align:center;margin-top:8px;text-transform:uppercase}
 </style>
 </head>
 <body>
 <nav><div class="navin">
-  <a class="brand" href="#top"><img src="/assets/cashcat.png" alt="CashCats LLC"/> CASHCATS <span class="gold">LLC</span></a>
+  <a class="brand" href="#top"><img src="/assets/cashcat.png" alt="CashCats LLC"/><span class="bt">CashCats <span class="llc">LLC</span></span></a>
   <div class="nav-links">
-    <a href="#memo">The Memo</a><a href="#chart">Chart</a><a href="#receipts">Receipts</a><a href="#trade">Trade</a><a href="#pfp">PFP</a><a href="#buy">How to Buy</a><a href="#faq">FAQ</a>
+    <a href="#memo">Memo</a><a href="#vs">The Difference</a><a href="#chart">Chart</a><a href="#receipts">Disclosure</a><a href="#buy">How to Buy</a><a href="#pfp">PFP</a><a href="#faq">FAQ</a>
   </div>
-  <a class="btn" href="#buy">BUY $CASHCATSLLC</a>
+  <a class="btn" href="#buy">Buy $CASHCATSLLC</a>
 </div></nav>
 
-<div class="wrap" style="padding-top:18px"><img src="/assets/banner.png" alt="CashCats LLC" style="width:100%;border-radius:14px;border:1px solid var(--line);display:block;box-shadow:0 16px 50px rgba(0,0,0,.5)"/></div>
-<div id="top" class="hero"><div class="wrap">
-  <div class="eyebrow">ROBINHOOD CHAIN · CHAIN 8F</div>
-  <h1>CASHCATS <span class="llc">LLC</span></h1>
-  <p class="sub">Before the app. Before the $32B IPO. The investment memo didn't say "Cash Cat."<br>
-  It said <b class="gold">CashCats&nbsp;LLC</b> — the exact name, with the LLC. It's back, on the chain that carries its spirit.</p>
-  <div class="catwrap"><img src="/assets/cashcat.png" alt="Cash Cat"/><div class="cash-emojis">💵 💵 💵</div></div>
+<div id="top" class="masthead"><div class="wrap">
+  <div class="filed">Robinhood Chain · Certificate of the Original Name · Filing No. 8F</div>
+  <h1>CashCats <span class="llc">LLC</span></h1>
+  <div class="estd">The name they wrote down first</div>
+  <p class="sub">Before the app. Before the $32B IPO. The investment memo didn't say "Cash Cat." It said <b>CashCats&nbsp;LLC</b> — the exact string, plural, with the LLC. Now it's incorporated on-chain.</p>
+  <div class="catwrap"><img src="/assets/cashcat.png" alt="Cash Cat"/></div>
   <div class="cta-row">
     <div class="ca-pill"><span class="addr" id="caText">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</span>
-      <button onclick="copyCA()" id="copyBtn">COPY CA</button></div>
+      <button onclick="copyCA()" id="copyBtn">Copy CA</button></div>
   </div>
   <div class="cta-row">
-    <a class="btn" id="buyTop" target="_blank" rel="noopener">🐱 BUY ON ROBIN LABS</a>
-    <a class="btn ghost" href="#chart">📈 LIVE CHART</a>
+    <a class="btn" id="buyTop" target="_blank" rel="noopener">Buy on Robin Labs</a>
+    <a class="btn ghost" href="#chart">View Live Chart</a>
   </div>
 </div></div>
 
-<div class="marquee"><span id="mq">CASHCATS LLC · THE ORIGINAL NAME · ISSUED ONCE · ON ROBINHOOD CHAIN · CASHCATS LLC · THE ORIGINAL NAME · ISSUED ONCE · ON ROBINHOOD CHAIN · </span></div>
+<div class="strip"><span id="mq">CashCats LLC · The Original Name · Issued Once · On Robinhood Chain · CashCats LLC · The Original Name · Issued Once · On Robinhood Chain · </span></div>
 
 <section id="memo"><div class="wrap">
-  <div class="tag">THE MEMO</div>
-  <h2>They wrote down the name.<br>It had an <span class="gold">LLC</span> on it.</h2>
-  <p class="lead" style="margin-bottom:24px">A GV (Google Ventures) partner has told this story publicly: when the founders pitched the company that became Robinhood, the investment memo went out under a different name — and a Google search for it only turned up a Tumblr blog of cats sitting on piles of cash.</p>
+  <div class="sec-h"><span class="artn">Article I</span><span class="label">The Memo</span></div>
+  <h2>They wrote down the name.<br>It had an <span class="llc">LLC</span> on it.</h2>
+  <p class="lead" style="margin:14px 0 8px">A GV (Google Ventures) partner has recounted this publicly: when the founders pitched the company that became Robinhood, the investment memo went out under a different name — and a Google search for it turned up nothing but a Tumblr blog of cats sitting on piles of cash.</p>
   <div class="memo">
-    <p class="q" style="padding-top:6px">"…when Blake wrote up the investment memo…the name of the company was called <b>'CashCats LLC'</b> and they had no website. …a Google search for 'CashCats' and the only thing that popped up was a Tumblr blog that featured <b>cats perched up on large piles of cash</b>."</p>
-    <p class="src">— publicly recounted by an early GV investor, on the Robinhood origin story</p>
+    <div class="head"><span>Investment Memorandum</span><span>Confidential · GV</span></div>
+    <div class="body">
+      <div class="stamp">Exhibit A</div>
+      <div class="rows">
+        RE:&nbsp;&nbsp;<b>Proposed investment — CashCats LLC</b><br>
+        STATUS:&nbsp;&nbsp;No website. No product. One (1) Tumblr of cats on cash.<br>
+        FINDING:&nbsp;&nbsp;The cats had the name first.
+      </div>
+      <p class="q">"…when Blake wrote up the investment memo…the name of the company was called <b>'CashCats LLC'</b> and they had no website. …a Google search for 'CashCats' and the only thing that popped up was a Tumblr blog that featured <b>cats perched up on large piles of cash</b>."</p>
+      <p class="src">— publicly recounted by an early GV investor, on the Robinhood origin story</p>
+    </div>
   </div>
-  <p class="lead" style="margin-top:22px">The cats had the name first. Then it became a hood. The name changed; the cats never left. <b class="grn">CashCats LLC</b> is the name — verbatim — back on the chain that wears its old skin.</p>
+  <p class="lead" style="margin-top:22px">The cats held the name. Then it became a hood. The name changed; the cats never left. <b class="grn">CashCats LLC</b> is that name — verbatim — re-filed on the chain that wears its old skin.</p>
 </div></section>
 
 <section id="vs"><div class="wrap">
-  <div class="tag">THE DIFFERENCE</div>
-  <h2>Close. But not the <span class="gold">name.</span></h2>
-  <p class="lead">There's a "Cash Cat" out there. Good cat. Wrong name. The memo didn't drop the "s" and it didn't drop the "LLC."</p>
+  <div class="sec-h"><span class="artn">Article II</span><span class="label">The Difference</span></div>
+  <h2>Close. But not the <span class="llc">name.</span></h2>
+  <p class="lead">There's a "Cash Cat" out there. Good cat. Wrong filing. The memo didn't drop the "s" and it didn't drop the "LLC."</p>
   <div class="vs">
-    <div class="card"><h3>"CASH CAT"</h3><p>The vibe. The meme. The shortened version. A great tribute — but not what was written on the paper.</p></div>
-    <div class="mid">VS</div>
-    <div class="card win"><h3 class="gold">CASHCATS LLC</h3><p>The <b>exact</b> string from the memo. Plural. With the LLC. The name a $32B company was almost registered under. This one.</p></div>
+    <div class="card"><h3>"Cash Cat"</h3><p>The vibe. The meme. The shortened version. A fine tribute — but not what the paperwork said.</p></div>
+    <div class="mid">vs.</div>
+    <div class="card win"><h3 class="gold">CashCats LLC</h3><p>The <b>exact</b> string from the memo. Plural. With the LLC. The name a $32B company was almost registered under. This one.</p></div>
   </div>
 </div></section>
 
 <section id="chart"><div class="wrap">
-  <div class="tag">THE NUMBERS · LIVE</div>
-  <h2>Cat goes up. Cat goes down.</h2>
-  <div class="stats" style="margin-top:22px">
-    <div class="stat"><div class="k">PRICE</div><div class="v" id="sPrice">—</div></div>
+  <div class="sec-h"><span class="artn">Article III</span><span class="label">Financial Position · Live</span></div>
+  <h2>The cat, marked to market.</h2>
+  <div class="stats">
+    <div class="stat"><div class="k">Price</div><div class="v" id="sPrice">—</div></div>
     <div class="stat"><div class="k">24H</div><div class="v" id="sChg">—</div></div>
     <div class="stat"><div class="k">FDV</div><div class="v" id="sFdv">—</div></div>
-    <div class="stat"><div class="k">LIQUIDITY</div><div class="v" id="sLiq">—</div></div>
+    <div class="stat"><div class="k">Liquidity</div><div class="v" id="sLiq">—</div></div>
   </div>
   <div id="chartCard">
     <div id="chartHead">
       <div><b>CASHCATSLLC / WETH</b> <span class="pill">Robinhood Chain</span></div>
-      <div class="pill" id="chartMeta">hourly · CoinGecko</div>
+      <div class="pill" id="chartMeta">Hourly · CoinGecko</div>
     </div>
     <canvas id="chart"></canvas>
-    <div style="margin-top:10px;font-size:11px;color:#5f8a70" class="mono">Live on-chain data via CoinGecko / GeckoTerminal. Not financial advice.</div>
+    <div style="margin-top:10px;font-size:11px;color:var(--ink2)" class="mono">Live on-chain data via CoinGecko / GeckoTerminal. Not financial advice.</div>
   </div>
 </div></section>
 
 <section id="receipts"><div class="wrap">
-  <div class="tag">ON-CHAIN RECEIPTS</div>
-  <h2>The dev bundled it. The chain <span class="rd">remembers.</span></h2>
-  <p class="lead">No spin — just what's verifiable on-chain. A big slice of supply among the top holders traces back to one funding wallet, and it's been distributing and selling. Look it up yourself; the ledger doesn't do PR.</p>
+  <div class="sec-h"><span class="artn">Article IV</span><span class="label">Material Disclosure</span></div>
+  <h2>The dev bundled it. The chain <span class="rd">keeps the books.</span></h2>
+  <p class="lead">No spin — just what's verifiable on-chain. A large slice of the top holders traces back to one funding wallet, and it's been distributing and selling. Look it up yourself; the ledger doesn't do PR.</p>
   <div class="receipt">
-    <h3>⚠️ WHAT THE EXPLORER SHOWS</h3>
+    <h3>⚠ Notice to Holders — What the explorer shows</h3>
     <ul>
       <li>A cluster of top holders were all funded — through throwaway pass-through wallets — from one root: <code>0xf70da97812cb96acdf810712aa562db8dfa3dbef</code></li>
-      <li>That root has fanned ETH out to <b>250+ wallets</b> and farms launches across the chain.</li>
+      <li>That root has fanned ETH out to <b>250+ wallets</b> and serial-farms launches across the chain.</li>
       <li>Translation: a chunk of the early float was one operator, not organic holders.</li>
     </ul>
-    <p style="margin-top:12px;font-size:13px;color:#9fc"><a class="grn" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/address/0xf70da97812cb96acdf810712aa562db8dfa3dbef" style="text-decoration:underline">Verify the root wallet on the explorer →</a></p>
+    <p style="margin-top:12px;font-size:13px"><a class="grn" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/address/0xf70da97812cb96acdf810712aa562db8dfa3dbef" style="text-decoration:underline">Verify the root wallet on the explorer →</a></p>
   </div>
-  <p class="lead" style="margin-top:18px">The bag got fumbled. The <b class="gold">name</b> didn't. That part's ours to carry.</p>
+  <p class="lead" style="margin-top:18px">The bag got fumbled. The <b class="gold">name</b> didn't. That part's ours to carry — and it's the one thing on this chain nobody can re-file.</p>
 </div></section>
 
 <section id="buy"><div class="wrap">
-  <div class="tag">HOW TO BUY</div>
-  <h2>So easy your cat could do it.</h2>
+  <div class="sec-h"><span class="artn">Article V</span><span class="label">How to Buy</span></div>
+  <h2>So easy your cat could file it.</h2>
   <div class="steps">
-    <div class="step"><div class="n">01</div><h4>Get on Robinhood Chain</h4><p>Add the Robinhood Chain network (Chain ID 8F) to your wallet and bridge in some ETH for gas + swaps.</p></div>
-    <div class="step"><div class="n">02</div><h4>Copy the CA</h4><p>Use only this contract:<br><code style="color:var(--green-b);font-size:11px;word-break:break-all">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</code></p></div>
-    <div class="step"><div class="n">03</div><h4>Swap on Robin Labs</h4><p>Paste the CA into <a id="buyStep" target="_blank" rel="noopener">Robin Labs swap desk</a>, set your slippage, and grab your cats.</p></div>
+    <div class="step"><div class="n">01</div><h4>Get on Robinhood Chain</h4><p>Add the Robinhood Chain network (Filing No. 8F) to your wallet and bridge in some ETH for gas + swaps.</p></div>
+    <div class="step"><div class="n">02</div><h4>Copy the CA</h4><p>Use only this contract:<br><code style="color:var(--green-d);font-size:11px;word-break:break-all">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</code></p></div>
+    <div class="step"><div class="n">03</div><h4>Swap on Robin Labs</h4><p>Paste the CA into the <a id="buyStep" target="_blank" rel="noopener">Robin Labs swap desk</a>, set your slippage, and take delivery of your cats.</p></div>
   </div>
 </div></section>
 
-
 <section id="trade"><div class="wrap">
-  <div class="tag">FIND IT · TRADE IT</div>
-  <h2>Where the <span class="gold">cats</span> live.</h2>
+  <div class="sec-h"><span class="artn">Article VI</span><span class="label">Where It's Listed</span></div>
+  <h2>Registered offices of the <span class="llc">cats.</span></h2>
   <p class="lead">One token, on one chain. Always verify the CA against this page before you trade.</p>
-  <div class="steps" style="grid-template-columns:repeat(4,1fr)">
-    <a class="step" id="lnkUni" target="_blank" rel="noopener" style="border-color:var(--gold)"><div class="n">🐱</div><h4>Robin Labs</h4><p>Swap desk · robinlab.io</p></a>
+  <div class="linkgrid">
+    <a class="step" id="lnkUni" target="_blank" rel="noopener" style="border-color:var(--gold)"><div class="n">🏦</div><h4>Robin Labs</h4><p>Swap desk · robinlab.io</p></a>
     <a class="step" target="_blank" rel="noopener" href="https://dexscreener.com/robinhood/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">📊</div><h4>DexScreener</h4><p>Live pair + banner</p></a>
     <a class="step" target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><div class="n">🦎</div><h4>GeckoTerminal</h4><p>Chart + on-chain</p></a>
-    <a class="step" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc"><div class="n">🔎</div><h4>Explorer</h4><p>Verify contract</p></a>
+    <a class="step" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc"><div class="n">🔎</div><h4>Explorer</h4><p>Verify the filing</p></a>
+  </div>
+  <div class="exhibit">
+    <img src="/assets/banner.png" alt="CashCats LLC — the original name"/>
+    <div class="cap">Exhibit B — for the record</div>
   </div>
 </div></section>
 
 <section id="tokenomics"><div class="wrap">
-  <div class="tag">TOKENOMICS · NO SPIN</div>
-  <h2>Issued once. <span class="gold">One billion cats.</span></h2>
+  <div class="sec-h"><span class="artn">Article VII</span><span class="label">Capital Structure</span></div>
+  <h2>Issued once. <span class="llc">One billion cats.</span></h2>
   <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-    <div class="stat"><div class="k">TOTAL SUPPLY</div><div class="v">1,000,000,000</div></div>
-    <div class="stat"><div class="k">MINT</div><div class="v grn">Fixed · no new mint</div></div>
-    <div class="stat"><div class="k">TAX</div><div class="v">0 / 0</div></div>
+    <div class="stat"><div class="k">Total Supply</div><div class="v">1,000,000,000</div></div>
+    <div class="stat"><div class="k">Mint</div><div class="v grn">Fixed · no new issuance</div></div>
+    <div class="stat"><div class="k">Tax</div><div class="v">0 / 0</div></div>
   </div>
-  <p class="lead" style="margin-top:18px">We don't fake locks or invent listings. The honest part — early supply was <b class="rd">bundled</b> (see the Receipts). What we've got is the realest thing on the whole chain: the <b class="gold">exact original name</b>. The chart tells the rest.</p>
+  <p class="lead" style="margin-top:18px">We don't fake locks or invent listings. The honest part, on the record: early supply was <b class="rd">bundled</b> (see Material Disclosure). What we hold is the realest asset on the whole chain — the <b class="gold">exact original name</b>. The chart tells the rest.</p>
 </div></section>
 
 <section id="pfp"><div class="wrap">
-  <div class="tag">PFP GENERATOR</div>
-  <h2>Turn your face into a <span class="gold">cash cat.</span></h2>
+  <div class="sec-h"><span class="artn">Article VIII</span><span class="label">PFP Generator</span></div>
+  <h2>File your face as a <span class="llc">cash cat.</span></h2>
   <p class="lead">Drop a photo, get a CashCats LLC profile pic. Everything runs in your browser — nothing is uploaded.</p>
-  <div style="display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;margin-top:22px" id="pfpGrid">
-    <canvas id="pfp" width="420" height="420" style="width:min(420px,86vw);height:auto;border-radius:16px;border:1px solid var(--line);background:#081d13"></canvas>
+  <div id="pfpGrid">
+    <canvas id="pfp" width="420" height="420"></canvas>
     <div>
-      <label class="btn" for="pfpUp" style="display:inline-block">📷 UPLOAD PHOTO</label>
+      <label class="btn" for="pfpUp" style="display:inline-block">Upload Photo</label>
       <input id="pfpUp" type="file" accept="image/*" style="display:none"/>
       <div style="margin:14px 0;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn ghost" data-fr="green">Green Ring</button>
         <button class="btn ghost" data-fr="gold">Gold Ring</button>
         <button class="btn ghost" data-fr="cat">+ Cash Cat</button>
       </div>
-      <button class="btn" id="pfpDl">⬇ DOWNLOAD PFP</button>
-      <p class="mono" style="font-size:12px;color:#5f8a70;margin-top:12px">Private — image never leaves your device.</p>
+      <button class="btn" id="pfpDl">Download PFP</button>
+      <p class="mono" style="font-size:12px;color:var(--ink2);margin-top:12px">Private — image never leaves your device.</p>
     </div>
   </div>
 </div></section>
 
 <section id="faq"><div class="wrap">
-  <div class="tag">FAQ</div>
+  <div class="sec-h"><span class="artn">Article IX</span><span class="label">FAQ</span></div>
   <h2>Furrequently asked.</h2>
   <div class="faq">
     <details open><summary>Is this affiliated with Robinhood?</summary><p>No. Not affiliated with, endorsed by, or connected to Robinhood Markets in any way. It's a meme built on a piece of public startup trivia — the name that reportedly came before the app. Fan fiction with a ticker.</p></details>
     <details><summary>Why "CashCats LLC" and not "Cash Cat"?</summary><p>Because that's the name that was actually written down — plural, with the LLC. We're the exact string, not the paraphrase.</p></details>
-    <details><summary>Is the token "safe"?</summary><p>It's a memecoin — treat it like one. Our Receipts section is honest about the on-chain history (early supply was bundled). We don't fake locks or listings. Only buy with money you can afford to lose, and always verify the CA against this page.</p></details>
+    <details><summary>Is the token "safe"?</summary><p>It's a memecoin — treat it like one. Our Disclosure section is honest about the on-chain history (early supply was bundled). We don't fake locks or listings. Only buy with money you can afford to lose, and always verify the CA against this page.</p></details>
     <details><summary>Is the contract address the one at the top?</summary><p>Yes: <b class="grn">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</b> on Robinhood Chain. Anything else is not this token.</p></details>
   </div>
 </div></section>
 
 <footer><div class="wrap">
-  <div style="font-family:var(--mono);font-weight:900;letter-spacing:1px;color:var(--cream)">CASHCATS <span class="gold">LLC</span></div>
+  <div class="seal">CashCats LLC · Robinhood Chain · Est. First</div>
+  <div class="footwordmark">CashCats <span class="llc">LLC</span></div>
   <div class="socials">
-    <a id="fX" target="_blank" rel="noopener">X COMMUNITY</a>
-    <a id="fTg" target="_blank" rel="noopener">TELEGRAM</a>
-    <a target="_blank" rel="noopener" href="https://robinlab.io">ROBIN LABS</a>
-    <a target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e">CHART</a>
-    <a target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc">CONTRACT</a>
+    <a id="fX" target="_blank" rel="noopener">X Community</a>
+    <a id="fTg" target="_blank" rel="noopener">Telegram</a>
+    <a target="_blank" rel="noopener" href="https://robinlab.io">Robin Labs</a>
+    <a target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e">Chart</a>
+    <a target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc">Contract</a>
   </div>
-  <div class="mono" style="font-size:12px;color:var(--green-b)">CA 0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</div>
+  <div class="mono" style="font-size:12px;color:var(--green-d)">CA 0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</div>
   <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value and no expectation of financial return. Nothing here is financial advice. Not affiliated with or endorsed by Robinhood Markets. The "CashCats LLC" reference is public startup lore used as parody. Do your own research and never invest more than you can afford to lose.</p>
 </div></footer>
 
@@ -283,14 +327,14 @@ footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:v
 const CA="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc";
 const POOL="0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e";
 const NET="robinhood";
-const UNI="https://app.uniswap.org/swap?chain=robinhood&outputCurrency="+CA;
 const ROBINLAB="https://www.robinlab.io/swap.html?c="+CA.toLowerCase();
 const X_URL="https://x.com/i/communities/1952824333966970935", TG_URL="https://t.me/cashcatsllc";
 document.getElementById('buyTop').href=ROBINLAB;
 document.getElementById('buyStep').href=ROBINLAB;
+document.getElementById('lnkUni').href=ROBINLAB;
 document.getElementById('fX').href=X_URL;
 document.getElementById('fTg').href=TG_URL;
-function copyCA(){navigator.clipboard.writeText(CA).then(()=>{const b=document.getElementById('copyBtn');b.textContent="COPIED ✓";setTimeout(()=>b.textContent="COPY CA",1400);});}
+function copyCA(){navigator.clipboard.writeText(CA).then(()=>{const b=document.getElementById('copyBtn');b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy CA",1400);});}
 const fmtUsd=v=>{v=+v;if(!isFinite(v))return"—";if(v>=1)return"$"+v.toLocaleString(undefined,{maximumFractionDigits:0});
   if(v>=0.01)return"$"+v.toFixed(3);return"$"+v.toPrecision(3);};
 async function loadStats(){
@@ -299,7 +343,7 @@ async function loadStats(){
     const a=(await r.json()).data.attributes;
     document.getElementById('sPrice').textContent="$"+(+a.base_token_price_usd).toPrecision(3);
     const ch=+((a.price_change_percentage||{}).h24||0);
-    const chEl=document.getElementById('sChg');chEl.textContent=(ch>=0?"+":"")+ch.toFixed(1)+"%";chEl.style.color=ch>=0?"var(--green-b)":"var(--red)";
+    const chEl=document.getElementById('sChg');chEl.textContent=(ch>=0?"+":"")+ch.toFixed(1)+"%";chEl.style.color=ch>=0?"var(--green-d)":"var(--red)";
     document.getElementById('sFdv').textContent=fmtUsd(a.fdv_usd);
     document.getElementById('sLiq').textContent=fmtUsd(a.reserve_in_usd);
   }catch(e){}
@@ -311,49 +355,45 @@ async function loadChart(){
   let last=[];
   try{
     const r=await fetch(`https://api.geckoterminal.com/api/v2/networks/${NET}/pools/${POOL}/ohlcv/hour?limit=72`,{headers:{accept:"application/json"}});
-    last=(await r.json()).data.attributes.ohlcv_list.slice().reverse(); // oldest->newest
+    last=(await r.json()).data.attributes.ohlcv_list.slice().reverse();
   }catch(e){}
   draw(last);
   function draw(rows){
     const W=cv.clientWidth,H=340,pad=8,padB=18,padL=8,padR=64;
     ctx.clearRect(0,0,W,H);
-    if(!rows||!rows.length){ctx.fillStyle="#6f9a80";ctx.font="13px ui-monospace";ctx.textAlign="center";ctx.fillText("Loading live data… (or open the chart link below)",W/2,H/2);return;}
+    if(!rows||!rows.length){ctx.fillStyle="#8a8262";ctx.font="13px ui-monospace";ctx.textAlign="center";ctx.fillText("Loading live data… (or open the chart link below)",W/2,H/2);return;}
     let lo=Infinity,hi=-Infinity;rows.forEach(r=>{lo=Math.min(lo,r[3]);hi=Math.max(hi,r[2]);});
     const rng=(hi-lo)||hi||1; lo-=rng*.08; hi+=rng*.08;
     const x0=padL,x1=W-padR,y0=pad,y1=H-padB;
     const X=i=>x0+(i+.5)/rows.length*(x1-x0);
     const Y=v=>y1-(v-lo)/(hi-lo)*(y1-y0);
-    // grid
-    ctx.strokeStyle="rgba(60,230,143,.1)";ctx.lineWidth=1;ctx.fillStyle="#6f9a80";ctx.font="10px ui-monospace";ctx.textAlign="left";
+    ctx.strokeStyle="rgba(26,127,75,.14)";ctx.lineWidth=1;ctx.fillStyle="#8a8262";ctx.font="10px ui-monospace";ctx.textAlign="left";
     for(let g=0;g<=4;g++){const v=lo+(hi-lo)*g/4;const y=Y(v);ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
       ctx.fillText("$"+v.toPrecision(3),x1+4,y+3);}
     const cw=Math.max(2,(x1-x0)/rows.length*.62);
-    rows.forEach((r,i)=>{const o=r[1],h=r[2],l=r[3],c=r[4];const up=c>=o;const col=up?"#3ce68f":"#ff5a4a";
+    rows.forEach((r,i)=>{const o=r[1],h=r[2],l=r[3],c=r[4];const up=c>=o;const col=up?"#1a7f4b":"#a8322a";
       ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.2;
       ctx.beginPath();ctx.moveTo(X(i),Y(h));ctx.lineTo(X(i),Y(l));ctx.stroke();
       const yo=Y(o),yc=Y(c);ctx.fillRect(X(i)-cw/2,Math.min(yo,yc),cw,Math.max(1.5,Math.abs(yc-yo)));});
   }
 }
-
-document.getElementById('lnkUni').href=ROBINLAB;
 (function(){
   const cv=document.getElementById('pfp'),ctx=cv.getContext('2d');let img=null,frame="green",cat=false;
   const catImg=new Image();catImg.src="/assets/cashcat.png";
   function draw(){
-    ctx.clearRect(0,0,420,420);ctx.fillStyle="#081d13";ctx.fillRect(0,0,420,420);
+    ctx.clearRect(0,0,420,420);ctx.fillStyle="#efe9d7";ctx.fillRect(0,0,420,420);
     if(img){const s=Math.max(420/img.width,420/img.height),w=img.width*s,hh=img.height*s;ctx.drawImage(img,(420-w)/2,(420-hh)/2,w,hh);}
-    else{ctx.fillStyle="#2a5c44";ctx.font="16px ui-monospace";ctx.textAlign="center";ctx.fillText("upload a photo",210,210);}
+    else{ctx.fillStyle="#b3a778";ctx.font="16px ui-monospace";ctx.textAlign="center";ctx.fillText("upload a photo",210,206);}
     if(cat&&catImg.complete){const cw=150,chh=cw*catImg.height/catImg.width;ctx.drawImage(catImg,420-cw-6,420-chh-6,cw,chh);}
-    ctx.lineWidth=18;ctx.strokeStyle=frame==="gold"?"#E9C34A":"#12b76a";ctx.strokeRect(9,9,402,402);
-    ctx.fillStyle=frame==="gold"?"#E9C34A":"#12b76a";ctx.fillRect(0,420-34,420,34);
-    ctx.fillStyle="#03110a";ctx.font="bold 18px ui-monospace";ctx.textAlign="center";ctx.fillText("CASHCATS LLC",210,420-11);
+    ctx.lineWidth=18;ctx.strokeStyle=frame==="gold"?"#a9812a":"#1a7f4b";ctx.strokeRect(9,9,402,402);
+    ctx.fillStyle=frame==="gold"?"#a9812a":"#1a7f4b";ctx.fillRect(0,420-34,420,34);
+    ctx.fillStyle="#fbf7ea";ctx.font="bold 18px ui-monospace";ctx.textAlign="center";ctx.fillText("CASHCATS LLC",210,420-11);
   }
   document.getElementById('pfpUp').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{img=new Image();img.onload=draw;img.src=r.result;};r.readAsDataURL(f);});
   document.querySelectorAll('[data-fr]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.fr;if(v==="cat")cat=!cat;else frame=v;draw();}));
   document.getElementById('pfpDl').addEventListener('click',()=>{const a=document.createElement('a');a.download="cashcatsllc-pfp.png";a.href=cv.toDataURL();a.click();});
   catImg.onload=draw;draw();
 })();
-
 loadStats();loadChart();setInterval(loadStats,30000);
 </script>
 </body>
