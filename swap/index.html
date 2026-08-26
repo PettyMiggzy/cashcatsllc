@@ -403,17 +403,37 @@ let eth=null, wc=null;   // active EIP-1193 provider (injected extension/in-app 
 function purgeWC(){ // clear any stale WalletConnect session — leftover topics cause "Subscribing … failed"
   try{ Object.keys(localStorage).forEach(k=>{ if(/^wc@2|^walletconnect|^WCM_|^W3M|^@w3m|reown/i.test(k)) localStorage.removeItem(k); }); }catch(e){}
 }
+// Load the vendored, version-locked WalletConnect bundle (assets/wc-provider.js).
+// We serve ONE self-consistent UMD build instead of letting a CDN assemble the
+// ~15 monorepo sub-packages at runtime — mismatched core/sign-client versions are
+// exactly what produce "Subscribing to <topic> failed". No third-party CDN in the wallet path.
+let _wcLoad=null;
+function loadWC(){
+  const EP=()=>window["@walletconnect/ethereum-provider"]&&window["@walletconnect/ethereum-provider"].EthereumProvider;
+  if(EP()) return Promise.resolve(EP());
+  if(_wcLoad) return _wcLoad;
+  _wcLoad=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="/assets/wc-provider.js"; s.async=true;
+    s.onload=()=>{ const e=EP(); e?res(e):rej(new Error("WalletConnect bundle loaded but export missing")); };
+    s.onerror=()=>rej(new Error("Couldn't load the wallet library — check your connection and retry."));
+    document.head.appendChild(s);
+  });
+  return _wcLoad;
+}
 async function resolveEth(){
   if(window.ethereum) return window.ethereum;          // extension or wallet in-app browser
   // no injected wallet (typical on mobile Chrome/Safari) -> WalletConnect: connect ANY EVM wallet
   setStatus("Opening wallet — pick your wallet in the popup…");
   purgeWC();
-  const { EthereumProvider }=await import("https://esm.sh/@walletconnect/ethereum-provider@2.17.2");
+  const EthereumProvider=await loadWC();
   try{
     wc=await EthereumProvider.init({
       projectId:WC_PROJECT,
-      optionalChains:[Number(CHAIN.id)],                // 4663 is a CUSTOM chain — MUST be optional
-      rpcMap:{[Number(CHAIN.id)]:CHAIN.rpc},
+      // 4663 is a CUSTOM chain. List mainnet too so wallet approval never rejects an
+      // unknown-only namespace; we switch to Robinhood Chain right after connect.
+      optionalChains:[1,Number(CHAIN.id)],
+      rpcMap:{1:"https://rpc.walletconnect.org/v1?chainId=eip155:1&projectId="+WC_PROJECT,[Number(CHAIN.id)]:CHAIN.rpc},
       showQrModal:true,
       metadata:{name:"CashCats Swap",description:"Buy or sell any token on Robinhood Chain",url:location.origin,icons:[location.origin+"/assets/cashcat.png"]}
     });
@@ -430,8 +450,9 @@ async function resolveEth(){
 async function connect(){
   try{
     eth=await resolveEth();
-    provider=new E.BrowserProvider(eth);
-    if(eth===window.ethereum){ await provider.send("eth_requestAccounts",[]); await ensureChain(eth); }
+    if(eth===window.ethereum){ await eth.request({method:"eth_requestAccounts"}); }
+    await ensureChain(eth);   // land on Robinhood Chain 4663 on BOTH paths (injected + WalletConnect)
+    provider=new E.BrowserProvider(eth);   // build AFTER the chain is settled (avoids ethers network-cache error)
     signer=await provider.getSigner(); account=await signer.getAddress();
     if(eth.on){ eth.on("accountsChanged",()=>location.reload()); eth.on("chainChanged",()=>location.reload()); eth.on("disconnect",()=>location.reload()); }
     $("connectTop").textContent=short(account); setStatus(""); refreshBalances(); updateQuote();
