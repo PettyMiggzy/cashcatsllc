@@ -400,20 +400,32 @@ async function refreshBalances(){
   }
 }
 let eth=null, wc=null;   // active EIP-1193 provider (injected extension/in-app wallet, or WalletConnect)
+function purgeWC(){ // clear any stale WalletConnect session — leftover topics cause "Subscribing … failed"
+  try{ Object.keys(localStorage).forEach(k=>{ if(/^wc@2|^walletconnect|^WCM_|^W3M|^@w3m|reown/i.test(k)) localStorage.removeItem(k); }); }catch(e){}
+}
 async function resolveEth(){
   if(window.ethereum) return window.ethereum;          // extension or wallet in-app browser
-  // no injected wallet (typical on mobile) -> WalletConnect: connect ANY EVM wallet
+  // no injected wallet (typical on mobile Chrome/Safari) -> WalletConnect: connect ANY EVM wallet
   setStatus("Opening wallet — pick your wallet in the popup…");
+  purgeWC();
   const { EthereumProvider }=await import("https://esm.sh/@walletconnect/ethereum-provider@2.17.2");
-  wc=await EthereumProvider.init({
-    projectId:WC_PROJECT,
-    optionalChains:[Number(CHAIN.id)],                  // 4663 is a CUSTOM chain — MUST be optional
-    rpcMap:{[Number(CHAIN.id)]:CHAIN.rpc},
-    showQrModal:true,
-    metadata:{name:"CashCats Swap",description:"Buy or sell any token on Robinhood Chain",url:location.origin,icons:[location.origin+"/assets/cashcat.png"]}
-  });
-  await wc.enable();
-  return wc;
+  try{
+    wc=await EthereumProvider.init({
+      projectId:WC_PROJECT,
+      optionalChains:[Number(CHAIN.id)],                // 4663 is a CUSTOM chain — MUST be optional
+      rpcMap:{[Number(CHAIN.id)]:CHAIN.rpc},
+      showQrModal:true,
+      metadata:{name:"CashCats Swap",description:"Buy or sell any token on Robinhood Chain",url:location.origin,icons:[location.origin+"/assets/cashcat.png"]}
+    });
+    await Promise.race([ wc.enable(), new Promise((_,x)=>setTimeout(()=>x(new Error("WalletConnect timed out")),45000)) ]);
+    return wc;
+  }catch(e){
+    purgeWC();
+    if(/subscrib|relay|project|timed out|proposal expired/i.test(e.message||"")){
+      throw new Error("WalletConnect couldn't connect. Easiest fix: open this page inside your wallet's own browser (MetaMask → Browser, Trust → dApps) and tap Connect there.");
+    }
+    throw e;
+  }
 }
 async function connect(){
   try{
