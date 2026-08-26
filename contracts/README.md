@@ -2,7 +2,7 @@
 
 > **STOP — do not deploy these as written.** They will revert on every call.
 >
-> CASHCATSLLC (`0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc`) is confirmed
+> CASHCATSLLC (`0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc`) is confirmed
 > **Uniswap v4 only** — a native-ETH pool (fee 0, tickSpacing 200, hook
 > `0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC`). There is **no v2 or v3 pair**.
 > These contracts route through a **Uniswap v2** router

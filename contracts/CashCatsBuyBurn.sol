@@ -21,7 +21,7 @@ pragma solidity ^0.8.20;
  *
  * Deploy notes:
  *   - ROUTER  = the V2-style router deployed on Robinhood Chain (set at deploy).
- *   - TOKEN   = 0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc ($CASHCATSLLC).
+ *   - TOKEN   = 0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc ($CASHCATSLLC).
  *   - WETH    = the wrapped-native token the router uses.
  *   Anyone can call buyAndBurn(); it is permissionless on purpose so the
  *   community (or a keeper) can trigger burns. minOut guards against MEV.
