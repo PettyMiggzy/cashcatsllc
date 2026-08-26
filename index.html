@@ -169,6 +169,11 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
 .socials{display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap}
 .socials a{font-family:var(--mono);font-size:12px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line2);border-radius:3px;padding:8px 16px;color:var(--green-d)}
 .socials a:hover{background:rgba(26,127,75,.08)}
+.rlads{display:inline-flex;align-items:center;gap:9px;margin-top:22px;padding:7px 14px;border:1px solid var(--line);border-radius:20px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.3px;color:var(--ink3);opacity:.8;transition:.15s}
+.rlads:hover{opacity:1;border-color:var(--line2)}
+.rlads img{width:18px;height:18px;border-radius:4px;background:#1a1a1a;padding:1px}
+.rlads b{color:var(--ink2);font-weight:700}
 .disc{max-width:680px;margin:20px auto 0;font-family:var(--mono);font-size:11px;color:var(--ink2);line-height:1.7}
 .exhibit{margin-top:22px}
 .exhibit img{width:100%;border-radius:4px;border:1px solid var(--line2);display:block;box-shadow:0 12px 34px rgba(0,0,0,.12)}
@@ -238,7 +243,7 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
   <h1>CashCats <span class="llc">LLC</span></h1>
   <div class="estd">The name they wrote down first</div>
   <div class="badges">
-    <span class="badge"><svg class="ic"><use href="#i-launch"/></svg> Launched on Robin Labs</span>
+    <span class="badge"><svg class="ic"><use href="#i-swap"/></svg> Buy &amp; sell any token</span>
     <span class="badge"><svg class="ic"><use href="#i-fire"/></svg> Fees buy back &amp; burn</span>
     <span class="badge"><svg class="ic"><use href="#i-lock"/></svg> Supply issued once</span>
   </div>
@@ -248,12 +253,12 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
       <button onclick="copyCA()" id="copyBtn"><svg class="ic"><use href="#i-copy"/></svg><span>Copy CA</span></button></div>
   </div>
   <div class="cta-row">
-    <a class="btn" id="buyTop" target="_blank" rel="noopener"><svg class="ic"><use href="#i-launch"/></svg> Trade on Robin Labs</a>
+    <a class="btn" id="buyTop"><svg class="ic"><use href="#i-swap"/></svg> Open CashCats Swap</a>
     <a class="btn ghost" href="#chart"><svg class="ic"><use href="#i-chart"/></svg> Live Chart</a>
   </div>
 </div></div>
 
-<div class="strip"><span id="mq">CashCats LLC · The Original Name · Issued Once · Fees Buy Back &amp; Burn · Launched on Robin Labs · CashCats LLC · The Original Name · Issued Once · Fees Buy Back &amp; Burn · </span></div>
+<div class="strip"><span id="mq">CashCats LLC · The Original Name · Issued Once · Fees Buy Back &amp; Burn · Trade Any Token · CashCats LLC · The Original Name · Issued Once · Fees Buy Back &amp; Burn · Trade Any Token · </span></div>
 
 <section id="swap" style="border-top:0"><div class="wrap">
   <div class="sec-h"><span class="artn">Article I</span><span class="label">CashCats Swap · Buy &amp; Burn</span></div>
@@ -358,16 +363,16 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
   <div class="steps">
     <div class="step"><div class="n">01</div><h4>Get on Robinhood Chain</h4><p>Add the Robinhood Chain network (Filing No. 8F) to your wallet and bridge in some ETH for gas + swaps.</p></div>
     <div class="step"><div class="n">02</div><h4>Copy the CA</h4><p>Use only this contract:<br><code style="color:var(--green-d);font-size:11px;word-break:break-all">0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</code></p></div>
-    <div class="step"><div class="n">03</div><h4>Swap on Robin Labs</h4><p>Paste the CA into the <a id="buyStep" target="_blank" rel="noopener">Robin Labs launchpad swap</a>, set your slippage, and take delivery of your cats.</p></div>
+    <div class="step"><div class="n">03</div><h4>Swap on CashCats Swap</h4><p>Open the <a id="buyStep">CashCats Swap</a>, pick $CASHCATSLLC (or paste any token), set your slippage, and take delivery of your cats.</p></div>
   </div>
 </div></section>
 
 <section id="trade"><div class="wrap">
   <div class="sec-h"><span class="artn">Article VII</span><span class="label">Launchpad &amp; Listings</span></div>
   <h2>Registered offices of the <span class="llc">cats.</span></h2>
-  <p class="lead">$CASHCATSLLC launched on <b>Robin Labs</b> — the Robinhood-Chain launchpad. One token, one chain. Always verify the CA against this page before you trade.</p>
+  <p class="lead">Trade $CASHCATSLLC — or any token on Robinhood Chain — right here on the <b>CashCats Swap</b>. One token, one chain. Always verify the CA against this page before you trade.</p>
   <div class="linkgrid">
-    <a class="lk feat" id="lnkUni" target="_blank" rel="noopener"><svg class="ic"><use href="#i-launch"/></svg><h4>Robin Labs</h4><p>Launchpad &amp; swap · robinlab.io</p></a>
+    <a class="lk feat" href="/swap/"><svg class="ic"><use href="#i-swap"/></svg><h4>CashCats Swap</h4><p>Our own desk · buy &amp; sell any token</p></a>
     <a class="lk" target="_blank" rel="noopener" href="https://dexscreener.com/robinhood/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><svg class="ic"><use href="#i-chart"/></svg><h4>DexScreener</h4><p>Live pair + banner</p></a>
     <a class="lk" target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e"><svg class="ic"><use href="#i-scope"/></svg><h4>GeckoTerminal</h4><p>Chart + on-chain</p></a>
     <a class="lk" target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc"><svg class="ic"><use href="#i-search"/></svg><h4>Explorer</h4><p>Verify the filing</p></a>
@@ -417,12 +422,16 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
   <div class="socials">
     <a id="fX" target="_blank" rel="noopener">X Community</a>
     <a id="fTg" target="_blank" rel="noopener">Telegram</a>
-    <a target="_blank" rel="noopener" href="https://robinlab.io">Robin Labs</a>
+    <a href="/swap/">Swap</a>
     <a target="_blank" rel="noopener" href="https://www.geckoterminal.com/robinhood/pools/0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e">Chart</a>
     <a target="_blank" rel="noopener" href="https://robinhoodchain.blockscout.com/token/0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc">Contract</a>
   </div>
   <div class="mono" style="font-size:12px;color:var(--green-d)">CA 0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc</div>
   <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value and no expectation of financial return. Nothing here is financial advice. Not affiliated with or endorsed by Robinhood Markets. The "CashCats LLC" reference is public startup lore used as parody. Buy &amp; burn is funded by voluntary routing fees. Do your own research and never invest more than you can afford to lose.</p>
+  <a class="rlads" href="https://www.robinlab.io" target="_blank" rel="noopener">
+    <img src="/assets/robinlab-logo.png" alt="Robin Labs"/>
+    <span>Launch on <b>Robin&nbsp;Labs</b> · 0.5&nbsp;ETH · DEX&nbsp;paid · 10× boost at graduation</span>
+  </a>
 </div></footer>
 
 <script>
@@ -432,12 +441,11 @@ const NET="robinhood";
 const DEAD="0x000000000000000000000000000000000000dEaD";
 const SUPPLY=1_000_000_000, DECIMALS=18;
 const EXPLORER="https://robinhoodchain.blockscout.com";
-const ROBINLAB="https://www.robinlab.io/swap.html?c="+CA.toLowerCase();
+const SWAP_URL="/swap/";
 const X_URL="https://x.com/i/communities/1952824333966970935", TG_URL="https://t.me/cashcatsllc";
-document.getElementById('buyTop').href=ROBINLAB;
-document.getElementById('buyStep').href=ROBINLAB;
-document.getElementById('lnkUni').href=ROBINLAB;
-document.getElementById('swapBtn').href=ROBINLAB;
+document.getElementById('buyTop').href=SWAP_URL;
+document.getElementById('buyStep').href=SWAP_URL;
+document.getElementById('swapBtn').href=SWAP_URL;
 document.getElementById('fX').href=X_URL;
 document.getElementById('fTg').href=TG_URL;
 document.getElementById('burnLink').href=EXPLORER+"/address/"+DEAD;
