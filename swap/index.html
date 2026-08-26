@@ -290,6 +290,7 @@ const TOKENS=[
 ];
 const E=window.ethers;
 const CHAIN={id:4663n,hex:"0x1237",name:"Robinhood Chain",rpc:"https://rpc.mainnet.chain.robinhood.com",explorer:"https://robinhoodchain.blockscout.com",symbol:"ETH"};
+const WC_PROJECT="a00014837c68f5d7133c3cc329dcfe6d"; // WalletConnect (Reown) — mobile "connect any wallet" when no injected wallet
 const WETH="0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73";
 const ROUTER="0xcaf681a66d020601342297493863e78c959e5cb2";
 const QUOTER="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7";
@@ -398,25 +399,41 @@ async function refreshBalances(){
     }catch(e){$(el).textContent="—";}
   }
 }
-async function connect(){
-  if(!window.ethereum){setStatus("No wallet found. Install a wallet that supports custom EVM chains, then connect.",true);return;}
-  try{
-    provider=new E.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    await ensureChain();
-    signer=await provider.getSigner(); account=await signer.getAddress();
-    $("connectTop").textContent=short(account); setStatus(""); refreshBalances(); updateQuote();
-  }catch(e){setStatus(err(e),true);}
+let eth=null, wc=null;   // active EIP-1193 provider (injected extension/in-app wallet, or WalletConnect)
+async function resolveEth(){
+  if(window.ethereum) return window.ethereum;          // extension or wallet in-app browser
+  // no injected wallet (typical on mobile) -> WalletConnect: connect ANY EVM wallet
+  setStatus("Opening wallet — pick your wallet in the popup…");
+  const { EthereumProvider }=await import("https://esm.sh/@walletconnect/ethereum-provider@2.17.2");
+  wc=await EthereumProvider.init({
+    projectId:WC_PROJECT,
+    optionalChains:[Number(CHAIN.id)],                  // 4663 is a CUSTOM chain — MUST be optional
+    rpcMap:{[Number(CHAIN.id)]:CHAIN.rpc},
+    showQrModal:true,
+    metadata:{name:"CashCats Swap",description:"Buy or sell any token on Robinhood Chain",url:location.origin,icons:[location.origin+"/assets/cashcat.png"]}
+  });
+  await wc.enable();
+  return wc;
 }
-async function ensureChain(){
+async function connect(){
   try{
-    const cid=await window.ethereum.request({method:"eth_chainId"});
-    if(cid.toLowerCase()===CHAIN.hex) return;
-    await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN.hex}]});
+    eth=await resolveEth();
+    provider=new E.BrowserProvider(eth);
+    if(eth===window.ethereum){ await provider.send("eth_requestAccounts",[]); await ensureChain(eth); }
+    signer=await provider.getSigner(); account=await signer.getAddress();
+    if(eth.on){ eth.on("accountsChanged",()=>location.reload()); eth.on("chainChanged",()=>location.reload()); eth.on("disconnect",()=>location.reload()); }
+    $("connectTop").textContent=short(account); setStatus(""); refreshBalances(); updateQuote();
+  }catch(e){ setStatus(err(e),true); }
+}
+async function ensureChain(p){
+  try{
+    const cid=await p.request({method:"eth_chainId"});
+    if(String(cid).toLowerCase()===CHAIN.hex) return;
+    await p.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN.hex}]});
   }catch(e){
     if(e.code===4902||/Unrecognized|not been added/i.test(e.message||"")){
-      await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN.hex,chainName:CHAIN.name,nativeCurrency:{name:"Ether",symbol:CHAIN.symbol,decimals:18},rpcUrls:[CHAIN.rpc],blockExplorerUrls:[CHAIN.explorer]}]});
-    } else throw e;
+      try{ await p.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN.hex,chainName:CHAIN.name,nativeCurrency:{name:"Ether",symbol:CHAIN.symbol,decimals:18},rpcUrls:[CHAIN.rpc],blockExplorerUrls:[CHAIN.explorer]}]}); }catch(_){}
+    }
   }
 }
 async function updateQuote(){
