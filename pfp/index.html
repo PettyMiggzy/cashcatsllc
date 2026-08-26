@@ -222,7 +222,7 @@ const comboKey = sel => sel.map(s => s.trait ? s.trait.file : NONE).join('|');
 async function paint(sel, target = canvas, size = SIZE, transparent = false) {
   const c = target.getContext('2d');
   const pics = await Promise.all(sel.map(s =>
-    s.trait ? loadImage(`${manifest.traitDir}/${s.key}/${s.trait.file}`) : null));
+    s.trait ? loadImage(`/pfp/${manifest.traitDir}/${s.key}/${s.trait.file}`) : null));
 
   c.clearRect(0, 0, size, size);
   sel.forEach((s, i) => {
@@ -477,7 +477,7 @@ function makeZip(entries) {
 /* ---------- boot ---------- */
 async function boot() {
   try {
-    manifest = await fetch('traits.json').then(r => {
+    manifest = await fetch('/pfp/traits.json').then(r => {
       if (!r.ok) throw new Error('traits.json not found — run: node scripts/build-manifest.mjs');
       return r.json();
     });
