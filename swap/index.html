@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#f4f0e3"/>
 <title>CashCats Swap — Trade Any Token on Robinhood Chain</title>
-<meta name="description" content="The CashCats Swap. Buy or sell any token on Robinhood Chain — fees buy back and burn $CASHCATSLLC."/>
+<meta name="description" content="The CashCats Swap. Buy or sell any token on Robinhood Chain, with a GoPlus safety check and a pre-sign transaction simulation. Fees buy back and burn $CASHCATSLLC."/>
 <meta property="og:title" content="CashCats Swap"/>
 <meta property="og:image" content="/assets/banner.png"/>
 <link rel="icon" type="image/png" href="/assets/cashcat.png"/>
@@ -22,11 +22,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--serif);min-heigh
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
 .mono{font-family:var(--mono)}
+.ic{width:1em;height:1em;display:inline-block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.13em}
 nav{position:sticky;top:0;z-index:50;background:rgba(244,240,227,.92);backdrop-filter:blur(6px);border-bottom:2px double var(--line2)}
 .navin{display:flex;align-items:center;gap:14px;padding:12px 24px;max-width:1040px;margin:0 auto}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
 .brand .llc{font-style:italic;color:var(--gold)}
-.brand svg{width:36px;height:36px}
+.brand svg.seal{width:36px;height:36px}
 .nav-links{margin-left:auto;display:flex;gap:18px;font-family:var(--mono);font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink2)}
 .nav-links a:hover{color:var(--green-d)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fbf7ea;font-family:var(--mono);font-weight:700;padding:10px 16px;border-radius:4px;font-size:12px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--green-d);cursor:pointer;transition:.15s}
@@ -34,17 +35,17 @@ nav{position:sticky;top:0;z-index:50;background:rgba(244,240,227,.92);backdrop-f
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.gold{background:var(--gold);border-color:#8a6a1f;color:#231a06}
 .btn.gold:hover:not(:disabled){background:#8a6a1f;color:#fff}
-.btn.ghost{background:transparent;color:var(--green-d)}
-header.head{text-align:center;padding:34px 0 6px}
+header.head{text-align:center;padding:32px 0 4px}
 .filed{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--ink2);text-transform:uppercase}
 h1{font-family:var(--serif);font-weight:700;font-size:clamp(34px,6.5vw,60px);line-height:.96;margin:10px 0 6px}
 h1 .llc{font-style:italic;color:var(--gold)}
-.sub{color:var(--ink2);font-size:17px;max-width:560px;margin:12px auto 0}
-main{display:flex;justify-content:center;padding:26px 0 60px}
+.sub{color:var(--ink2);font-size:16px;max-width:560px;margin:10px auto 0}
+main{display:flex;justify-content:center;padding:22px 0 60px}
 .swapcard{width:min(460px,94vw);background:var(--card);border:1px solid var(--line2);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.12);overflow:hidden}
-.swaphead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px double var(--line2)}
+.swaphead{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:2px double var(--line2)}
 .swaphead .t{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--green-d)}
-.gear{background:none;border:1px solid var(--line2);border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--ink2);cursor:pointer}
+.gear{background:none;border:1px solid var(--line2);border-radius:6px;padding:7px 9px;color:var(--ink2);cursor:pointer;font-size:15px;display:flex}
+.gear:hover{border-color:var(--green-d);color:var(--green-d)}
 .body{padding:18px 20px 22px}
 .tokrow{background:var(--paper);border:1px solid var(--line2);border-radius:8px;padding:14px}
 .tokrow .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
@@ -53,44 +54,56 @@ main{display:flex;justify-content:center;padding:26px 0 60px}
 .tokline{display:flex;align-items:center;gap:10px}
 .amt{flex:1;min-width:0;border:0;background:none;font-family:var(--serif);font-size:30px;font-weight:700;color:var(--ink);outline:none;width:100%}
 .amt::placeholder{color:#c3b89a}
-.tokbtn{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line2);border-radius:30px;padding:6px 12px 6px 8px;cursor:pointer;font-family:var(--mono);font-weight:700;font-size:14px;white-space:nowrap}
+.tokbtn{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line2);border-radius:30px;padding:5px 12px 5px 6px;cursor:pointer;font-family:var(--mono);font-weight:700;font-size:14px;white-space:nowrap}
 .tokbtn:hover{border-color:var(--green-d)}
 .tokbtn .sym{max-width:120px;overflow:hidden;text-overflow:ellipsis}
-.tokbtn .ph{width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.tokbtn .chev{font-size:10px;color:var(--ink3)}
+.avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green-d);border:1px solid var(--line2);flex:none;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .switch{display:flex;justify-content:center;margin:-9px 0}
-.switch button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);background:var(--card);cursor:pointer;font-size:16px;color:var(--green-d);z-index:2}
+.switch button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);background:var(--card);cursor:pointer;color:var(--green-d);z-index:2;display:flex;align-items:center;justify-content:center;font-size:17px}
 .switch button:hover{border-color:var(--green-d)}
 .burnline{margin-top:14px;border:1px dashed var(--line2);border-radius:8px;padding:14px;text-align:center;background:linear-gradient(180deg,rgba(168,50,42,.05),transparent)}
-.burnline .cap{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3)}
-.burnline .flames{font-size:18px;line-height:1;margin:6px 0;letter-spacing:2px;min-height:20px}
+.burnline .cap{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);display:flex;gap:6px;align-items:center;justify-content:center}
+.burnline .cap .ic{color:var(--red)}
+.burnline .flames{display:flex;gap:3px;justify-content:center;margin:7px 0;min-height:16px;color:var(--red)}
 .burnline .amt2{font-family:var(--serif);font-weight:700;color:var(--red);line-height:1;transition:font-size .15s}
 .burnline .amt2 small{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--ink3);letter-spacing:1px}
-.meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:12px;padding:0 2px}
+.secbox{margin-top:12px;border:1px solid var(--line2);border-radius:8px;padding:11px 13px;font-family:var(--mono);font-size:11px;display:none}
+.secbox.show{display:block}
+.secbox.ok{border-color:#bcd8c6;background:rgba(26,127,75,.06)}
+.secbox.warn{border-color:#e6c2a0;background:rgba(169,129,42,.08)}
+.secbox.bad{border-color:#e2b0ab;background:rgba(168,50,42,.08)}
+.secbox .hd{display:flex;align-items:center;gap:7px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.secbox.ok .hd{color:var(--green-d)}.secbox.warn .hd{color:var(--gold)}.secbox.bad .hd{color:var(--red)}
+.secbox .grid{display:flex;gap:16px;flex-wrap:wrap;color:var(--ink2)}
+.secbox .grid b{color:var(--ink)}
+.meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:12px;padding:0 2px;gap:8px}
 .act{margin-top:14px}
 .act .btn{width:100%;padding:15px;font-size:13px}
 .status{margin-top:12px;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink2);text-align:center;word-break:break-word;min-height:16px}
 .status a{color:var(--green-d);text-decoration:underline}
 .status.err{color:var(--red)}
-.note{max-width:460px;margin:16px auto 0;font-family:var(--mono);font-size:11px;color:var(--ink3);text-align:center;line-height:1.7}
+.note{max-width:470px;margin:14px auto 0;font-family:var(--mono);font-size:11px;color:var(--ink3);text-align:center;line-height:1.7;display:flex;gap:7px;align-items:flex-start;justify-content:center}
+.note .ic{color:var(--green-d);flex:none;margin-top:2px}
 .settings{display:none;padding:12px 20px 0}
 .settings.open{display:block}
-.settings .r{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--ink2);margin-bottom:10px}
+.settings .r{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--ink2);margin-bottom:10px;flex-wrap:wrap}
 .slip{display:flex;gap:6px}
 .slip button{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);background:var(--card);border-radius:5px;padding:5px 9px;cursor:pointer;color:var(--ink2)}
 .slip button.on{border-color:var(--green-d);color:var(--green-d);background:rgba(26,127,75,.08)}
 .slip input{width:56px;font-family:var(--mono);font-size:12px;border:1px solid var(--line2);border-radius:5px;padding:5px 7px;text-align:right}
-/* modal */
 .modal{position:fixed;inset:0;background:rgba(20,18,10,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal.open{display:flex}
-.modalcard{width:min(420px,94vw);background:var(--card);border:1px solid var(--line2);border-radius:10px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
-.modalcard h3{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
-.modalcard h3 span{cursor:pointer;color:var(--ink3)}
-.modalcard .search{margin:14px 18px 6px;display:flex;gap:8px}
-.modalcard .search input{flex:1;font-family:var(--mono);font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:10px 12px}
+.modalcard{width:min(430px,94vw);background:var(--card);border:1px solid var(--line2);border-radius:10px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
+.modalcard h3{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modalcard h3 button{background:none;border:0;cursor:pointer;color:var(--ink3);font-size:16px;display:flex}
+.modalcard .search{margin:14px 18px 6px}
+.modalcard .search input{width:100%;font-family:var(--mono);font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:10px 12px}
 .toklist{overflow:auto;padding:6px 10px 14px}
-.tokitem{display:flex;align-items:center;gap:11px;padding:11px 8px;border-radius:7px;cursor:pointer}
+.tokitem{display:flex;align-items:center;gap:11px;padding:10px 8px;border-radius:7px;cursor:pointer}
 .tokitem:hover{background:var(--paper)}
-.tokitem .ph{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700}
+.tokitem .avatar{width:32px;height:32px;font-size:13px}
 .tokitem .nm{font-weight:700}
 .tokitem .ad{font-family:var(--mono);font-size:10px;color:var(--ink3)}
 footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;background:var(--paper2)}
@@ -100,7 +113,7 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute"><defs>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <symbol id="seal" viewBox="0 0 200 200">
     <defs><path id="arcTop" d="M 36 100 A 64 64 0 0 1 164 100"/><path id="arcBot" d="M 34 100 A 66 66 0 0 0 166 100"/></defs>
     <g stroke="#1a7f4b" fill="none"><circle cx="100" cy="100" r="94" stroke-width="2.5"/><circle cx="100" cy="100" r="86" stroke-width="1"/></g>
@@ -112,10 +125,18 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
       <g stroke="#1a7f4b" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M -18 12 L -18 -6 L -11 -18 L -5 -8 L 5 -8 L 11 -18 L 18 -6 L 18 12 Z"/><path d="M 18 12 C 26 6 26 -4 20 -6"/><circle cx="-7" cy="-1" r="1.4" fill="#1a7f4b"/><circle cx="7" cy="-1" r="1.4" fill="#1a7f4b"/><path d="M -2 4 L 0 6 L 2 4"/><path d="M -1 6 L -1 9 M 1 6 L 1 9"/></g>
     </g>
   </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M8 4v14M8 18l-3-3M8 18l3-3M16 20V6M16 6l-3 3M16 6l3 3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-fire" viewBox="0 0 24 24"><path d="M13 3c.6 3-2.4 4-2.4 7.2 0 1 .6 1.7 1.4 1.7.9 0 1.4-.8 1.2-1.9 1.7 1 2.8 2.7 2.8 4.6a5 5 0 11-10 0c0-2.5 1.8-4 2.6-5.6C9.4 7.2 11 5.2 13 3z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9.5 16.5H2.5L12 3z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="17" r=".7" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6L21 21"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h5"/></symbol>
 </defs></svg>
 
 <nav><div class="navin">
-  <a class="brand" href="/"><svg viewBox="0 0 200 200"><use href="#seal"/></svg>CashCats <span class="llc">LLC</span></a>
+  <a class="brand" href="/"><svg class="seal" viewBox="0 0 200 200"><use href="#seal"/></svg>CashCats <span class="llc">LLC</span></a>
   <div class="nav-links"><a href="/">Home</a><a href="/#swap">Buy&nbsp;&amp;&nbsp;Burn</a><a href="/pfp/">PFP</a><a href="/memes.html">Memes</a></div>
   <button class="btn" id="connectTop">Connect</button>
 </div></nav>
@@ -123,13 +144,13 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
 <header class="head"><div class="wrap">
   <div class="filed">Exhibit E · Trading Desk</div>
   <h1>CashCats <span class="llc">Swap</span></h1>
-  <p class="sub">Buy or sell any token on Robinhood Chain. Every routing fee buys back and burns $CASHCATSLLC.</p>
+  <p class="sub">Buy or sell any token on Robinhood Chain — with a GoPlus safety check and a transaction simulation before you sign. Fees buy back and burn $CASHCATSLLC.</p>
 </div></header>
 
 <main><div class="swapcard">
   <div class="swaphead">
     <span class="t">Swap</span>
-    <button class="gear" id="gear">⚙ Slippage</button>
+    <button class="gear" id="gear" title="Settings"><svg class="ic"><use href="#i-gear"/></svg></button>
   </div>
   <div class="settings" id="settings">
     <div class="r">Slippage
@@ -144,26 +165,28 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
       <div class="lab"><span>You pay</span><span class="bal" id="balFrom">—</span></div>
       <div class="tokline">
         <input class="amt" id="amtIn" inputmode="decimal" placeholder="0.0"/>
-        <button class="tokbtn" id="pickFrom"><span class="ph" id="phFrom">◈</span><span class="sym" id="symFrom">ETH</span> ▾</button>
+        <button class="tokbtn" id="pickFrom"><span class="avatar" id="avFrom"></span><span class="sym" id="symFrom">ETH</span><span class="chev">▼</span></button>
       </div>
     </div>
-    <div class="switch"><button id="flip">⇅</button></div>
+    <div class="switch"><button id="flip" title="Flip"><svg class="ic" style="width:18px;height:18px"><use href="#i-swap"/></svg></button></div>
     <div class="tokrow">
       <div class="lab"><span>You receive</span><span class="bal" id="balTo">—</span></div>
       <div class="tokline">
         <input class="amt" id="amtOut" placeholder="0.0" readonly/>
-        <button class="tokbtn" id="pickTo"><span class="ph" id="phTo">🐱</span><span class="sym" id="symTo">CASHCATSLLC</span> ▾</button>
+        <button class="tokbtn" id="pickTo"><span class="avatar" id="avTo"></span><span class="sym" id="symTo">CASHCATSLLC</span><span class="chev">▼</span></button>
       </div>
     </div>
 
-    <div class="burnline" id="burnBox">
-      <div class="cap">🔥 The bigger the buy, the bigger the burn</div>
+    <div class="burnline">
+      <div class="cap"><svg class="ic"><use href="#i-fire"/></svg> The bigger the buy, the bigger the burn</div>
       <div class="flames" id="flames"></div>
       <div class="amt2" id="burnEst" style="font-size:22px">≈ 0 <small>$CASHCATSLLC burned</small></div>
     </div>
 
+    <div class="secbox" id="secbox"><div class="hd" id="secHd"></div><div class="grid" id="secGrid"></div></div>
+
     <div class="meta">
-      <span id="rate">1 — = — </span>
+      <span id="rate">1 — = —</span>
       <span id="feeInfo">fee 1.0% → burn</span>
     </div>
 
@@ -172,86 +195,150 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
   </div>
 </div></main>
 
-<p class="note">CashCats Swap routes through Robinhood Chain's on-chain liquidity (Uniswap v3 · SwapRouter02). You hold your keys; trades execute from your own wallet. Memecoins are volatile — set slippage sensibly and only trade what you can lose. Not affiliated with Robinhood Markets.</p>
+<p class="note"><svg class="ic"><use href="#i-shield"/></svg><span>Non-custodial — trades run from your own wallet through Robinhood Chain's on-chain liquidity (Uniswap v3). Approvals are for the exact amount only, every swap is simulated first, and the token is scanned by GoPlus. Memecoins are volatile; only trade what you can lose.</span></p>
 
 <footer><div class="wrap">
   <div class="socials">
     <a href="/">Home</a>
     <a href="https://x.com/i/communities/1952824333966970935" target="_blank" rel="noopener">X Community</a>
     <a href="https://t.me/cashcatsllc" target="_blank" rel="noopener">Telegram</a>
-    <a href="https://www.robinlab.io" target="_blank" rel="noopener">Robin Labs</a>
   </div>
-  <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value. Nothing here is financial advice. Buy &amp; burn is funded by voluntary routing fees.</p>
+  <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value. Nothing here is financial advice. Buy &amp; burn is funded by voluntary routing fees. Safety scan by GoPlus is informational, not a guarantee.</p>
 </div></footer>
 
-<!-- token picker modal -->
 <div class="modal" id="modal"><div class="modalcard">
-  <h3>Select a token <span id="modalX">✕</span></h3>
-  <div class="search"><input id="tokSearch" placeholder="Paste any token address (0x…) or search"/></div>
+  <h3>Select a token <button id="modalX"><svg class="ic"><use href="#i-x"/></svg></button></h3>
+  <div class="search"><input id="tokSearch" placeholder="Search name / symbol, or paste any 0x… address"/></div>
   <div class="toklist" id="toklist"></div>
 </div></div>
 
 <script src="/assets/ethers.min.js"></script>
 <script>
+const TOKENS=[
+  {addr:"0x0000000000000000000000000000000000000000",sym:"ETH",name:"Ether (native)",dec:18,logo:"/assets/tok/0x0000000000000000000000000000000000000000.png"},
+  {addr:"0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc",sym:"CASHCATSLLC",name:"CashCats LLC",dec:18,logo:"/assets/cashcat.png"},
+  {addr:"0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",sym:"WETH",name:"Wrapped Ether",dec:18,logo:"/assets/tok/0x0bd7d308f8e1639fab988df18a8011f41eacad73.png"},
+  {addr:"0x020bfc650a365f8bb26819deaabf3e21291018b4",sym:"CASHCAT",name:"Cash Cat",dec:18,logo:"/assets/tok/0x020bfc650a365f8bb26819deaabf3e21291018b4.png"},
+  {addr:"0x2ec89afba136119c5252fc47d14e2bd2144b10d2",sym:"DTF",name:"Down to Finance",dec:9,logo:"/assets/tok/0x2ec89afba136119c5252fc47d14e2bd2144b10d2.png"},
+  {addr:"0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",sym:"NVDA",name:"NVIDIA • Robinhood Token",dec:18,logo:"/assets/tok/0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec.png"},
+  {addr:"0x39dbed3a2bd333467115de45665cc57f813c4571",sym:"PONS",name:"Pons",dec:18,logo:"/assets/tok/0x39dbed3a2bd333467115de45665cc57f813c4571.png"},
+  {addr:"0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",sym:"SPCX",name:"Space Exploration Technologies Corp. Class A Common Stock • Robinhood Token",dec:18,logo:"/assets/tok/0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea.png"},
+  {addr:"0x2ec5cc87c9a3231bffbbf788ca9182ebd1d64fc4",sym:"TRUTH",name:"Truth Coin",dec:9,logo:"/assets/tok/0x2ec5cc87c9a3231bffbbf788ca9182ebd1d64fc4.png"},
+  {addr:"0x5fc5360d0400a0fd4f2af552add042d716f1d168",sym:"USDG",name:"Global Dollar",dec:6,logo:"/assets/tok/0x5fc5360d0400a0fd4f2af552add042d716f1d168.png"},
+  {addr:"0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31",sym:"VIRTUAL",name:"Virtuals Protocol",dec:18,logo:"/assets/tok/0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31.png"},
+  {addr:"0x0134257437bb9f8d93cce4531886a4d7f5a8b0d4",sym:"4663",name:"4663",dec:18,logo:null},
+  {addr:"0x0116604cc0313ea870b0485d081933f5f93939ce",sym:"Axelus",name:"0xa2_4b2c Is Fighting In Axelus",dec:18,logo:null},
+  {addr:"0x00ca891b116f39b33b945180261da6e3f9215ede",sym:"Axelus",name:"0xbe_2E23 Is Fighting In Axelus",dec:18,logo:null},
+  {addr:"0x013d2ffa0050d84671597e2327e07a846f46511f",sym:"AXON",name:"Axon",dec:18,logo:null},
+  {addr:"0x00c0f35a0ced35a789b01d09d7ee31dbe9219823",sym:"ballistic",name:"ballistic",dec:18,logo:null},
+  {addr:"0x012a9828f49accd0b41a0094a402d7e20b8623c7",sym:"Bella",name:"The Alpha Inu",dec:18,logo:null},
+  {addr:"0x0127cde7981850214596c3ab8f26b33be3e66569",sym:"Benjumin",name:"The Promised Arrest",dec:18,logo:null},
+  {addr:"0x0122b6c6bf5578a39d1dfb947880b796ce6aa61e",sym:"betANSEM",name:"ansem.bet",dec:18,logo:null},
+  {addr:"0x0126e7489bc6e520b648bd9cca6b85bc7a0c0679",sym:"BJ²",name:"Brian Johnson²",dec:18,logo:null},
+  {addr:"0x071e9f718398fb555aa9ef05cfae0130bd331720",sym:"BUY",name:"BUY",dec:18,logo:null},
+  {addr:"0x00c7b534aeb97b293b9f0fce782b00f6b52f705b",sym:"c@",name:"c@",dec:18,logo:null},
+  {addr:"0x00ed5d3d87be0617909dea99d71d45ce3a173bd9",sym:"Calitures",name:"Dreamco",dec:18,logo:null},
+  {addr:"0x00eb23cc4cc35179746474c291d74a7bdbe1ec43",sym:"CASHDOG",name:"real cashdog",dec:18,logo:null},
+  {addr:"0x925b95a174c49770e97e499402413bfe6d9c1b64",sym:"CATALYST",name:"Hood Catalyst",dec:18,logo:null},
+  {addr:"0x0a77a31b46ad66cc147baa7dc8e65aba8593a019",sym:"CATGAME",name:"Cat Butler Game",dec:18,logo:null},
+  {addr:"0x0151d09ff876cd236d6b396e372661cf050520e6",sym:"CDNS",name:"Cadence",dec:18,logo:null},
+  {addr:"0x010f81a6fd8ff83ef49507e62eaacdfb62839df7",sym:"CHAD",name:"READ WSB OG DOXXED CTOING WSB MASCOT PREVIOUS GME STOCK 500B",dec:18,logo:null},
+  {addr:"0x014dfc300f97c6ec06c19f6c95de7cea3b5c3b32",sym:"CHAD",name:"OG PAULY CTOING READ READ",dec:18,logo:null},
+  {addr:"0x0187c750a76678905a73d13e11b8b95392ed20f5",sym:"Chris",name:"The Arkansas Spiderman",dec:18,logo:null},
+  {addr:"0x00c1b62b7a26c8ed5b294a1bd344711e49910898",sym:"CRICKET",name:"Cricket",dec:18,logo:null},
+  {addr:"0x00fcac236de9b82ceb731a013bddbfe166edeb52",sym:"CUTE",name:"cutecoin",dec:18,logo:null},
+  {addr:"0x00f53a7274f420dd30c368e5e7e11dca64088723",sym:"Drillbutt",name:"Drillbutt",dec:18,logo:null},
+  {addr:"0xee5576fa1bcaa380e591d01245f406f3f384eb01",sym:"DTF",name:"Down to Finance",dec:18,logo:null},
+  {addr:"0x00cdd126d00449f7d93e5d644c664c6cdcd772a7",sym:"Elk",name:"The Indomitable Elk",dec:18,logo:null},
+  {addr:"0x00fb2f312da8dfaac9c8c1ac51402db1fd9d48c7",sym:"Elon",name:"The Popperian Elon",dec:18,logo:null},
+  {addr:"0x00d9ed94e7dd9ec8eb4980ba944ffe84793ea235",sym:"FAVORITE",name:"favorite token",dec:18,logo:null},
+  {addr:"0x00f1b182df4dbba29a66b981ff824c852feda9bc",sym:"FKR",name:"Flying Ketamine Rhino",dec:18,logo:null},
+  {addr:"0x00d7816af3d000bd5dec0040c3a484553f0d2ec9",sym:"FUNY",name:"i thought this was funny",dec:18,logo:null},
+  {addr:"0x01545baf1a67cd43a2c044b568c0fb662f53bf67",sym:"GONE",name:"gas paid my freedom gone",dec:18,logo:null},
+  {addr:"0x577e5a00b8d204c820b1c5ad4f46742763cc0d17",sym:"Honk",name:"Honk",dec:18,logo:null},
+  {addr:"0x01d38fbf23536657d06daa5cdb4d8012b096e260",sym:"KDP",name:"Keurig Dr Pepper",dec:18,logo:null},
+  {addr:"0x282baf42b2a50bffd00d0b8755146d2ebb8a957b",sym:"MARTIANS",name:"MARTIANS",dec:9,logo:null},
+  {addr:"0xac77646bcff9d52e99800534192e0290933f4094",sym:"MARTIANS",name:"Martians",dec:18,logo:null},
+  {addr:"0x01572d5f56a4ec435f2b1d1030a1fd5dcb357fe2",sym:"MEEKY",name:"The Sidewalk Sentinel",dec:18,logo:null},
+  {addr:"0x00f8d308463fec6e40d7e5a882861dbb496d7dc0",sym:"Mili",name:"Milani",dec:18,logo:null},
+  {addr:"0x0101cec4135ea7fcec944a9265770cca0adef08f",sym:"Nice",name:"Nice Coin",dec:18,logo:null},
+  {addr:"0x1d0f6ecceb0e8620240a2fe8612885d26c7137e8",sym:"NYABAI",name:"NYABAI",dec:18,logo:null},
+  {addr:"0x00eac0b83fe1d2287edea0324b4cc5204af2d1e7",sym:"ON",name:"i am permanently online",dec:18,logo:null},
+  {addr:"0x00d02acb6ab79c0c5f367ce2dd2a019bce3475ec",sym:"OTTR",name:"OTTR PEPE",dec:18,logo:null},
+  {addr:"0x018a657728e6dd16a02b42199f8f5c83b01123ad",sym:"PEACE",name:"PEACE",dec:18,logo:null},
+  {addr:"0x9784e010f762666508cc1983b65ec760eda155db",sym:"PEPONS",name:"Pepons by Pons",dec:18,logo:null},
+  {addr:"0x00c66a4bbcb364aec3b75be66d2032ec8e48a506",sym:"PEPORPHEUS",name:"Peporpheus",dec:18,logo:null},
+  {addr:"0x00e1337f944ca9c1a481d277974be3895a689bb7",sym:"PROGRAMMER",name:"The Programmer",dec:18,logo:null},
+  {addr:"0x00c3d10095e92520c7aa31fb42b14eebb76d0ac7",sym:"Puh",name:"0x01_FfD6 Just Bought Puh",dec:18,logo:null},
+  {addr:"0xd2108bc3daeac52baf8065060ee7c6012f5afee1",sym:"QUANTA",name:"Quanta Compute",dec:18,logo:null},
+  {addr:"0x3568b3d52d4502671ad577aaa1058307077d22b5",sym:"R081NH00D",name:"R081NH00D",dec:18,logo:null},
+  {addr:"0x00d7bcbb7832a18160955fcd6634fd7886fdd217",sym:"Radiance",name:"Nietzschean Radiance",dec:18,logo:null},
+  {addr:"0x013a3eae9650ba5502daf937805e362a78180473",sym:"RELATED",name:"related",dec:18,logo:null},
+  {addr:"0x00cb8e330919a7cb2fab15b57d8645f9b0f3606d",sym:"Sasquatch",name:"The 300-Pound Sasquatch",dec:18,logo:null},
+  {addr:"0x0165b502f12945f615a02f409c9f3387525e8390",sym:"Screen",name:"Mind Manipulating Screen",dec:18,logo:null},
+  {addr:"0x01c51d2fc63d6dbd38082d3b7c3617b3339c4bbb",sym:"SHITTER",name:"The Nietzschean Shitter",dec:18,logo:null},
+  {addr:"0x0121aaae2d9c5f7f6694f2b8d00abca03319dd67",sym:"son",name:"son 😭😭😭😭😭",dec:18,logo:null},
+  {addr:"0x3ce29e3c4876e656a28d5f28bc222d314408f17d",sym:"VladOS",name:"VladOS",dec:18,logo:null},
+  {addr:"0x013684d40e336d1947ecb3af52f065804b6b7e61",sym:"X",name:"I Love X",dec:18,logo:null},
+  {addr:"0x585b2734741f963c838899e892b10fbe799ac938",sym:"ZOE",name:"Zoe",dec:18,logo:null},
+  {addr:"0x01412e49fe05abc588b4ab4e53aeb8c4c0c7ae4f",sym:"ᵗᵒᵃᵈ",name:"ᵗᵒᵃᵈ",dec:18,logo:null},
+  {addr:"0x01b66971243f07ec6d338143c7144c0d7fbff3d2",sym:"⚠️READ ⚠️",name:"TROLL DEV LAUNCHED 1",dec:18,logo:null},
+  {addr:"0x0107ad33b6e2b4b84bbb4487151fb39b8ae7acf2",sym:"哈宝",name:"Chinese Haaland",dec:18,logo:null},
+  {addr:"0x0133525798e6cdcf935881c491103087e7722525",sym:"狩り",name:"Lovot",dec:18,logo:null},
+  {addr:"0x014b117c034837a70c64357cfe839cb645576da8",sym:"이시짱",name:"Unidentified Flying Seal",dec:18,logo:null},
+  {addr:"0x01d1bae8ae9a4db97fabbfe77acf77efecc8672c",sym:"짧은",name:"The Big Short",dec:18,logo:null}
+];
 const E=window.ethers;
 const CHAIN={id:4663n,hex:"0x1237",name:"Robinhood Chain",rpc:"https://rpc.mainnet.chain.robinhood.com",explorer:"https://robinhoodchain.blockscout.com",symbol:"ETH"};
 const WETH="0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73";
-const ROUTER="0xcaf681a66d020601342297493863e78c959e5cb2";   // SwapRouter02
-const QUOTER="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7";   // QuoterV2
+const ROUTER="0xcaf681a66d020601342297493863e78c959e5cb2";
+const QUOTER="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7";
 const CASHCATSLLC="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc";
 const FEE_TIERS=[10000,3000,500,100];
-const FEE_BPS=100n;                 // 1% routing fee
-const TREASURY=null;                // set to the buy&burn treasury/FeeRouter once deployed; null = fee off, swap still works
-const NATIVE="0x0000000000000000000000000000000000000000"; // sentinel for native ETH in our UI
+const FEE_BPS=100n;
+const TREASURY=null;
+const NATIVE="0x0000000000000000000000000000000000000000";
 const ADDRESS_THIS="0x0000000000000000000000000000000000000002";
-const ERC20_ABI=["function name() view returns (string)","function symbol() view returns (string)","function decimals() view returns (uint8)","function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
+const GOPLUS="https://api.gopluslabs.io/api/v1/token_security/4663?contract_addresses=";
+const ERC20_ABI=["function symbol() view returns (string)","function decimals() view returns (uint8)","function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
 const QUOTER_ABI=["function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)"];
 const ROUTER_ABI=["function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)","function unwrapWETH9(uint256 amountMinimum,address recipient) payable","function multicall(bytes[] data) payable returns (bytes[])"];
 
-const TOKENS=[
-  {addr:NATIVE, sym:"ETH", name:"Ether (native)", dec:18, ph:"◈"},
-  {addr:CASHCATSLLC, sym:"CASHCATSLLC", name:"CashCats LLC", dec:18, ph:"🐱"},
-  {addr:WETH, sym:"WETH", name:"Wrapped Ether", dec:18, ph:"Ξ"},
-];
 const $=id=>document.getElementById(id);
-let provider=null, signer=null, account=null;
-let readRpc=new E.JsonRpcProvider(CHAIN.rpc, Number(CHAIN.id));
-let from=TOKENS[0], to=TOKENS[1], slippage=500n, pickWhich="from";
-let quote=null, quoteFee=null, quoting=false;
+let provider=null,signer=null,account=null;
+let readRpc=new E.JsonRpcProvider(CHAIN.rpc,Number(CHAIN.id));
+let from=TOKENS[0],to=TOKENS[1],slippage=500n,pickWhich="from";
+let quote=null,quoteFee=null,quoting=false,secToken=null;
 
 function short(a){return a.slice(0,6)+"…"+a.slice(-4);}
-function tokMeta(t){return {addr:t.addr,sym:t.sym,dec:t.dec,ph:t.ph||"◆"};}
-function isNative(t){return t.addr===NATIVE;}
+function isNative(t){return t.addr.toLowerCase()===NATIVE;}
 function wrapped(t){return isNative(t)?WETH:t.addr;}
+function mono(sym){return (sym||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,3).toUpperCase()||"◆";}
+function avatarHTML(t){ return t.logo?'<img src="'+t.logo+'" alt="" onerror="this.replaceWith(document.createTextNode(\''+mono(t.sym)+'\'))">':mono(t.sym); }
+function setAvatar(el,t){ el.innerHTML=avatarHTML(t); }
 
 function renderTokBtns(){
-  $("symFrom").textContent=from.sym; $("phFrom").textContent=from.ph||"◆";
-  $("symTo").textContent=to.sym; $("phTo").textContent=to.ph||"◆";
+  $("symFrom").textContent=from.sym; setAvatar($("avFrom"),from);
+  $("symTo").textContent=to.sym; setAvatar($("avTo"),to);
 }
 async function refreshBalances(){
   for(const [t,el] of [[from,"balFrom"],[to,"balTo"]]){
     if(!account){$(el).textContent="—";continue;}
     try{
-      let bal;
-      if(isNative(t)) bal=await readRpc.getBalance(account);
-      else bal=await new E.Contract(t.addr,ERC20_ABI,readRpc).balanceOf(account);
+      let bal=isNative(t)?await readRpc.getBalance(account):await new E.Contract(t.addr,ERC20_ABI,readRpc).balanceOf(account);
       $(el).textContent="Bal "+(+E.formatUnits(bal,t.dec)).toLocaleString(undefined,{maximumFractionDigits:5});
       $(el).dataset.raw=bal.toString();
     }catch(e){$(el).textContent="—";}
   }
 }
-
 async function connect(){
-  if(!window.ethereum){setStatus("No wallet found. Install a Robinhood-Chain compatible wallet (e.g. MetaMask) and add the network.",true);return;}
+  if(!window.ethereum){setStatus("No wallet found. Install a wallet that supports custom EVM chains, then connect.",true);return;}
   try{
     provider=new E.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts",[]);
     await ensureChain();
-    signer=await provider.getSigner();
-    account=await signer.getAddress();
-    $("connectTop").textContent=short(account);
-    setStatus("");
-    refreshBalances(); updateQuote();
+    signer=await provider.getSigner(); account=await signer.getAddress();
+    $("connectTop").textContent=short(account); setStatus(""); refreshBalances(); updateQuote();
   }catch(e){setStatus(err(e),true);}
 }
 async function ensureChain(){
@@ -260,156 +347,159 @@ async function ensureChain(){
     if(cid.toLowerCase()===CHAIN.hex) return;
     await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN.hex}]});
   }catch(e){
-    if(e.code===4902||/Unrecognized chain/i.test(e.message||"")){
-      await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
-        chainId:CHAIN.hex, chainName:CHAIN.name, nativeCurrency:{name:"Ether",symbol:CHAIN.symbol,decimals:18},
-        rpcUrls:[CHAIN.rpc], blockExplorerUrls:[CHAIN.explorer]}]});
+    if(e.code===4902||/Unrecognized|not been added/i.test(e.message||"")){
+      await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN.hex,chainName:CHAIN.name,nativeCurrency:{name:"Ether",symbol:CHAIN.symbol,decimals:18},rpcUrls:[CHAIN.rpc],blockExplorerUrls:[CHAIN.explorer]}]});
     } else throw e;
   }
 }
-
 async function updateQuote(){
-  quote=null; quoteFee=null; $("amtOut").value=""; renderBurn(0);
-  const raw=$("amtIn").value.trim();
-  const amt=parseFloat(raw);
-  if(!raw||!(amt>0)){ setSwapBtn(); return; }
-  if(from.addr===to.addr||wrapped(from)===wrapped(to)){ $("rate").textContent="same token"; setSwapBtn(); return; }
-  let amountIn;
-  try{ amountIn=E.parseUnits(raw,from.dec); }catch(e){ return; }
-  quoting=true; setSwapBtn(); $("rate").textContent="finding best route…";
-  let best=null;
-  const q=new E.Contract(QUOTER,QUOTER_ABI,readRpc);
+  quote=null;quoteFee=null;$("amtOut").value="";renderBurn(0);
+  const raw=$("amtIn").value.trim(),amt=parseFloat(raw);
+  if(!raw||!(amt>0)){setSwapBtn();return;}
+  if(wrapped(from).toLowerCase()===wrapped(to).toLowerCase()){$("rate").textContent="same token";setSwapBtn();return;}
+  let amountIn;try{amountIn=E.parseUnits(raw,from.dec);}catch(e){return;}
+  quoting=true;setSwapBtn();$("rate").textContent="finding best route…";
+  let best=null;const q=new E.Contract(QUOTER,QUOTER_ABI,readRpc);
   for(const fee of FEE_TIERS){
-    try{
-      const r=await q.quoteExactInputSingle.staticCall({tokenIn:wrapped(from),tokenOut:wrapped(to),amountIn,fee,sqrtPriceLimitX96:0});
-      const out=r[0];
-      if(out>0n && (!best||out>best.out)) best={out,fee};
-    }catch(e){/* no pool at this tier */}
+    try{const r=await q.quoteExactInputSingle.staticCall({tokenIn:wrapped(from),tokenOut:wrapped(to),amountIn,fee,sqrtPriceLimitX96:0});
+      if(r[0]>0n&&(!best||r[0]>best.out))best={out:r[0],fee};}catch(e){}
   }
   quoting=false;
-  if(!best){ $("amtOut").value=""; $("rate").textContent="no liquidity route found"; setSwapBtn(); return; }
-  quote=best.out; quoteFee=best.fee;
-  const outNum=+E.formatUnits(best.out,to.dec);
+  if(!best){$("amtOut").value="";$("rate").textContent="no liquidity route found";setSwapBtn();return;}
+  quote=best.out;quoteFee=best.fee;
+  const outNum=+E.formatUnits(best.out,to.dec),inNum=+raw;
   $("amtOut").value=outNum.toLocaleString(undefined,{maximumFractionDigits:6});
-  const inNum=+raw;
   $("rate").textContent="1 "+from.sym+" ≈ "+(outNum/inNum).toLocaleString(undefined,{maximumSignificantDigits:5})+" "+to.sym;
-  $("feeInfo").textContent="fee "+(Number(FEE_BPS)/100)+"% → burn · pool "+(best.fee/10000)+"%";
-  renderBurnFromTrade(inNum, outNum);
-  setSwapBtn();
+  $("feeInfo").textContent="fee "+(Number(FEE_BPS)/100)+"% · pool "+(best.fee/10000)+"%";
+  renderBurnFromTrade(inNum,outNum); setSwapBtn(); runSecurity();
 }
-
-// "bigger buy → bigger burn": scale a readout + flames with the routed fee value
 function renderBurnFromTrade(inNum,outNum){
-  // fee slice buys back CASHCATSLLC. Estimate burned CASHCATSLLC ≈ feeShare of the output when buying it,
-  // otherwise feeShare of input value (shown in the traded token's terms as a proxy).
-  const feeShare=Number(FEE_BPS)/10000;
-  let burned, unit;
-  if(wrapped(to)===CASHCATSLLC.toLowerCase()||to.addr.toLowerCase()===CASHCATSLLC.toLowerCase()){
-    burned=outNum*feeShare; unit="$CASHCATSLLC burned";
-  } else {
-    burned=inNum*feeShare; unit=from.sym+" → buys & burns";
-  }
+  const feeShare=Number(FEE_BPS)/10000;let burned,unit;
+  if(to.addr.toLowerCase()===CASHCATSLLC.toLowerCase()){burned=outNum*feeShare;unit="$CASHCATSLLC burned";}
+  else{burned=inNum*feeShare;unit=from.sym+" → buys & burns";}
   renderBurn(burned,unit);
 }
 function renderBurn(v,unit){
-  const box=$("burnEst"), fl=$("flames");
-  if(!v||v<=0){ box.style.fontSize="22px"; box.innerHTML='≈ 0 <small>$CASHCATSLLC burned</small>'; fl.textContent=""; return; }
-  // font size grows with log of value; flames grow with magnitude
+  const box=$("burnEst"),fl=$("flames");
+  if(!v||v<=0){box.style.fontSize="22px";box.innerHTML='≈ 0 <small>$CASHCATSLLC burned</small>';fl.innerHTML="";return;}
   const mag=Math.max(0,Math.log10(v+1));
   box.style.fontSize=Math.min(46,22+mag*7)+"px";
-  const n=Math.max(1,Math.min(8,Math.round(mag)+1));
-  fl.textContent="🔥".repeat(n);
+  const n=Math.max(1,Math.min(7,Math.round(mag)+1));
+  fl.innerHTML=('<svg class="ic" style="width:15px;height:15px"><use href="#i-fire"/></svg>').repeat(n);
   const disp=v>=1?v.toLocaleString(undefined,{maximumFractionDigits:2}):v.toPrecision(2);
   box.innerHTML="≈ "+disp+" <small>"+(unit||"$CASHCATSLLC burned")+"</small>";
 }
-
-function minOut(){ return quote - (quote*slippage)/10000n; }
+// GoPlus token security on the token you're buying
+async function runSecurity(){
+  const t=to; const box=$("secbox");
+  if(isNative(t)||t.addr.toLowerCase()===WETH.toLowerCase()){box.className="secbox";return;}
+  if(secToken===t.addr){return;} secToken=t.addr;
+  box.className="secbox show";box.querySelector(".hd").innerHTML='<svg class="ic"><use href="#i-shield"/></svg> Scanning '+t.sym+' …';box.querySelector(".grid").innerHTML="";
+  try{
+    const r=await fetch(GOPLUS+t.addr.toLowerCase()); const d=await r.json();
+    const s=(d.result||{})[t.addr.toLowerCase()];
+    if(secToken!==t.addr) return;
+    if(!s){setSec("warn","i-alert","Not yet indexed","No GoPlus data for this token yet — trade with extra caution.");return;}
+    const bt=(parseFloat(s.buy_tax||"0")*100),st=(parseFloat(s.sell_tax||"0")*100);
+    const honey=s.is_honeypot==="1"||s.cannot_sell_all==="1"||s.transfer_pausable==="1"&&s.is_open_source==="0";
+    const grid='<span>Buy tax <b>'+bt.toFixed(1)+'%</b></span><span>Sell tax <b>'+st.toFixed(1)+'%</b></span>'
+      +'<span>Honeypot <b>'+(s.is_honeypot==="1"?"YES":"no")+'</b></span>'
+      +'<span>Sellable <b>'+(s.cannot_sell_all==="1"?"NO":"yes")+'</b></span>';
+    if(s.is_honeypot==="1"||s.cannot_sell_all==="1") setSec("bad","i-alert","Danger — may not be sellable",grid);
+    else if(bt>10||st>10||s.transfer_pausable==="1"||s.is_blacklisted==="1"||s.owner_change_balance==="1") setSec("warn","i-alert","Trade with caution",grid);
+    else setSec("ok","i-shield","Passed GoPlus basic checks",grid);
+  }catch(e){ if(secToken===t.addr) setSec("warn","i-alert","Safety scan unavailable","GoPlus did not respond — trade with caution."); }
+}
+function setSec(cls,icon,title,grid){
+  const box=$("secbox");box.className="secbox show "+cls;
+  box.querySelector(".hd").innerHTML='<svg class="ic"><use href="#'+icon+'"/></svg> '+title;
+  box.querySelector(".grid").innerHTML=grid.includes("<span")?grid:'<span>'+grid+'</span>';
+}
+function minOut(){return quote-(quote*slippage)/10000n;}
 function setSwapBtn(){
   const b=$("swapBtn");
-  if(!account){ b.disabled=false; b.textContent="Connect Wallet"; return; }
+  if(!account){b.disabled=false;b.textContent="Connect Wallet";return;}
   const amt=parseFloat($("amtIn").value);
-  if(!(amt>0)){ b.disabled=true; b.textContent="Enter an amount"; return; }
-  if(quoting){ b.disabled=true; b.textContent="Fetching price…"; return; }
-  if(!quote){ b.disabled=true; b.textContent="No route"; return; }
-  b.disabled=false; b.textContent=(isNative(from)?"Buy ":"Swap ")+to.sym;
+  if(!(amt>0)){b.disabled=true;b.textContent="Enter an amount";return;}
+  if(quoting){b.disabled=true;b.textContent="Fetching price…";return;}
+  if(!quote){b.disabled=true;b.textContent="No route";return;}
+  b.disabled=false;b.textContent=(isNative(from)?"Buy ":"Swap ")+to.sym;
 }
-
+function buildSwap(router,amountIn){
+  const p={tokenIn:wrapped(from),tokenOut:wrapped(to),fee:quoteFee,recipient:account,amountIn,amountOutMinimum:minOut(),sqrtPriceLimitX96:0};
+  if(isNative(to)){p.recipient=ADDRESS_THIS;
+    const c1=router.interface.encodeFunctionData("exactInputSingle",[p]);
+    const c2=router.interface.encodeFunctionData("unwrapWETH9",[minOut(),account]);
+    return {to:ROUTER,data:router.interface.encodeFunctionData("multicall",[[c1,c2]]),value:0n};
+  }
+  const data=router.interface.encodeFunctionData("exactInputSingle",[p]);
+  return {to:ROUTER,data,value:isNative(from)?amountIn:0n};
+}
 async function doSwap(){
-  if(!account){ connect(); return; }
-  if(!quote) return;
-  const b=$("swapBtn"); b.disabled=true;
+  if(!account){connect();return;}
+  if(!quote)return;
+  const b=$("swapBtn");b.disabled=true;
   try{
     const amountIn=E.parseUnits($("amtIn").value.trim(),from.dec);
     const router=new E.Contract(ROUTER,ROUTER_ABI,signer);
-    // approve ERC20 sells
+    // exact approval only (no infinite allowance)
     if(!isNative(from)){
-      setStatus("Checking allowance…");
       const erc=new E.Contract(from.addr,ERC20_ABI,signer);
       const cur=await erc.allowance(account,ROUTER);
       if(cur<amountIn){
-        setStatus("Approve "+from.sym+" in your wallet…");
-        const tx=await erc.approve(ROUTER,(2n**256n-1n));
-        await tx.wait();
+        setStatus("Approve "+from.sym+" (exact amount) in your wallet…");
+        const tx=await erc.approve(ROUTER,amountIn); await tx.wait();
       }
     }
-    const p={tokenIn:wrapped(from),tokenOut:wrapped(to),fee:quoteFee,recipient:account,amountIn,amountOutMinimum:minOut(),sqrtPriceLimitX96:0};
-    let tx;
-    setStatus("Confirm the swap in your wallet…");
-    if(isNative(to)){
-      // token -> ETH: swap to WETH held by router, then unwrap to user
-      p.recipient=ADDRESS_THIS;
-      const c1=router.interface.encodeFunctionData("exactInputSingle",[p]);
-      const c2=router.interface.encodeFunctionData("unwrapWETH9",[minOut(),account]);
-      tx=await router.multicall([c1,c2]);
-    } else if(isNative(from)){
-      tx=await router.exactInputSingle(p,{value:amountIn});
-    } else {
-      tx=await router.exactInputSingle(p);
-    }
+    // simulate before signing
+    setStatus("Simulating the swap…");
+    const call=buildSwap(router,amountIn);
+    try{ await signer.call({to:call.to,data:call.data,value:call.value}); }
+    catch(sim){ setStatus("Simulation failed — swap not sent. "+err(sim),true); b.disabled=false; return; }
+    setStatus("Simulation ✓ — confirm the swap in your wallet…");
+    const tx=await signer.sendTransaction({to:call.to,data:call.data,value:call.value});
     setStatus('Swapping… <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">view tx</a>');
     await tx.wait();
     setStatus('✓ Done — <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">'+short(tx.hash)+'</a>');
-    $("amtIn").value=""; updateQuote(); refreshBalances();
-  }catch(e){ setStatus(err(e),true); }
+    $("amtIn").value="";updateQuote();refreshBalances();
+  }catch(e){setStatus(err(e),true);}
   b.disabled=false;
 }
-function err(e){ const m=e?.info?.error?.message||e?.shortMessage||e?.message||String(e);
+function err(e){const m=e?.info?.error?.message||e?.shortMessage||e?.reason||e?.message||String(e);
   if(/insufficient funds/i.test(m))return"Insufficient funds for this trade + gas.";
   if(/user rejected|denied/i.test(m))return"Cancelled in wallet.";
-  return m.length>140?m.slice(0,140)+"…":m; }
-function setStatus(h,isErr){ const s=$("status"); s.innerHTML=h||""; s.className="status"+(isErr?" err":""); }
+  return m.length>150?m.slice(0,150)+"…":m;}
+function setStatus(h,isErr){const s=$("status");s.innerHTML=h||"";s.className="status"+(isErr?" err":"");}
 
-/* token picker */
-function openPicker(which){ pickWhich=which; $("tokSearch").value=""; renderTokList(TOKENS); $("modal").classList.add("open"); $("tokSearch").focus(); }
+function openPicker(which){pickWhich=which;$("tokSearch").value="";renderTokList(TOKENS.slice(0,60));$("modal").classList.add("open");$("tokSearch").focus();}
 function renderTokList(list){
-  const el=$("toklist"); el.innerHTML="";
-  list.forEach(t=>{
-    const d=document.createElement("div"); d.className="tokitem";
-    d.innerHTML='<div class="ph">'+(t.ph||"◆")+'</div><div><div class="nm">'+t.sym+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
-    d.onclick=()=>chooseToken(t); el.appendChild(d);
-  });
+  const el=$("toklist");el.innerHTML="";
+  list.forEach(t=>{const d=document.createElement("div");d.className="tokitem";
+    d.innerHTML='<span class="avatar">'+avatarHTML(t)+'</span><div><div class="nm">'+t.sym+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
+    d.onclick=()=>chooseToken(t);el.appendChild(d);});
 }
-async function chooseToken(t){
-  if(pickWhich==="from"){ if(wrapped(t)===wrapped(to)&&t.addr!==to.addr){} from=t; } else { to=t; }
-  // prevent identical
-  if(from.addr===to.addr){ if(pickWhich==="from") to=TOKENS.find(x=>x.addr!==from.addr); else from=TOKENS.find(x=>x.addr!==to.addr); }
-  $("modal").classList.remove("open"); renderTokBtns(); refreshBalances(); updateQuote();
+function chooseToken(t){
+  if(pickWhich==="from")from=t; else to=t;
+  if(from.addr.toLowerCase()===to.addr.toLowerCase()){
+    const other=TOKENS.find(x=>x.addr.toLowerCase()!==t.addr.toLowerCase());
+    if(pickWhich==="from")to=other; else from=other;
+  }
+  $("modal").classList.remove("open");secToken=null;$("secbox").className="secbox";
+  renderTokBtns();refreshBalances();updateQuote();
 }
 async function searchToken(q){
   q=q.trim();
   if(/^0x[a-fA-F0-9]{40}$/.test(q)){
-    try{
-      const c=new E.Contract(q,ERC20_ABI,readRpc);
-      const [sym,dec]=await Promise.all([c.symbol(),c.decimals()]);
-      renderTokList([{addr:E.getAddress(q),sym,name:sym,dec:Number(dec),ph:sym.slice(0,1)}]);
-    }catch(e){ $("toklist").innerHTML='<div class="tokitem"><div class="ad">Not an ERC-20 on this chain, or RPC busy.</div></div>'; }
-  } else {
-    const f=TOKENS.filter(t=>t.sym.toLowerCase().includes(q.toLowerCase())||t.name.toLowerCase().includes(q.toLowerCase()));
-    renderTokList(f.length?f:TOKENS);
+    const known=TOKENS.find(t=>t.addr.toLowerCase()===q.toLowerCase());
+    if(known){renderTokList([known]);return;}
+    try{const c=new E.Contract(q,ERC20_ABI,readRpc);const [sym,dec]=await Promise.all([c.symbol(),c.decimals()]);
+      renderTokList([{addr:E.getAddress(q),sym,name:sym,dec:Number(dec),logo:null}]);}
+    catch(e){$("toklist").innerHTML='<div class="tokitem"><div class="ad">Not an ERC-20 on this chain, or RPC busy.</div></div>';}
+  }else{
+    const f=TOKENS.filter(t=>t.sym.toLowerCase().includes(q.toLowerCase())||(t.name||"").toLowerCase().includes(q.toLowerCase()));
+    renderTokList((f.length?f:TOKENS).slice(0,60));
   }
 }
-
-// wire up
 $("connectTop").onclick=connect;
 $("swapBtn").onclick=doSwap;
 $("pickFrom").onclick=()=>openPicker("from");
@@ -417,14 +507,14 @@ $("pickTo").onclick=()=>openPicker("to");
 $("modalX").onclick=()=>$("modal").classList.remove("open");
 $("modal").onclick=e=>{if(e.target.id==="modal")$("modal").classList.remove("open");};
 $("tokSearch").addEventListener("input",e=>searchToken(e.target.value));
-$("flip").onclick=()=>{const t=from;from=to;to=t;renderTokBtns();$("amtIn").value="";refreshBalances();updateQuote();};
+$("flip").onclick=()=>{const t=from;from=to;to=t;secToken=null;$("secbox").className="secbox";renderTokBtns();$("amtIn").value="";refreshBalances();updateQuote();};
 $("gear").onclick=()=>$("settings").classList.toggle("open");
 document.querySelectorAll(".slip button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".slip button").forEach(x=>x.classList.remove("on"));b.classList.add("on");slippage=BigInt(Math.round(parseFloat(b.dataset.s)*100));$("slipIn").value="";});
 $("slipIn").addEventListener("input",e=>{const v=parseFloat(e.target.value);if(v>0){slippage=BigInt(Math.round(v*100));document.querySelectorAll(".slip button").forEach(x=>x.classList.remove("on"));}});
-let qt; $("amtIn").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(updateQuote,350);});
-$("balFrom").onclick=()=>{const r=$("balFrom").dataset.raw;if(r){let v=E.formatUnits(r,from.dec);if(isNative(from)){v=Math.max(0,parseFloat(v)-0.001).toString();}$("amtIn").value=v;updateQuote();}};
-if(window.ethereum){window.ethereum.on&&window.ethereum.on("accountsChanged",()=>location.reload());window.ethereum.on&&window.ethereum.on("chainChanged",()=>location.reload());}
-renderTokBtns(); renderBurn(0);
+let qt;$("amtIn").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(updateQuote,350);});
+$("balFrom").onclick=()=>{const r=$("balFrom").dataset.raw;if(r){let v=E.formatUnits(r,from.dec);if(isNative(from))v=Math.max(0,parseFloat(v)-0.001).toString();$("amtIn").value=v;updateQuote();}};
+if(window.ethereum&&window.ethereum.on){window.ethereum.on("accountsChanged",()=>location.reload());window.ethereum.on("chainChanged",()=>location.reload());}
+renderTokBtns();renderBurn(0);
 </script>
 </body>
 </html>
