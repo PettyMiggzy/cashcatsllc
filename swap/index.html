@@ -303,6 +303,38 @@ const GOPLUS="https://api.gopluslabs.io/api/v1/token_security/4663?contract_addr
 const ERC20_ABI=["function symbol() view returns (string)","function decimals() view returns (uint8)","function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
 const QUOTER_ABI=["function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)"];
 const ROUTER_ABI=["function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)","function unwrapWETH9(uint256 amountMinimum,address recipient) payable","function multicall(bytes[] data) payable returns (bytes[])"];
+const DEADADDR="0x000000000000000000000000000000000000dEaD";
+const BURN_BPS=100n; // 1% of a CASHCATSLLC buy is bought again and burned to dead, in the same tx
+// ---- Uniswap V4 (CASHCATSLLC is a native-ETH V4 pool with a launchpad hook) ----
+const V4={UR:"0x8876789976decbfcbbbe364623c63652db8c0904",PM:"0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  PERMIT2:"0x000000000022D473030F116dDEE9F6B43aC78BA3",STATEVIEW:"0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
+  HOOKS:"0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC",POOLID:"0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e",
+  FEE:0,TICK:200};
+const V4_KEY=["0x0000000000000000000000000000000000000000",CASHCATSLLC,V4.FEE,V4.TICK,V4.HOOKS];
+const AC=E.AbiCoder.defaultAbiCoder();
+const EIS="tuple(tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) poolKey,bool zeroForOne,uint128 amountIn,uint128 amountOutMinimum,bytes hookData)";
+const UR_ABI=["function execute(bytes commands,bytes[] inputs,uint256 deadline) payable"];
+const SV_ABI=["function getSlot0(bytes32) view returns (uint160 sqrtPriceX96,int24 tick,uint24 protocolFee,uint24 lpFee)"];
+const PERMIT2_ABI=["function approve(address token,address spender,uint160 amount,uint48 expiration)","function allowance(address,address,address) view returns (uint160,uint48,uint48)"];
+const isCC=t=>t.addr.toLowerCase()===CASHCATSLLC.toLowerCase();
+const isV4=()=>isCC(from)||isCC(to);   // any trade touching CASHCATSLLC uses V4
+// V4 swap leg: buy(true)=ETH->CA, sell(false)=CA->ETH. recip=null -> TAKE_ALL to sender, else TAKE to recip.
+function v4Leg(buying,amt,minOut,recip){
+  const swap=AC.encode([EIS],[[V4_KEY,buying,amt,minOut,"0x"]]);
+  const inCur=buying?"0x0000000000000000000000000000000000000000":CASHCATSLLC;
+  const outCur=buying?CASHCATSLLC:"0x0000000000000000000000000000000000000000";
+  const settle=AC.encode(["address","uint256"],[inCur,amt]);
+  let takeAction,take;
+  if(recip){ takeAction="0e"; take=AC.encode(["address","address","uint256"],[outCur,recip,0n]); }
+  else { takeAction="0f"; take=AC.encode(["address","uint256"],[outCur,minOut]); }
+  return AC.encode(["bytes","bytes[]"],["0x06"+"0c"+takeAction,[swap,settle,take]]);
+}
+async function v4SpotOut(amountIn,buying){
+  const sv=new E.Contract(V4.STATEVIEW,SV_ABI,readRpc);
+  const s=await sv.getSlot0(V4.POOLID); const sq=BigInt(s[0]); const Q=2n**96n;
+  // price CA per ETH = sq^2 / 2^192 (both 18 dec)
+  return buying ? (amountIn*sq*sq)/(Q*Q) : (amountIn*Q*Q)/(sq*sq);
+}
 
 const $=id=>document.getElementById(id);
 let provider=null,signer=null,account=null;
@@ -362,6 +394,21 @@ async function updateQuote(){
   if(wrapped(from).toLowerCase()===wrapped(to).toLowerCase()){$("rate").textContent="same token";setSwapBtn();return;}
   let amountIn;try{amountIn=E.parseUnits(raw,from.dec);}catch(e){return;}
   quoting=true;setSwapBtn();$("rate").textContent="finding best route…";
+  try{
+  if(isV4()){
+    const buying=isNative(from);                         // ETH->CASHCATSLLC buy, else CASHCATSLLC->ETH sell
+    const burnBuy=buying&&isCC(to);
+    const userIn=burnBuy?amountIn-(amountIn*BURN_BPS)/10000n:amountIn;
+    const out=await v4SpotOut(userIn,buying);
+    quoting=false;
+    if(!(out>0n)){$("amtOut").value="";$("rate").textContent="no V4 route";setSwapBtn();return;}
+    quote=out;quoteFee="v4";
+    const outNum=+E.formatUnits(out,to.dec),inNum=+raw;
+    $("amtOut").value=outNum.toLocaleString(undefined,{maximumFractionDigits:6});
+    $("rate").textContent="1 "+from.sym+" ≈ "+(outNum/inNum).toLocaleString(undefined,{maximumSignificantDigits:5})+" "+to.sym+" · V4 spot";
+    $("feeInfo").textContent=burnBuy?"1% buys & burns · V4":"V4 pool · low liq";
+    renderBurnFromTrade(inNum,outNum);setSwapBtn();runSecurity();return;
+  }
   let best=null;const q=new E.Contract(QUOTER,QUOTER_ABI,readRpc);
   for(const fee of FEE_TIERS){
     try{const r=await q.quoteExactInputSingle.staticCall({tokenIn:wrapped(from),tokenOut:wrapped(to),amountIn,fee,sqrtPriceLimitX96:0});
@@ -375,12 +422,13 @@ async function updateQuote(){
   $("rate").textContent="1 "+from.sym+" ≈ "+(outNum/inNum).toLocaleString(undefined,{maximumSignificantDigits:5})+" "+to.sym;
   $("feeInfo").textContent="fee "+(Number(FEE_BPS)/100)+"% · pool "+(best.fee/10000)+"%";
   renderBurnFromTrade(inNum,outNum); setSwapBtn(); runSecurity();
+  }catch(e){quoting=false;$("rate").textContent="quote unavailable";setSwapBtn();}
 }
 function renderBurnFromTrade(inNum,outNum){
-  const feeShare=Number(FEE_BPS)/10000;let burned,unit;
-  if(to.addr.toLowerCase()===CASHCATSLLC.toLowerCase()){burned=outNum*feeShare;unit="$CASHCATSLLC burned";}
-  else{burned=inNum*feeShare;unit=from.sym+" → buys & burns";}
-  renderBurn(burned,unit);
+  // the burn actually fires when buying CASHCATSLLC with ETH (1% is re-bought & sent to dead in the same tx)
+  const burnBuy=isNative(from)&&isCC(to);
+  if(!burnBuy){renderBurn(0);return;}
+  renderBurn(outNum*(Number(BURN_BPS)/10000),"$CASHCATSLLC burned this buy");
 }
 function renderBurn(v,unit){
   const box=$("burnEst"),fl=$("flames");
@@ -438,12 +486,49 @@ function buildSwap(router,amountIn){
   const data=router.interface.encodeFunctionData("exactInputSingle",[p]);
   return {to:ROUTER,data,value:isNative(from)?amountIn:0n};
 }
+const DL=()=>BigInt(Math.floor(Date.now()/1000)+1200);
+async function doV4Swap(amountIn){
+  const ur=new E.Contract(V4.UR,UR_ABI,signer);
+  const mo=minOut();
+  if(isNative(from)){ // BUY ETH -> CASHCATSLLC, with 1% bought-and-burned to dead in the same tx
+    const fee=(amountIn*BURN_BPS)/10000n, userIn=amountIn-fee;
+    const legA=v4Leg(true,userIn,mo,null);
+    const legB=v4Leg(true,fee,0n,DEADADDR);
+    const data=ur.interface.encodeFunctionData("execute",["0x1010",[legA,legB],DL()]);
+    const call={to:V4.UR,data,value:amountIn};
+    setStatus("Simulating the buy + burn…");
+    try{ await signer.call(call); }catch(sim){ setStatus("Simulation failed — not sent. "+err(sim),true); return; }
+    setStatus("Simulation ✓ — confirm in your wallet…");
+    const tx=await signer.sendTransaction(call);
+    setStatus('Buying + burning… <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">view tx</a>'); await tx.wait();
+    setStatus('✓ Done — <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">'+short(tx.hash)+'</a>');
+  } else { // SELL CASHCATSLLC -> ETH via Permit2
+    const erc=new E.Contract(from.addr,ERC20_ABI,signer);
+    if((await erc.allowance(account,V4.PERMIT2))<amountIn){
+      setStatus("Approve "+from.sym+" → Permit2…"); await (await erc.approve(V4.PERMIT2,(2n**256n-1n))).wait();
+    }
+    const p2=new E.Contract(V4.PERMIT2,PERMIT2_ABI,signer);
+    setStatus("Permit2: allow the swap router…");
+    await (await p2.approve(from.addr,V4.UR,amountIn,BigInt(Math.floor(Date.now()/1000)+3600))).wait();
+    const leg=v4Leg(false,amountIn,mo,null);
+    const data=ur.interface.encodeFunctionData("execute",["0x10",[leg],DL()]);
+    const call={to:V4.UR,data,value:0n};
+    setStatus("Simulating the sell…");
+    try{ await signer.call(call); }catch(sim){ setStatus("Simulation failed — not sent. "+err(sim),true); return; }
+    setStatus("Simulation ✓ — confirm in your wallet…");
+    const tx=await signer.sendTransaction(call);
+    setStatus('Selling… <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">view tx</a>'); await tx.wait();
+    setStatus('✓ Done — <a href="'+CHAIN.explorer+'/tx/'+tx.hash+'" target="_blank" rel="noopener">'+short(tx.hash)+'</a>');
+  }
+  $("amtIn").value="";updateQuote();refreshBalances();
+}
 async function doSwap(){
   if(!account){connect();return;}
   if(!quote)return;
   const b=$("swapBtn");b.disabled=true;
   try{
     const amountIn=E.parseUnits($("amtIn").value.trim(),from.dec);
+    if(isV4()){ await doV4Swap(amountIn); b.disabled=false; return; }
     const router=new E.Contract(ROUTER,ROUTER_ABI,signer);
     // exact approval only (no infinite allowance)
     if(!isNative(from)){
