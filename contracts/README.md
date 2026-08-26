@@ -1,48 +1,48 @@
-# CashCats Swap — Buy & Burn engine
+# CashCats Buy & Burn — reference contracts (⚠ NOT for deployment as-is)
 
-Two small contracts make the site's "every fee burns a cat" claim real. The
-$CASHCATSLLC token itself is never touched (tax stays 0/0) — the fee and the
-burn live entirely in this swap layer.
+> **STOP — do not deploy these as written.** They will revert on every call.
+>
+> CASHCATSLLC (`0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc`) is confirmed
+> **Uniswap v4 only** — a native-ETH pool (fee 0, tickSpacing 200, hook
+> `0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC`). There is **no v2 or v3 pair**.
+> These contracts route through a **Uniswap v2** router
+> (`swapExactETHForTokensSupportingFeeOnTransferTokens`, path `[WETH, TOKEN]`),
+> so `buyAndBurn()` and `buyWithFee(CASHCATSLLC, …)` revert 100% of the time —
+> the v2 pair they trade against does not exist.
+
+## The burn is already live — in the swap, not here
+
+The site's **CashCats Swap** (`/swap/`) does the buy-and-burn **client-side, in
+the same transaction as your buy**, with no treasury and no deployed contract:
 
 ```
-User → CashCatsFeeRouter.buyWithFee()
-          ├─ 1% fee (ETH) ─→ CashCatsBuyBurn   (accumulates)
-          └─ 99% ─→ DEX router → user gets their tokens
-
-Anyone → CashCatsBuyBurn.buyAndBurn()
-          └─ swaps accumulated ETH → $CASHCATSLLC → 0x…dead (burned forever)
+Buy ETH → CASHCATSLLC on /swap/  (Uniswap v4 UniversalRouter)
+   ├─ 99%  → you (your tokens)
+   └─  1%  → re-buys CASHCATSLLC → 0x…dEaD   (burned, same tx)
 ```
 
-## What you need before deploying
-1. **Router address** — the Uniswap-V2-style router deployed on Robinhood Chain
-   (the one Robin Labs / the CASHCATSLLC pool trades against). The contracts use
-   the V2 `swapExactETHForTokensSupportingFeeOnTransferTokens` interface. **If
-   Robinhood Chain is Uniswap V4 only (no V2 router), these need to be ported to
-   the V4 `UniversalRouter` / `PoolManager` interface — tell me and I'll rewrite
-   them.**
-2. **Treasury / deployer wallet** with ETH for gas. You keep the keys — I can't
-   deploy or hold them from here.
-3. `TOKEN` = `0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc`.
+That path is validated on-chain by eth_call simulation. So **no contract needs
+to be deployed for the burn to work today.** These files remain only as a
+reference for a *future* fully-on-chain / keeper-driven burn engine.
 
-## Deploy order
-1. Deploy **CashCatsBuyBurn**(`router`, `TOKEN`).
-2. Deploy **CashCatsFeeRouter**(`router`, `buyBurnAddress`).
-3. (optional) `setFeeBps` if you want something other than 1% (hard-capped 3%).
+## If you ever want an autonomous on-chain burn engine
 
-## Wire it to the site
-- In `index.html`, the **Open CashCats Swap** button (`#swapBtn`) currently points
-  at Robin Labs as a placeholder. Once the router is deployed, swap it for a small
-  ethers.js widget that calls `CashCatsFeeRouter.buyWithFee(token, minOut, to)`.
-- The **live burn tracker** on the site already reads the real dead-address balance
-  via Blockscout, so it will show burns the moment `buyAndBurn()` starts running —
-  no extra wiring needed.
+It must be rewritten for Uniswap **v4** before it can function:
 
-## Running the burn
-`buyAndBurn()` is permissionless — the community can trigger it, or run a tiny
-keeper (cron → `buyAndBurn` when the sink's ETH balance clears a threshold). Say
-the word and I'll add a `keeper.js`.
+1. Replace the `IV2Router` interface + `[WETH, TOKEN]` path with
+   `UniversalRouter.execute(bytes commands, bytes[] inputs, uint256 deadline)`
+   using a `V4_SWAP` command and the exact `PoolKey`:
+   `currency0 = address(0)` (native ETH), `currency1 = TOKEN`, `fee = 0`,
+   `tickSpacing = 200`, `hooks = 0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC`.
+   Account for the hook's behavior.
+2. **Slippage:** do NOT ship a permissionless `buyAndBurn(amountOutMin)` with a
+   caller-supplied floor — `buyAndBurn(0)` is a free MEV sandwich on the whole
+   balance. Use a keeper that computes `minOut` off-chain, or a TWAP floor, and
+   cap ETH swapped per call.
+3. **Remove/gate the owner drain vectors:** `rescueETH` (drains all fees) and
+   `setSink` (redirects all fees) make the "burn" funds rug-pullable. Timelock
+   or renounce after setup; add zero-address checks.
+4. Use two-step ownership (`Ownable2Step`) and a `ReentrancyGuard`.
 
-## Before mainnet
-Get these reviewed/tested (Foundry/Hardhat fork of Robinhood Chain). They're
-intentionally minimal — no token custody, an ETH-only rescue hatch, a 3% fee cap
-— but any contract holding value should be audited before real money hits it.
+Tell me and I'll write the v4 version. Until then, the swap-layer burn above is
+the working mechanism — ship that, not these.

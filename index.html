@@ -110,7 +110,7 @@ h2 .llc{font-style:italic;color:var(--gold);font-weight:400}
 .stat .v{font-family:var(--serif);font-size:26px;font-weight:700;margin-top:6px}
 #chartCard{background:var(--card);border:1px solid var(--line2);border-radius:4px;padding:18px}
 #chartHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:13px}
-#chart{width:100%;height:340px;display:block}
+#chartCanvas{width:100%;height:340px;display:block}
 .pill{font-family:var(--mono);font-size:11px;color:var(--ink2);border:1px solid var(--line2);border-radius:3px;padding:3px 8px;text-transform:uppercase;letter-spacing:1px}
 /* swap / burn */
 .burnGrid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;margin-top:20px;align-items:stretch}
@@ -157,10 +157,6 @@ h2 .llc{font-style:italic;color:var(--gold);font-weight:400}
 .faq summary{cursor:pointer;font-family:var(--mono);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.5px;list-style:none}
 .faq summary::-webkit-details-marker{display:none}
 .faq p{margin-top:10px;color:var(--ink2);font-size:15px;line-height:1.65}
-/* pfp */
-#pfpGrid{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;margin-top:22px}
-@media(max-width:640px){#pfpGrid{grid-template-columns:1fr;justify-items:center}}
-#pfp{width:min(420px,86vw);height:auto;border-radius:4px;border:1px solid var(--line2);background:#fff}
 /* footer */
 footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;background:var(--paper2)}
 .footSeal{width:78px;height:78px;margin:0 auto 12px;display:block}
@@ -262,8 +258,8 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
 
 <section id="swap" style="border-top:0"><div class="wrap">
   <div class="sec-h"><span class="artn">Article I</span><span class="label">CashCats Swap · Buy &amp; Burn</span></div>
-  <h2>Our swap. <span class="rd">All fees</span> buy back &amp; burn.</h2>
-  <p class="lead">Trade through the CashCats Swap and a small routing fee is collected — then <b>100% of every fee is used to buy back $CASHCATSLLC on the open market and burn it, sending it to the dead address forever.</b> Supply was issued once and never grows; the burn only makes it smaller. You trade, the float shrinks.</p>
+  <h2>Every buy <span class="rd">burns</span> a cat.</h2>
+  <p class="lead">Buy $CASHCATSLLC through the CashCats Swap and a 1% fee is <b>re-bought and burned in the same transaction</b> — it buys more $CASHCATSLLC and sends it straight to the dead address, atomically, no treasury in between. Supply was issued once and never grows; the burn only makes it smaller. You buy, the float shrinks.</p>
   <div class="burnGrid">
     <div class="burnPanel">
       <svg class="ic flame"><use href="#i-fire"/></svg>
@@ -280,9 +276,9 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
     <div class="burnPanel">
       <div class="label" style="margin-bottom:6px">How the burn works</div>
       <ol class="flow">
-        <li><h4><svg class="ic"><use href="#i-swap"/></svg> You swap</h4><p>Buy or sell through the CashCats Swap. A ~1% routing fee is taken in ETH — nothing is added to the token contract itself (tax stays 0/0).</p></li>
-        <li><h4><svg class="ic"><use href="#i-launch"/></svg> Fees pool</h4><p>Every fee collects in the CashCats treasury on Robinhood Chain — fully visible on the explorer.</p></li>
-        <li><h4><svg class="ic"><use href="#i-fire"/></svg> Buy &amp; burn</h4><p>The treasury market-buys $CASHCATSLLC and ships it to <span class="mono">0x…dead</span>. Circulating supply goes down and never comes back.</p></li>
+        <li><h4><svg class="ic"><use href="#i-swap"/></svg> You buy</h4><p>Buy $CASHCATSLLC through the CashCats Swap. A 1% fee is taken in ETH — nothing is added to the token contract itself (tax stays 0/0).</p></li>
+        <li><h4><svg class="ic"><use href="#i-fire"/></svg> Re-bought &amp; burned</h4><p>In the <b>same transaction</b>, that 1% buys more $CASHCATSLLC and sends it to <span class="mono">0x…dead</span> — atomic, no treasury holding the funds.</p></li>
+        <li><h4><svg class="ic"><use href="#i-launch"/></svg> Supply falls</h4><p>Every buy shrinks the circulating float, and it never comes back. The counter reads the dead address live from the chain.</p></li>
       </ol>
       <a class="btn gold" id="swapBtn" target="_blank" rel="noopener" style="margin-top:6px"><svg class="ic"><use href="#i-swap"/></svg> Open CashCats Swap</a>
     </div>

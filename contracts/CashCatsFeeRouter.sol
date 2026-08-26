@@ -2,6 +2,12 @@
 pragma solidity ^0.8.20;
 
 /**
+ * ⚠️  DO NOT DEPLOY AS-IS. Same v2-vs-v4 problem as CashCatsBuyBurn: CASHCATSLLC
+ *     trades only on Uniswap v4, so buyWithFee(CASHCATSLLC, …) reverts. Also
+ *     unfixed: owner can setSink() to redirect 100% of fees. The live 1% buy-&-burn
+ *     runs client-side in /swap/ (atomic, in the buy tx) — no deploy needed.
+ *     Reference only until ported to v4. See contracts/README.md.
+ *
  * CashCatsFeeRouter
  * -----------------
  * "Our own swap that uses fees." Users buy any token through this router

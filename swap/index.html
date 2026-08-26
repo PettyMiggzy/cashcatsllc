@@ -370,11 +370,13 @@ const $=id=>document.getElementById(id);
 let provider=null,signer=null,account=null;
 let readRpc=new E.JsonRpcProvider(CHAIN.rpc,Number(CHAIN.id));
 let from=TOKENS[0],to=TOKENS[1],slippage=500n,pickWhich="from";
-let quote=null,quoteFee=null,quoting=false,secToken=null,route=null;
+let quote=null,quoteFee=null,quoting=false,secToken=null,route=null,quoteSeq=0,quotedIn=null;
 
 function short(a){return a.slice(0,6)+"…"+a.slice(-4);}
 function isNative(t){return t.addr.toLowerCase()===NATIVE;}
 function wrapped(t){return isNative(t)?WETH:t.addr;}
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cleanSym=s=>String(s==null?"":s).replace(/[<>&"'`\\\/]/g,"").slice(0,20)||"?"; // neutralize on-chain strings at ingestion
 function mono(sym){return (sym||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase()||"◆";}
 function colorFor(sym){let h=0;for(const c of (sym||"?"))h=(h*31+c.charCodeAt(0))%360;return "hsl("+h+",42%,42%)";}
 function avatarHTML(t){ return t.logo?'<img src="'+t.logo+'" alt="" onerror="this.parentNode.style.background=colorFor(\''+mono(t.sym)+'\');this.replaceWith(document.createTextNode(\''+mono(t.sym)+'\'))">':mono(t.sym); }
@@ -425,6 +427,7 @@ async function updateQuote(){
   if(fromA.toLowerCase()===toA.toLowerCase()){$("rate").textContent="same token";setSwapBtn();return;}
   let amountIn;try{amountIn=E.parseUnits(raw,from.dec);}catch(e){return;}
   quoting=true;setSwapBtn();$("rate").textContent="routing v2 / v3 / v4…";
+  const my=++quoteSeq;
   try{
     const cands=[];
     // v3 across fee tiers (real quotes)
@@ -447,10 +450,12 @@ async function updateQuote(){
           if(out&&out>0n)cands.push({proto:"v4",out,disc,buyingToken}); }
       }
     }
+    if(my!==quoteSeq) return;           // a newer quote started — discard this stale result
     quoting=false;
     if(!cands.length){$("amtOut").value="";$("rate").textContent="no route on v2 / v3 / v4";setSwapBtn();return;}
     cands.sort((a,b)=>b.out>a.out?1:(b.out<a.out?-1:0));
     route=cands[0]; quote=route.out; quoteFee=route.proto;
+    quotedIn={amt:amountIn.toString(),from:from.addr.toLowerCase(),to:to.addr.toLowerCase()};
     const outNum=+E.formatUnits(route.out,to.dec),inNum=+raw;
     $("amtOut").value=outNum.toLocaleString(undefined,{maximumFractionDigits:6});
     $("rate").textContent="1 "+from.sym+" ≈ "+(outNum/inNum).toLocaleString(undefined,{maximumSignificantDigits:5})+" "+to.sym+" · "+route.proto.toUpperCase();
@@ -479,14 +484,13 @@ async function runSecurity(){
   const t=to; const box=$("secbox");
   if(isNative(t)||t.addr.toLowerCase()===WETH.toLowerCase()){box.className="secbox";return;}
   if(secToken===t.addr){return;} secToken=t.addr;
-  box.className="secbox show";box.querySelector(".hd").innerHTML='<svg class="ic"><use href="#i-shield"/></svg> Scanning '+t.sym+' …';box.querySelector(".grid").innerHTML="";
+  box.className="secbox show";box.querySelector(".hd").innerHTML='<svg class="ic"><use href="#i-shield"/></svg> Scanning '+esc(t.sym)+' …';box.querySelector(".grid").innerHTML="";
   try{
     const r=await fetch(GOPLUS+t.addr.toLowerCase()); const d=await r.json();
     const s=(d.result||{})[t.addr.toLowerCase()];
     if(secToken!==t.addr) return;
     if(!s){setSec("warn","i-alert","Not yet indexed","No GoPlus data for this token yet — trade with extra caution.");return;}
     const bt=(parseFloat(s.buy_tax||"0")*100),st=(parseFloat(s.sell_tax||"0")*100);
-    const honey=s.is_honeypot==="1"||s.cannot_sell_all==="1"||s.transfer_pausable==="1"&&s.is_open_source==="0";
     const grid='<span>Buy tax <b>'+bt.toFixed(1)+'%</b></span><span>Sell tax <b>'+st.toFixed(1)+'%</b></span>'
       +'<span>Honeypot <b>'+(s.is_honeypot==="1"?"YES":"no")+'</b></span>'
       +'<span>Sellable <b>'+(s.cannot_sell_all==="1"?"NO":"yes")+'</b></span>';
@@ -538,7 +542,8 @@ async function doV4Swap(amountIn){
     let data;
     if(isCCpool){ // CASHCATSLLC: user buy (99%) + 1% re-bought and burned to dead, same tx
       const fee=(amountIn*BURN_BPS)/10000n, userIn=amountIn-fee;
-      const legA=v4LegK(disc.key,true,userIn,mo,null);
+      const moA=(mo*(10000n-BURN_BPS))/10000n;   // scale the floor to the 99% user leg
+      const legA=v4LegK(disc.key,true,userIn,moA,null);
       const legB=v4LegK(disc.key,true,fee,0n,DEADADDR);
       data=ur.interface.encodeFunctionData("execute",["0x1010",[legA,legB],DL()]);
     } else {
@@ -555,7 +560,7 @@ async function doV4Swap(amountIn){
   } else { // token -> ETH via Permit2
     const erc=new E.Contract(from.addr,ERC20_ABI,signer);
     if((await erc.allowance(account,V4.PERMIT2))<amountIn){
-      setStatus("Approve "+from.sym+" → Permit2…"); await (await erc.approve(V4.PERMIT2,(2n**256n-1n))).wait();
+      setStatus("Approve "+esc(from.sym)+" → Permit2 (exact amount)…"); await (await erc.approve(V4.PERMIT2,amountIn)).wait();
     }
     const p2=new E.Contract(V4.PERMIT2,PERMIT2_ABI,signer);
     setStatus("Permit2: allow the swap router…");
@@ -577,6 +582,10 @@ async function doSwap(){
   const b=$("swapBtn");b.disabled=true;
   try{
     const amountIn=E.parseUnits($("amtIn").value.trim(),from.dec);
+    // never trade on a quote that was for a different amount/pair (stale minOut = MEV hole)
+    if(!quotedIn||quotedIn.amt!==amountIn.toString()||quotedIn.from!==from.addr.toLowerCase()||quotedIn.to!==to.addr.toLowerCase()){
+      setStatus("Price moved — re-quoting. Tap again.",true);b.disabled=false;updateQuote();return;
+    }
     if(route.proto==="v4"){ await doV4Swap(amountIn); b.disabled=false; return; }
     const router=new E.Contract(ROUTER,ROUTER_ABI,signer);
     if(!isNative(from)){ // exact approval only (no infinite allowance)
@@ -609,7 +618,7 @@ function openPicker(which){pickWhich=which;$("tokSearch").value="";renderTokList
 function renderTokList(list){
   const el=$("toklist");el.innerHTML="";
   list.forEach(t=>{const d=document.createElement("div");d.className="tokitem";
-    d.innerHTML=chip(t)+'<div><div class="nm">'+t.sym+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
+    d.innerHTML=chip(t)+'<div><div class="nm">'+esc(t.sym)+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
     d.onclick=()=>chooseToken(t);el.appendChild(d);});
 }
 function chooseToken(t){
@@ -627,7 +636,7 @@ async function searchToken(q){
     const known=TOKENS.find(t=>t.addr.toLowerCase()===q.toLowerCase());
     if(known){renderTokList([known]);return;}
     try{const c=new E.Contract(q,ERC20_ABI,readRpc);const [sym,dec]=await Promise.all([c.symbol(),c.decimals()]);
-      renderTokList([{addr:E.getAddress(q),sym,name:sym,dec:Number(dec),logo:null}]);}
+      const cs=cleanSym(sym);renderTokList([{addr:E.getAddress(q),sym:cs,name:cs,dec:Number(dec),logo:null}]);}
     catch(e){$("toklist").innerHTML='<div class="tokitem"><div class="ad">Not an ERC-20 on this chain, or RPC busy.</div></div>';}
   }else{
     const f=TOKENS.filter(t=>t.sym.toLowerCase().includes(q.toLowerCase())||(t.name||"").toLowerCase().includes(q.toLowerCase()));
@@ -644,8 +653,9 @@ $("tokSearch").addEventListener("input",e=>searchToken(e.target.value));
 $("flip").onclick=()=>{const t=from;from=to;to=t;secToken=null;$("secbox").className="secbox";renderTokBtns();$("amtIn").value="";refreshBalances();updateQuote();};
 $("gear").onclick=()=>$("settings").classList.toggle("open");
 document.querySelectorAll(".slip button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".slip button").forEach(x=>x.classList.remove("on"));b.classList.add("on");slippage=BigInt(Math.round(parseFloat(b.dataset.s)*100));$("slipIn").value="";});
-$("slipIn").addEventListener("input",e=>{const v=parseFloat(e.target.value);if(v>0){slippage=BigInt(Math.round(v*100));document.querySelectorAll(".slip button").forEach(x=>x.classList.remove("on"));}});
-let qt;$("amtIn").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(updateQuote,350);});
+$("slipIn").addEventListener("input",e=>{let v=parseFloat(e.target.value);if(v>0){v=Math.min(v,50);slippage=BigInt(Math.round(v*100));document.querySelectorAll(".slip button").forEach(x=>x.classList.remove("on"));}});
+// invalidate any prior quote the instant the amount changes, so a stale minOut can never be used
+let qt;$("amtIn").addEventListener("input",()=>{clearTimeout(qt);quote=null;route=null;setSwapBtn();qt=setTimeout(updateQuote,350);});
 $("balFrom").onclick=()=>{const r=$("balFrom").dataset.raw;if(r){let v=E.formatUnits(r,from.dec);if(isNative(from))v=Math.max(0,parseFloat(v)-0.001).toString();$("amtIn").value=v;updateQuote();}};
 if(window.ethereum&&window.ethereum.on){window.ethereum.on("accountsChanged",()=>location.reload());window.ethereum.on("chainChanged",()=>location.reload());}
 renderTokBtns();renderBurn(0);

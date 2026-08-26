@@ -2,6 +2,14 @@
 pragma solidity ^0.8.20;
 
 /**
+ * ⚠️  DO NOT DEPLOY AS-IS. CASHCATSLLC is Uniswap v4-only (native-ETH pool,
+ *     hook 0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC, fee 0, tickSpacing 200).
+ *     This contract uses a Uniswap v2 router + [WETH, TOKEN] path, so buyAndBurn()
+ *     REVERTS every call — no such v2 pair exists. The live buy-&-burn runs
+ *     client-side in /swap/ (v4, in the same tx as the buy). Reference only until
+ *     ported to v4. Also unfixed here: caller-supplied amountOutMin=0 (MEV) and
+ *     owner rescueETH drain. See contracts/README.md.
+ *
  * CashCatsBuyBurn
  * ----------------
  * Receives ETH (routing fees from the CashCats Swap) and, on demand,
