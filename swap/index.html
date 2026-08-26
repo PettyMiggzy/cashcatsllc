@@ -216,16 +216,21 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
 <script>
 const TOKENS=[
   {addr:"0x0000000000000000000000000000000000000000",sym:"ETH",name:"Ether (native)",dec:18,logo:"/assets/tok/0x0000000000000000000000000000000000000000.png"},
-  {addr:"0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc",sym:"CASHCATSLLC",name:"CashCats LLC",dec:18,logo:"/assets/cashcat.png"},
+  {addr:"0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc",sym:"CASHCATSLLC",name:"CashCats LLC",dec:18,logo:"/assets/tok/0x53a557a2a46083a3e9cd26ff4cdc4cc81da809cc.png"},
   {addr:"0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",sym:"WETH",name:"Wrapped Ether",dec:18,logo:"/assets/tok/0x0bd7d308f8e1639fab988df18a8011f41eacad73.png"},
   {addr:"0x020bfc650a365f8bb26819deaabf3e21291018b4",sym:"CASHCAT",name:"Cash Cat",dec:18,logo:"/assets/tok/0x020bfc650a365f8bb26819deaabf3e21291018b4.png"},
+  {addr:"0x0a77a31b46ad66cc147baa7dc8e65aba8593a019",sym:"CATGAME",name:"Cat Butler Game",dec:18,logo:"/assets/tok/0x0a77a31b46ad66cc147baa7dc8e65aba8593a019.png"},
+  {addr:"0xee5576fa1bcaa380e591d01245f406f3f384eb01",sym:"DTF",name:"Down to Finance",dec:18,logo:"/assets/tok/0xee5576fa1bcaa380e591d01245f406f3f384eb01.png"},
   {addr:"0x2ec89afba136119c5252fc47d14e2bd2144b10d2",sym:"DTF",name:"Down to Finance",dec:9,logo:"/assets/tok/0x2ec89afba136119c5252fc47d14e2bd2144b10d2.png"},
+  {addr:"0x577e5a00b8d204c820b1c5ad4f46742763cc0d17",sym:"Honk",name:"Honk",dec:18,logo:"/assets/tok/0x577e5a00b8d204c820b1c5ad4f46742763cc0d17.png"},
+  {addr:"0xac77646bcff9d52e99800534192e0290933f4094",sym:"MARTIANS",name:"Martians",dec:18,logo:"/assets/tok/0xac77646bcff9d52e99800534192e0290933f4094.png"},
   {addr:"0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",sym:"NVDA",name:"NVIDIA • Robinhood Token",dec:18,logo:"/assets/tok/0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec.png"},
   {addr:"0x39dbed3a2bd333467115de45665cc57f813c4571",sym:"PONS",name:"Pons",dec:18,logo:"/assets/tok/0x39dbed3a2bd333467115de45665cc57f813c4571.png"},
   {addr:"0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",sym:"SPCX",name:"Space Exploration Technologies Corp. Class A Common Stock • Robinhood Token",dec:18,logo:"/assets/tok/0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea.png"},
   {addr:"0x2ec5cc87c9a3231bffbbf788ca9182ebd1d64fc4",sym:"TRUTH",name:"Truth Coin",dec:9,logo:"/assets/tok/0x2ec5cc87c9a3231bffbbf788ca9182ebd1d64fc4.png"},
   {addr:"0x5fc5360d0400a0fd4f2af552add042d716f1d168",sym:"USDG",name:"Global Dollar",dec:6,logo:"/assets/tok/0x5fc5360d0400a0fd4f2af552add042d716f1d168.png"},
   {addr:"0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31",sym:"VIRTUAL",name:"Virtuals Protocol",dec:18,logo:"/assets/tok/0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31.png"},
+  {addr:"0x3ce29e3c4876e656a28d5f28bc222d314408f17d",sym:"VladOS",name:"VladOS",dec:18,logo:"/assets/tok/0x3ce29e3c4876e656a28d5f28bc222d314408f17d.png"},
   {addr:"0x0134257437bb9f8d93cce4531886a4d7f5a8b0d4",sym:"4663",name:"4663",dec:18,logo:null},
   {addr:"0x0116604cc0313ea870b0485d081933f5f93939ce",sym:"Axelus",name:"0xa2_4b2c Is Fighting In Axelus",dec:18,logo:null},
   {addr:"0x00ca891b116f39b33b945180261da6e3f9215ede",sym:"Axelus",name:"0xbe_2E23 Is Fighting In Axelus",dec:18,logo:null},
@@ -240,7 +245,6 @@ const TOKENS=[
   {addr:"0x00ed5d3d87be0617909dea99d71d45ce3a173bd9",sym:"Calitures",name:"Dreamco",dec:18,logo:null},
   {addr:"0x00eb23cc4cc35179746474c291d74a7bdbe1ec43",sym:"CASHDOG",name:"real cashdog",dec:18,logo:null},
   {addr:"0x925b95a174c49770e97e499402413bfe6d9c1b64",sym:"CATALYST",name:"Hood Catalyst",dec:18,logo:null},
-  {addr:"0x0a77a31b46ad66cc147baa7dc8e65aba8593a019",sym:"CATGAME",name:"Cat Butler Game",dec:18,logo:null},
   {addr:"0x0151d09ff876cd236d6b396e372661cf050520e6",sym:"CDNS",name:"Cadence",dec:18,logo:null},
   {addr:"0x010f81a6fd8ff83ef49507e62eaacdfb62839df7",sym:"CHAD",name:"READ WSB OG DOXXED CTOING WSB MASCOT PREVIOUS GME STOCK 500B",dec:18,logo:null},
   {addr:"0x014dfc300f97c6ec06c19f6c95de7cea3b5c3b32",sym:"CHAD",name:"OG PAULY CTOING READ READ",dec:18,logo:null},
@@ -248,17 +252,14 @@ const TOKENS=[
   {addr:"0x00c1b62b7a26c8ed5b294a1bd344711e49910898",sym:"CRICKET",name:"Cricket",dec:18,logo:null},
   {addr:"0x00fcac236de9b82ceb731a013bddbfe166edeb52",sym:"CUTE",name:"cutecoin",dec:18,logo:null},
   {addr:"0x00f53a7274f420dd30c368e5e7e11dca64088723",sym:"Drillbutt",name:"Drillbutt",dec:18,logo:null},
-  {addr:"0xee5576fa1bcaa380e591d01245f406f3f384eb01",sym:"DTF",name:"Down to Finance",dec:18,logo:null},
   {addr:"0x00cdd126d00449f7d93e5d644c664c6cdcd772a7",sym:"Elk",name:"The Indomitable Elk",dec:18,logo:null},
   {addr:"0x00fb2f312da8dfaac9c8c1ac51402db1fd9d48c7",sym:"Elon",name:"The Popperian Elon",dec:18,logo:null},
   {addr:"0x00d9ed94e7dd9ec8eb4980ba944ffe84793ea235",sym:"FAVORITE",name:"favorite token",dec:18,logo:null},
   {addr:"0x00f1b182df4dbba29a66b981ff824c852feda9bc",sym:"FKR",name:"Flying Ketamine Rhino",dec:18,logo:null},
   {addr:"0x00d7816af3d000bd5dec0040c3a484553f0d2ec9",sym:"FUNY",name:"i thought this was funny",dec:18,logo:null},
   {addr:"0x01545baf1a67cd43a2c044b568c0fb662f53bf67",sym:"GONE",name:"gas paid my freedom gone",dec:18,logo:null},
-  {addr:"0x577e5a00b8d204c820b1c5ad4f46742763cc0d17",sym:"Honk",name:"Honk",dec:18,logo:null},
   {addr:"0x01d38fbf23536657d06daa5cdb4d8012b096e260",sym:"KDP",name:"Keurig Dr Pepper",dec:18,logo:null},
   {addr:"0x282baf42b2a50bffd00d0b8755146d2ebb8a957b",sym:"MARTIANS",name:"MARTIANS",dec:9,logo:null},
-  {addr:"0xac77646bcff9d52e99800534192e0290933f4094",sym:"MARTIANS",name:"Martians",dec:18,logo:null},
   {addr:"0x01572d5f56a4ec435f2b1d1030a1fd5dcb357fe2",sym:"MEEKY",name:"The Sidewalk Sentinel",dec:18,logo:null},
   {addr:"0x00f8d308463fec6e40d7e5a882861dbb496d7dc0",sym:"Mili",name:"Milani",dec:18,logo:null},
   {addr:"0x0101cec4135ea7fcec944a9265770cca0adef08f",sym:"Nice",name:"Nice Coin",dec:18,logo:null},
@@ -278,7 +279,6 @@ const TOKENS=[
   {addr:"0x0165b502f12945f615a02f409c9f3387525e8390",sym:"Screen",name:"Mind Manipulating Screen",dec:18,logo:null},
   {addr:"0x01c51d2fc63d6dbd38082d3b7c3617b3339c4bbb",sym:"SHITTER",name:"The Nietzschean Shitter",dec:18,logo:null},
   {addr:"0x0121aaae2d9c5f7f6694f2b8d00abca03319dd67",sym:"son",name:"son 😭😭😭😭😭",dec:18,logo:null},
-  {addr:"0x3ce29e3c4876e656a28d5f28bc222d314408f17d",sym:"VladOS",name:"VladOS",dec:18,logo:null},
   {addr:"0x013684d40e336d1947ecb3af52f065804b6b7e61",sym:"X",name:"I Love X",dec:18,logo:null},
   {addr:"0x585b2734741f963c838899e892b10fbe799ac938",sym:"ZOE",name:"Zoe",dec:18,logo:null},
   {addr:"0x01412e49fe05abc588b4ab4e53aeb8c4c0c7ae4f",sym:"ᵗᵒᵃᵈ",name:"ᵗᵒᵃᵈ",dec:18,logo:null},
@@ -313,9 +313,12 @@ let quote=null,quoteFee=null,quoting=false,secToken=null;
 function short(a){return a.slice(0,6)+"…"+a.slice(-4);}
 function isNative(t){return t.addr.toLowerCase()===NATIVE;}
 function wrapped(t){return isNative(t)?WETH:t.addr;}
-function mono(sym){return (sym||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,3).toUpperCase()||"◆";}
-function avatarHTML(t){ return t.logo?'<img src="'+t.logo+'" alt="" onerror="this.replaceWith(document.createTextNode(\''+mono(t.sym)+'\'))">':mono(t.sym); }
-function setAvatar(el,t){ el.innerHTML=avatarHTML(t); }
+function mono(sym){return (sym||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase()||"◆";}
+function colorFor(sym){let h=0;for(const c of (sym||"?"))h=(h*31+c.charCodeAt(0))%360;return "hsl("+h+",42%,42%)";}
+function avatarHTML(t){ return t.logo?'<img src="'+t.logo+'" alt="" onerror="this.parentNode.style.background=colorFor(\''+mono(t.sym)+'\');this.replaceWith(document.createTextNode(\''+mono(t.sym)+'\'))">':mono(t.sym); }
+function avatarStyle(t){ return t.logo?'':'background:'+colorFor(t.sym)+';color:#fff;border-color:transparent'; }
+function chip(t){ return '<span class="avatar" style="'+avatarStyle(t)+'">'+avatarHTML(t)+'</span>'; }
+function setAvatar(el,t){ el.style.cssText=avatarStyle(t); el.innerHTML=avatarHTML(t); }
 
 function renderTokBtns(){
   $("symFrom").textContent=from.sym; setAvatar($("avFrom"),from);
@@ -475,7 +478,7 @@ function openPicker(which){pickWhich=which;$("tokSearch").value="";renderTokList
 function renderTokList(list){
   const el=$("toklist");el.innerHTML="";
   list.forEach(t=>{const d=document.createElement("div");d.className="tokitem";
-    d.innerHTML='<span class="avatar">'+avatarHTML(t)+'</span><div><div class="nm">'+t.sym+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
+    d.innerHTML=chip(t)+'<div><div class="nm">'+t.sym+'</div><div class="ad">'+(isNative(t)?"native":short(t.addr))+'</div></div>';
     d.onclick=()=>chooseToken(t);el.appendChild(d);});
 }
 function chooseToken(t){
