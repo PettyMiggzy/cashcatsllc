@@ -9,6 +9,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CashCats LLC — PFP Studio</title>
 <link rel="icon" type="image/png" href="/assets/cashcat.png"/>
+<!-- Telegram Mini App SDK: no-op on the normal website, powers the in-Telegram experience -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
     --bg:#07090a; --panel:#0f1416; --panel-2:#151c1f; --line:#243033;
@@ -112,6 +114,7 @@
       <button class="icon" id="next" title="Next (→)">→</button>
       <button id="download">Download PNG</button>
       <button id="copy">Copy</button>
+      <button class="primary" id="tgsend" style="display:none">Send to Telegram</button>
     </div>
     <p class="status" id="status"><kbd>space</kbd> roll · <kbd>←</kbd> <kbd>→</kbd> history · <kbd>D</kbd> download</p>
   </section>
@@ -515,6 +518,41 @@ addEventListener('keydown', e => {
   else if (e.code === 'ArrowRight') els('next').click();
   else if (e.key.toLowerCase() === 'd') downloadCurrent();
 });
+
+/* ---------- Telegram Mini App ---------- */
+(function initTelegram(){
+  const TG = window.Telegram && window.Telegram.WebApp;
+  if(!TG || !TG.initData) return;                 // not inside Telegram → plain website, no-op
+  try{ TG.ready(); TG.expand(); }catch(e){}
+  const dl = els('download'); if(dl) dl.style.display='none';  // blob downloads are unreliable in Telegram's webview
+  const btn = els('tgsend'); if(btn) btn.style.display='';
+  let sending=false;
+  const b64 = blob => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result)); r.onerror=rej; r.readAsDataURL(blob); });
+  async function sendToTelegram(){
+    if(sending) return; sending=true;
+    const hap=(TG.HapticFeedback||{});
+    try{ TG.MainButton && TG.MainButton.showProgress && TG.MainButton.showProgress(); }catch(e){}
+    try{
+      setStatus('rendering…');
+      let size=Math.min(Number(els('size').value)||1024,1024);
+      let blob=await blobOf(await renderTo(current,size));
+      if(blob.size>3_500_000) blob=await blobOf(await renderTo(current,640)); // stay under the request-body limit
+      setStatus('sending to Telegram…');
+      const img=await b64(blob);
+      const r=await fetch('/api/tgphoto',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({initData:TG.initData,img})});
+      const j=await r.json().catch(()=>({ok:false,error:'bad response'}));
+      if(j.ok){ setStatus('sent to your chat ✓'); try{hap.notificationOccurred&&hap.notificationOccurred('success');}catch(e){} }
+      else { setStatus('couldn’t send: '+(j.error||'error'),true); try{hap.notificationOccurred&&hap.notificationOccurred('error');}catch(e){} }
+    }catch(e){ setStatus('send failed — try again',true); }
+    finally{ sending=false; try{ TG.MainButton && TG.MainButton.hideProgress && TG.MainButton.hideProgress(); }catch(e){} }
+  }
+  if(btn) btn.onclick=sendToTelegram;
+  try{
+    TG.MainButton.setParams({text:'Send my PFP to the chat',color:'#00c805',text_color:'#0b0f10'});
+    TG.MainButton.show();
+    TG.MainButton.onClick(sendToTelegram);
+  }catch(e){}
+})();
 
 boot();
 </script>
