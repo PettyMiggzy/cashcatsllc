@@ -501,5 +501,26 @@ async function loadChart(){
 }
 loadStats();loadChart();loadBurn();setInterval(loadStats,30000);setInterval(loadBurn,60000);
 </script>
+<script>
+/* ===== RELAUNCH MODE — old contract was rugged; hide CA + freeze buys until the new CA is set ===== */
+(function(){
+  const OLD="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc";
+  const TG="https://t.me/CashCatsLLCCommunity";
+  const bar=document.createElement('div');
+  bar.style.cssText="background:#a8322a;color:#fff;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5;text-align:center;padding:11px 16px;letter-spacing:.4px;position:sticky;top:0;z-index:60";
+  bar.innerHTML='⚠ RELAUNCH IN PROGRESS — the original dev rugged. Do NOT buy the old contract. New CA drops in <a style="color:#fff;text-decoration:underline;font-weight:700" href="'+TG+'" target="_blank" rel="noopener">Telegram</a>.';
+  document.body.prepend(bar);
+  // scrub the old CA from all visible text
+  (function walk(n){for(const c of [...n.childNodes]){if(c.nodeType===3){if(c.nodeValue.toLowerCase().includes(OLD.toLowerCase()))c.nodeValue=c.nodeValue.replace(new RegExp(OLD,'ig'),'TBA — see Telegram');}else if(c.nodeType===1&&!['SCRIPT','STYLE'].includes(c.tagName))walk(c);}})(document.body);
+  // repoint any link to the old token / dex / swap to Telegram (keep the rug-proof farmer-wallet link)
+  document.querySelectorAll('a[href]').forEach(a=>{const h=a.href.toLowerCase();if((h.includes(OLD.toLowerCase())||h.includes('geckoterminal')||h.includes('dexscreener')||h.includes('robinlab')||h.includes('/swap'))&&!h.includes('t.me')){a.href=TG;a.target='_blank';}});
+  ['buyTop','buyStep','swapBtn'].forEach(id=>{const e=document.getElementById(id);if(e){e.href=TG;e.target='_blank';e.textContent='Get new CA in Telegram';}});
+  const ct=document.getElementById('caText');if(ct)ct.textContent='NEW CA COMING — SEE TELEGRAM';
+  const cb=document.getElementById('copyBtn');if(cb){cb.onclick=()=>window.open(TG,'_blank');cb.textContent='Join TG';}
+  const bl=document.getElementById('burnLink');if(bl){bl.href=TG;}
+  // hide sections tied to the dead token (chart, buy&burn, listings)
+  ['chart','swap','trade'].forEach(id=>{const s=document.getElementById(id);if(s)s.style.display='none';});
+})();
+</script>
 </body>
 </html>
