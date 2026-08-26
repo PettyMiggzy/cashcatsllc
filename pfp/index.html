@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Page is served at /pfp (no trailing slash), so relative fetches would resolve
+     at the site root. Anchor all relative asset paths (traits.json, trait PNGs)
+     under /pfp/ so the generator loads on the live site and inside Telegram. -->
+<base href="/pfp/">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CashCats LLC — PFP Studio</title>
 <link rel="icon" type="image/png" href="/assets/cashcat.png"/>
