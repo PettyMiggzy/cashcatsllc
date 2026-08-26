@@ -369,7 +369,17 @@ async function v2Quote(fromA,toA,amountIn){
 
 const $=id=>document.getElementById(id);
 let provider=null,signer=null,account=null;
-let readRpc=new E.JsonRpcProvider(CHAIN.rpc,Number(CHAIN.id));
+// Read provider with failover: free public RPC first, then our serverless proxy
+// (/api/rpc → official → ArrowRPC → paid, key hidden). quorum:1 = first good
+// answer wins, so either endpoint alone keeps quotes/balances working.
+const READ_RPCS=["https://rpc.mainnet.chain.robinhood.com","/api/rpc"];
+const _net=E.Network.from(Number(CHAIN.id));
+const _mkRead=u=>{const abs=u[0]==="/"?location.origin+u:u;
+  const opts=u[0]==="/"?{batchMaxCount:1,staticNetwork:_net}:{staticNetwork:_net};
+  return new E.JsonRpcProvider(abs,Number(CHAIN.id),opts);};
+let readRpc=new E.FallbackProvider(
+  READ_RPCS.map((u,i)=>({provider:_mkRead(u),priority:i+1,weight:1,stallTimeout:2500})),
+  Number(CHAIN.id),{quorum:1});
 let from=TOKENS[0],to=TOKENS[1],slippage=500n,pickWhich="from";
 let quote=null,quoteFee=null,quoting=false,secToken=null,route=null,quoteSeq=0,quotedIn=null;
 
