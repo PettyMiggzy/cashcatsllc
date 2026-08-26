@@ -430,15 +430,18 @@ async function updateQuote(){
   const my=++quoteSeq;
   try{
     const cands=[];
-    // v3 across fee tiers (real quotes)
-    const q=new E.Contract(QUOTER,QUOTER_ABI,readRpc);
-    for(const fee of FEE_TIERS){
-      try{const r=await q.quoteExactInputSingle.staticCall({tokenIn:fromA,tokenOut:toA,amountIn,fee,sqrtPriceLimitX96:0});
-        if(r[0]>0n)cands.push({proto:"v3",out:r[0],fee});}catch(e){}
+    const ccTrade=isCC(from)||isCC(to);   // CashCatsLLC is V4-only — skip the dead v2/v3 probes
+    if(!ccTrade){
+      // v3 across fee tiers (real quotes)
+      const q=new E.Contract(QUOTER,QUOTER_ABI,readRpc);
+      for(const fee of FEE_TIERS){
+        try{const r=await q.quoteExactInputSingle.staticCall({tokenIn:fromA,tokenOut:toA,amountIn,fee,sqrtPriceLimitX96:0});
+          if(r[0]>0n)cands.push({proto:"v3",out:r[0],fee});}catch(e){}
+      }
+      // v2 (real quote from reserves)
+      const v2=await v2Quote(fromA,toA,amountIn); if(v2&&v2>0n)cands.push({proto:"v2",out:v2});
     }
-    // v2 (real quote from reserves)
-    const v2=await v2Quote(fromA,toA,amountIn); if(v2&&v2>0n)cands.push({proto:"v2",out:v2});
-    // v4 only if no real v2/v3 route (spot price is impact-blind, don't let it out-bid a real quote)
+    // v4 when no real v2/v3 route (or a CashCatsLLC trade)
     if(!cands.length){
       const ethSide = isNative(from)||fromA.toLowerCase()===WETH.toLowerCase();
       const ethSideOut = isNative(to)||toA.toLowerCase()===WETH.toLowerCase();
