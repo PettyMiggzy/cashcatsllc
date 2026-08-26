@@ -51,7 +51,19 @@ nav{position:sticky;top:0;z-index:50;background:rgba(244,240,227,.92);backdrop-f
 .btn.ghost:hover{background:rgba(26,127,75,.08)}
 .btn.gold{background:var(--gold);border-color:#8a6a1f;color:#231a06}
 .btn.gold:hover{background:#8a6a1f;color:#fff}
-@media(max-width:820px){.nav-links{display:none}}
+.hamb{display:none;background:none;border:1px solid var(--line2);border-radius:5px;padding:8px 9px;cursor:pointer;flex-direction:column;gap:4px}
+.hamb span{width:20px;height:2px;background:var(--ink);display:block;transition:.2s}
+nav.open .hamb span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+nav.open .hamb span:nth-child(2){opacity:0}
+nav.open .hamb span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+@media(max-width:820px){
+  .nav-links{display:none}
+  .hamb{display:flex}
+  .navin .btn{margin-left:auto}
+  nav.open .nav-links{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:rgba(244,240,227,.98);backdrop-filter:blur(6px);border-bottom:2px double var(--line2);padding:6px 24px 16px;gap:0;box-shadow:0 14px 30px rgba(0,0,0,.12)}
+  nav.open .nav-links a{padding:13px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  nav.open .nav-links a:last-child{border-bottom:0}
+}
 /* masthead */
 .masthead{text-align:center;padding:34px 0 8px}
 .filed{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--ink2);text-transform:uppercase}
@@ -231,7 +243,14 @@ footer{border-top:2px double var(--line2);padding:44px 0;text-align:center;backg
     <a href="#memo">Memo</a><a href="#chart">Chart</a><a href="#swap">Buy&nbsp;&amp;&nbsp;Burn</a><a href="#receipts">Disclosure</a><a href="#buy">How to Buy</a><a href="/pfp/">PFP</a><a href="/memes.html">Memes</a>
   </div>
   <a class="btn" href="#buy">Buy $CASHCATSLLC</a>
+  <button class="hamb" id="hamb" aria-label="Menu"><span></span><span></span><span></span></button>
 </div></nav>
+<script>
+(function(){var n=document.querySelector('nav'),h=document.getElementById('hamb');
+ h.addEventListener('click',function(){n.classList.toggle('open');});
+ document.querySelectorAll('.nav-links a').forEach(function(a){a.addEventListener('click',function(){n.classList.remove('open');});});
+})();
+</script>
 
 <div id="top" class="masthead"><div class="wrap">
   <div class="filed">Robinhood Chain · Certificate of the Original Name · Filing No. 8F</div>
