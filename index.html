@@ -456,6 +456,7 @@ const NET="robinhood";
 const DEAD="0x000000000000000000000000000000000000dEaD";
 const SUPPLY=1_000_000_000, DECIMALS=18;
 const EXPLORER="https://robinhoodchain.blockscout.com";
+const RPC="https://rpc.mainnet.chain.robinhood.com";
 const SWAP_URL="/swap/";
 const X_URL="https://x.com/cashcatsllc", TG_URL="https://t.me/CashCatsLLCCommunity";
 document.getElementById('buyTop').href=SWAP_URL;
@@ -480,14 +481,30 @@ async function loadStats(){
     document.getElementById('sLiq').textContent=fmtUsd(a.reserve_in_usd);
   }catch(e){}
 }
+function showBurn(burned){
+  document.getElementById('burnAmt').textContent=fmtN(burned);
+  const pct=burned/SUPPLY*100;
+  document.getElementById('burnPct').textContent=(pct<0.01&&pct>0?pct.toPrecision(2):pct.toFixed(2))+"%";
+}
 async function loadBurn(){
+  // Read balanceOf(dead) straight from the chain RPC — reliable & CORS-open.
+  // The Blockscout indexer API is rate-limited ("Too many requests") and was
+  // silently zeroing the counter; use it only as a fallback.
+  const data="0x70a08231"+DEAD.slice(2).padStart(64,"0"); // balanceOf(address)
   try{
-    const r=await fetch(`${EXPLORER}/api?module=account&action=tokenbalance&contractaddress=${CA}&address=${DEAD}`);
-    const raw=(await r.json()).result;
-    const burned=Number(BigInt(raw))/10**DECIMALS;
-    document.getElementById('burnAmt').textContent=fmtN(burned);
-    document.getElementById('burnPct').textContent=(burned/SUPPLY*100).toFixed(2)+"%";
-  }catch(e){document.getElementById('burnAmt').textContent="0";document.getElementById('burnPct').textContent="0.00%";}
+    const r=await fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id:1,jsonrpc:"2.0",method:"eth_call",params:[{to:CA,data},"latest"]})});
+    const j=await r.json();
+    if(j.error||!j.result) throw new Error(j.error?.message||"no result");
+    showBurn(Number(BigInt(j.result))/10**DECIMALS);
+  }catch(e){
+    try{
+      const r=await fetch(`${EXPLORER}/api?module=account&action=tokenbalance&contractaddress=${CA}&address=${DEAD}`);
+      const raw=(await r.json()).result;
+      if(raw==null) throw new Error("indexer null");
+      showBurn(Number(BigInt(raw))/10**DECIMALS);
+    }catch(_){ document.getElementById('burnAmt').textContent="0";document.getElementById('burnPct').textContent="0.00%"; }
+  }
 }
 async function loadChart(){
   const cv=document.getElementById('chartCanvas');const ctx=cv.getContext('2d');
