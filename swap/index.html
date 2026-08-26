@@ -216,7 +216,7 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
 <script>
 const TOKENS=[
   {addr:"0x0000000000000000000000000000000000000000",sym:"ETH",name:"Ether (native)",dec:18,logo:"/assets/tok/0x0000000000000000000000000000000000000000.png"},
-  {addr:"0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc",sym:"CASHCATSLLC",name:"CashCats LLC",dec:18,logo:"/assets/tok/0x53a557a2a46083a3e9cd26ff4cdc4cc81da809cc.png"},
+  {addr:"0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc",sym:"CASHCATSLLC",name:"CashCats LLC",dec:18,logo:"/assets/tok/0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc.png"},
   {addr:"0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",sym:"WETH",name:"Wrapped Ether",dec:18,logo:"/assets/tok/0x0bd7d308f8e1639fab988df18a8011f41eacad73.png"},
   {addr:"0x020bfc650a365f8bb26819deaabf3e21291018b4",sym:"CASHCAT",name:"Cash Cat",dec:18,logo:"/assets/tok/0x020bfc650a365f8bb26819deaabf3e21291018b4.png"},
   {addr:"0x0a77a31b46ad66cc147baa7dc8e65aba8593a019",sym:"CATGAME",name:"Cat Butler Game",dec:18,logo:"/assets/tok/0x0a77a31b46ad66cc147baa7dc8e65aba8593a019.png"},
@@ -293,7 +293,7 @@ const CHAIN={id:4663n,hex:"0x1237",name:"Robinhood Chain",rpc:"https://rpc.mainn
 const WETH="0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73";
 const ROUTER="0xcaf681a66d020601342297493863e78c959e5cb2";
 const QUOTER="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7";
-const CASHCATSLLC="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc";
+const CASHCATSLLC="0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc";
 const FEE_TIERS=[10000,3000,500,100];
 const FEE_BPS=100n;
 const TREASURY=null;
@@ -308,7 +308,7 @@ const BURN_BPS=100n; // 1% of a CASHCATSLLC buy is bought again and burned to de
 // ---- Uniswap V4 (CASHCATSLLC is a native-ETH V4 pool with a launchpad hook) ----
 const V4={UR:"0x8876789976decbfcbbbe364623c63652db8c0904",PM:"0x8366a39cc670b4001a1121b8f6a443a643e40951",
   PERMIT2:"0x000000000022D473030F116dDEE9F6B43aC78BA3",STATEVIEW:"0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
-  HOOKS:"0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC",POOLID:"0xcddb45e5d61840c4a7702193fd321fc32b7bd6b69e4986e3882e960d171c083e",
+  HOOKS:"0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC",POOLID:"0x48ab386e7919b6a47ece9377e19a07cc27090fc85a1c4f41d1d28eb36f95c18b",
   FEE:0,TICK:200};
 const V4_KEY=["0x0000000000000000000000000000000000000000",CASHCATSLLC,V4.FEE,V4.TICK,V4.HOOKS];
 const AC=E.AbiCoder.defaultAbiCoder();
@@ -659,27 +659,6 @@ let qt;$("amtIn").addEventListener("input",()=>{clearTimeout(qt);quote=null;rout
 $("balFrom").onclick=()=>{const r=$("balFrom").dataset.raw;if(r){let v=E.formatUnits(r,from.dec);if(isNative(from))v=Math.max(0,parseFloat(v)-0.001).toString();$("amtIn").value=v;updateQuote();}};
 if(window.ethereum&&window.ethereum.on){window.ethereum.on("accountsChanged",()=>location.reload());window.ethereum.on("chainChanged",()=>location.reload());}
 renderTokBtns();renderBurn(0);
-</script>
-<script>
-/* ===== RELAUNCH MODE — remove the rugged CASHCATSLLC from the swap until the new CA is set ===== */
-(function(){
-  const OLD="0x53a557a2a46083A3E9cD26ff4cdc4CC81DA809cc".toLowerCase();
-  const TG="https://t.me/CashCatsLLCCommunity";
-  const bar=document.createElement('div');
-  bar.style.cssText="background:#a8322a;color:#fff;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5;text-align:center;padding:11px 16px;letter-spacing:.4px;position:sticky;top:0;z-index:60";
-  bar.innerHTML='⚠ RELAUNCH IN PROGRESS — the original CASHCATSLLC was rugged and is disabled here. New CA drops in <a style="color:#fff;text-decoration:underline;font-weight:700" href="'+TG+'" target="_blank" rel="noopener">Telegram</a>.';
-  document.body.prepend(bar);
-  try{
-    // drop the rugged token from the selectable list
-    for(let i=TOKENS.length-1;i>=0;i--){ if(TOKENS[i].addr.toLowerCase()===OLD) TOKENS.splice(i,1); }
-    // if it was selected, fall back to WETH / next token
-    const safe=TOKENS.find(t=>t.addr.toLowerCase()!=="0x0000000000000000000000000000000000000000")||TOKENS[1];
-    if(typeof to!=="undefined"&&to&&to.addr.toLowerCase()===OLD) to=safe;
-    if(typeof from!=="undefined"&&from&&from.addr.toLowerCase()===OLD) from=TOKENS[0];
-    if(typeof renderTokBtns==="function") renderTokBtns();
-    if(typeof updateQuote==="function") updateQuote();
-  }catch(e){}
-})();
 </script>
 </body>
 </html>
