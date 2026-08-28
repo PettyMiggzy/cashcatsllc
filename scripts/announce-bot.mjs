@@ -22,7 +22,7 @@ import fs from "node:fs";
 
 const RPC        = process.env.RPC || "https://rpc.mainnet.chain.robinhood.com";
 const BOT_TOKEN  = process.env.BOT_TOKEN;
-const CHAT_ID    = process.env.CHAT_ID;
+const CHAT_ID    = process.env.CHAT_ID || "-1003943929799"; // @CashCatsLLCCommunity (override with env)
 const POLL_MS    = Number(process.env.POLL_MS || 45000);
 const MIN_DIV    = BigInt(Math.round(Number(process.env.MIN_DIVIDEND || 50000))) * 10n ** 18n;
 
