@@ -543,6 +543,68 @@
           "blend": "multiply"
         }
       ]
+    },
+    {
+      "key": "extras",
+      "label": "Extras",
+      "optional": true,
+      "noneWeight": 320,
+      "traits": [
+        {
+          "file": "cowboy_hat.png",
+          "name": "Cowboy Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "deal_shades.png",
+          "name": "Deal Shades",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "devil_horns.png",
+          "name": "Devil Horns",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "gold_crown.png",
+          "name": "Gold Crown",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "halo.png",
+          "name": "Halo",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "laser_eyes.png",
+          "name": "Laser Eyes",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "party_hat.png",
+          "name": "Party Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "tinfoil_hat.png",
+          "name": "Tinfoil Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "top_hat.png",
+          "name": "Top Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        }
+      ]
     }
   ]
 }
