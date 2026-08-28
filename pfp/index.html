@@ -93,6 +93,27 @@
   kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
     border-radius:5px;padding:1px 6px;font:12px ui-monospace,monospace}
   footer{padding:0 26px 30px;color:var(--muted);font-size:12.5px;max-width:1400px;margin:0 auto}
+  /* base-cat project picker */
+  .baserow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .basebtn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
+    padding:7px 12px;font-weight:600;cursor:pointer;font-size:13px}
+  .basebtn.active{border-color:var(--green);color:var(--green)}
+  .basecur{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .catsearch{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:8px 11px;font-size:13px;outline:none}
+  .catsearch:focus{border-color:var(--green)}
+  .catgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;max-height:260px;overflow-y:auto}
+  @media(max-width:520px){.catgrid{grid-template-columns:repeat(3,1fr)}}
+  .catchip{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    cursor:pointer;background:var(--panel-2);transition:.12s}
+  .catchip:hover{border-color:var(--green);transform:translateY(-2px)}
+  .catchip.active{border-color:var(--green);box-shadow:0 0 0 2px var(--green) inset}
+  .catchip img{width:100%;height:100%;object-fit:cover;display:block}
+  .catchip .sym{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,#000c);
+    color:#fff;font-size:9px;font-weight:700;padding:8px 4px 3px;text-align:center;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cathint{grid-column:1/-1;color:var(--muted);font-size:12px;padding:8px 2px}
+  .catnote{color:var(--muted);font-size:11px;margin-top:9px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -120,6 +141,17 @@
   </section>
 
   <aside class="panel">
+    <div class="card">
+      <h2>Base Cat</h2>
+      <div class="baserow">
+        <button id="baseCashcat" class="basebtn active">Cash Cat</button>
+        <span class="basecur" id="baseCur">built-in body · add traits on top</span>
+      </div>
+      <input id="catSearch" class="catsearch" placeholder="search other cat projects…" value="cat" autocomplete="off">
+      <div id="catGrid" class="catgrid"><div class="cathint">Loading cat projects…</div></div>
+      <div class="catnote">Pick any cat coin's logo as your base, then stack hats, effects &amp; more on top. Logos via DexScreener.</div>
+    </div>
+
     <div class="card">
       <h2>Traits</h2>
       <div id="layers"></div>
@@ -187,17 +219,22 @@ const setStatus = (msg, isErr = false) => {
   s.classList.toggle('err', isErr);
 };
 
-function loadImage(src) {
+function loadImage(src, cors = false) {
   if (imgCache.has(src)) return imgCache.get(src);
   const p = new Promise((res, rej) => {
     const im = new Image();
+    if (cors) im.crossOrigin = 'anonymous';   // keep the canvas exportable for proxied logos
     im.onload = () => res(im);
     im.onerror = () => rej(new Error(`missing asset: ${src}`));
-    im.src = encodeURI(src);
+    im.src = cors ? src : encodeURI(src);
   });
   imgCache.set(src, p);
   return p;
 }
+
+// When set, the chosen cat project's logo replaces the Cash Cat body as the base.
+let baseImageUrl = null, baseLabel = '';
+const proxied = (u) => '/api/img?url=' + encodeURIComponent(u);
 
 /** Weighted pick across a layer's traits, plus a "None" slot for optional layers. */
 function rollLayer(layer) {
@@ -223,12 +260,21 @@ async function paint(sel, target = canvas, size = SIZE, transparent = false) {
   const c = target.getContext('2d');
   const pics = await Promise.all(sel.map(s =>
     s.trait ? loadImage(`/pfp/${manifest.traitDir}/${s.key}/${s.trait.file}`) : null));
+  // load the chosen project logo (CORS-clean via the proxy) if one is picked
+  let baseIm = null;
+  if (baseImageUrl) { try { baseIm = await loadImage(proxied(baseImageUrl), true); } catch (e) { setStatus('logo failed to load — using Cash Cat', true); } }
 
   c.clearRect(0, 0, size, size);
   sel.forEach((s, i) => {
+    const layer = layers.find(l => l.key === s.key);
+    // A picked project logo takes the "body" slot — accessories still layer on top.
+    if (baseIm && s.key === 'body') {
+      c.globalCompositeOperation = 'source-over';
+      c.drawImage(baseIm, 0, 0, size, size);
+      return;
+    }
     const im = pics[i];
     if (!im) return;
-    const layer = layers.find(l => l.key === s.key);
     if (transparent && layer.fullFrame) return;
     c.globalCompositeOperation = s.trait.blend ?? layer.blend ?? 'source-over';
     c.drawImage(im, 0, 0, size, size);
@@ -553,6 +599,62 @@ addEventListener('keydown', e => {
     TG.MainButton.onClick(sendToTelegram);
   }catch(e){}
 })();
+
+/* ---------- cat-project base picker (DexScreener) ---------- */
+let catProjects = [];
+async function fetchCatProjects(q) {
+  const grid = els('catGrid');
+  grid.innerHTML = '<div class="cathint">Searching…</div>';
+  try {
+    const r = await fetch('https://api.dexscreener.com/latest/dex/search?q=' + encodeURIComponent(q || 'cat'));
+    const j = await r.json();
+    const seen = new Set(); const out = [];
+    for (const p of (j.pairs || [])) {
+      const t = p.baseToken || {}; const img = (p.info || {}).imageUrl;
+      if (!t.address || seen.has(t.address) || !img) continue;
+      if (!/cat/i.test((t.name || '') + (t.symbol || ''))) continue;
+      seen.add(t.address);
+      out.push({ name: t.name, symbol: t.symbol, chain: p.chainId, img });
+      if (out.length >= 24) break;
+    }
+    catProjects = out;
+    renderCatGrid();
+  } catch (e) { grid.innerHTML = '<div class="cathint">Couldn\'t load projects — try again.</div>'; }
+}
+function renderCatGrid() {
+  const grid = els('catGrid');
+  if (!catProjects.length) { grid.innerHTML = '<div class="cathint">No cat projects found — try another word.</div>'; return; }
+  grid.innerHTML = '';
+  for (const p of catProjects) {
+    const d = document.createElement('div');
+    d.className = 'catchip' + (baseImageUrl === p.img ? ' active' : '');
+    d.title = (p.name || p.symbol || '') + ' · ' + p.chain;
+    d.innerHTML = `<img loading="lazy" src="${p.img}" alt="${(p.symbol || '').replace(/"/g, '')}"><span class="sym">${(p.symbol || p.name || '').replace(/</g, '')}</span>`;
+    d.addEventListener('click', () => setBase(p.img, (p.name || p.symbol || 'project') + ' · ' + p.chain));
+    grid.append(d);
+  }
+}
+function setBase(url, label) {
+  baseImageUrl = url; baseLabel = label;
+  els('baseCashcat').classList.remove('active');
+  els('baseCur').textContent = label;
+  renderCatGrid();
+  if (current.length) show(current, { push: false });
+}
+function clearBase() {
+  baseImageUrl = null; baseLabel = '';
+  els('baseCashcat').classList.add('active');
+  els('baseCur').textContent = 'built-in body · add traits on top';
+  renderCatGrid();
+  if (current.length) show(current, { push: false });
+}
+els('baseCashcat').addEventListener('click', clearBase);
+let catSearchT;
+els('catSearch').addEventListener('input', (e) => {
+  clearTimeout(catSearchT);
+  catSearchT = setTimeout(() => fetchCatProjects(e.target.value.trim() || 'cat'), 350);
+});
+fetchCatProjects('cat');
 
 boot();
 </script>
