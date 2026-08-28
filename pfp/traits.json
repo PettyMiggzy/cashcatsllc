@@ -548,11 +548,53 @@
       "key": "extras",
       "label": "Extras",
       "optional": true,
-      "noneWeight": 360,
+      "noneWeight": 900,
       "traits": [
+        {
+          "file": "bandana.png",
+          "name": "Bandana",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "beanie.png",
+          "name": "Beanie",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
         {
           "file": "blunt.png",
           "name": "Blunt",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "bowtie.png",
+          "name": "Bowtie",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "chef_hat.png",
+          "name": "Chef Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "cigar.png",
+          "name": "Cigar",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "confetti.png",
+          "name": "Confetti",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "cool_shades.png",
+          "name": "Cool Shades",
           "weight": 100,
           "origin": "cashcats-ai"
         },
@@ -575,6 +617,36 @@
           "origin": "cashcats-ai"
         },
         {
+          "file": "diamond_chain.png",
+          "name": "Diamond Chain",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "eye_patch.png",
+          "name": "Eye Patch",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "flames.png",
+          "name": "Flames",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "flower_crown.png",
+          "name": "Flower Crown",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "glasses_3d.png",
+          "name": "Glasses 3d",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
           "file": "gold_chain.png",
           "name": "Gold Chain",
           "weight": 100,
@@ -587,8 +659,26 @@
           "origin": "cashcats-ai"
         },
         {
+          "file": "gold_grillz.png",
+          "name": "Gold Grillz",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "grad_cap.png",
+          "name": "Grad Cap",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
           "file": "halo.png",
           "name": "Halo",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "heart_glasses.png",
+          "name": "Heart Glasses",
           "weight": 100,
           "origin": "cashcats-ai"
         },
@@ -605,8 +695,38 @@
           "origin": "cashcats-ai"
         },
         {
+          "file": "nerd_glasses.png",
+          "name": "Nerd Glasses",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
           "file": "party_hat.png",
           "name": "Party Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "pipe.png",
+          "name": "Pipe",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "pirate_hat.png",
+          "name": "Pirate Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "santa_hat.png",
+          "name": "Santa Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "sombrero.png",
+          "name": "Sombrero",
           "weight": 100,
           "origin": "cashcats-ai"
         },
@@ -619,6 +739,18 @@
         {
           "file": "top_hat.png",
           "name": "Top Hat",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "viking_helmet.png",
+          "name": "Viking Helmet",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "wizard_hat.png",
+          "name": "Wizard Hat",
           "weight": 100,
           "origin": "cashcats-ai"
         }
