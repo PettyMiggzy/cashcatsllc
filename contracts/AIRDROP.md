@@ -28,6 +28,27 @@ weights.
 
 ## 2. Deploy
 
+### Option A — one-shot script (server box)
+
+`scripts/deploy-airdrop.mjs` has the bytecode + the 30 recipients + weights baked
+in (compiled solc 0.8.26, optimizer runs 200, evmVersion paris). On your box:
+
+```
+npm i ethers
+export PRIVATE_KEY=0x...        # deployer wallet = contract owner; needs Robinhood ETH for gas
+node scripts/deploy-airdrop.mjs           # pro-rata weights (default)
+node scripts/deploy-airdrop.mjs --equal   # equal split
+unset PRIVATE_KEY
+```
+
+The key is read from the env var only — never hardcode it or commit it. Prefix
+the command with a space to keep it out of shell history. The script prints the
+deployed address and the exact constructor args + compiler settings for
+verification. (The baked-in snapshot is current as of generation; re-run
+`snapshot-cashcat-top30.mjs` and regenerate, or use `setRecipients`, to refresh.)
+
+### Option B — your own toolchain
+
 Deploy `CashCatsAirdrop.sol` with constructor args:
 
 ```
