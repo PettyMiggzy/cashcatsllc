@@ -2,6 +2,11 @@
 /* ============================================================
    CashCats announce bot — run on your server (needs: npm i ethers)
 
+   NOTE: this job is now built into cashcats-bot.mjs (set CHAT_ID there and
+   it announces + serves commands + AI chat from one process). Use this
+   standalone file only if you want announcements running separately from
+   the main bot — don't run both against the same CHAT_ID or posts double up.
+
    Watches Robinhood Chain and posts to Telegram when:
      • an AIRDROP happens   — the CashCatsAirdrop contract emits Distributed()
      • a DIVIDEND lands      — $CASHCATSLLC is bought into the rewards wallet
