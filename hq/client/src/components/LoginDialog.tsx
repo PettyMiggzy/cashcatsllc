@@ -10,10 +10,10 @@ import { Navigation } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/navigation'
 
-import Adam from '../images/login/Adam_login.png'
-import Ash from '../images/login/Ash_login.png'
-import Lucy from '../images/login/Lucy_login.png'
-import Nancy from '../images/login/Nancy_login.png'
+import White from '../images/login/White_login.png'
+import Tan from '../images/login/Tan_login.png'
+import Brown from '../images/login/Brown_login.png'
+import Black from '../images/login/Black_login.png'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setLoggedIn } from '../stores/UserStore'
 import { getAvatarString, getColorByString } from '../util'
@@ -118,10 +118,10 @@ const Bottom = styled.div`
 `
 
 const avatars = [
-  { name: 'adam', img: Adam },
-  { name: 'ash', img: Ash },
-  { name: 'lucy', img: Lucy },
-  { name: 'nancy', img: Nancy },
+  { name: 'tan', img: Tan },
+  { name: 'white', img: White },
+  { name: 'brown', img: Brown },
+  { name: 'black', img: Black },
 ]
 
 // shuffle the avatars array

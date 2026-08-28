@@ -60,21 +60,23 @@ export default class Bootstrap extends Phaser.Scene {
       frameWidth: 32,
       frameHeight: 32,
     })
-    this.load.spritesheet('adam', 'assets/character/adam.png', {
+    // Cat sprites: 32x32, 3 rows (down/up/side) x 3 frames. No sit poses —
+    // sit_* animations map to the idle frame (see CharacterAnims.ts).
+    this.load.spritesheet('white', 'assets/character/white.png', {
       frameWidth: 32,
-      frameHeight: 48,
+      frameHeight: 32,
     })
-    this.load.spritesheet('ash', 'assets/character/ash.png', {
+    this.load.spritesheet('tan', 'assets/character/tan.png', {
       frameWidth: 32,
-      frameHeight: 48,
+      frameHeight: 32,
     })
-    this.load.spritesheet('lucy', 'assets/character/lucy.png', {
+    this.load.spritesheet('brown', 'assets/character/brown.png', {
       frameWidth: 32,
-      frameHeight: 48,
+      frameHeight: 32,
     })
-    this.load.spritesheet('nancy', 'assets/character/nancy.png', {
+    this.load.spritesheet('black', 'assets/character/black.png', {
       frameWidth: 32,
-      frameHeight: 48,
+      frameHeight: 32,
     })
 
     this.load.on('complete', () => {

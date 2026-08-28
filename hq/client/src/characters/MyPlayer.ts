@@ -106,6 +106,7 @@ export default class MyPlayer extends Player {
                 )
               }
 
+              this.setFlipX(chairItem.itemDirection === 'left')
               this.play(`${this.playerTexture}_sit_${chairItem.itemDirection}`, true)
               playerSelector.selectedItem = undefined
               if (chairItem.itemDirection === 'up') {
@@ -162,12 +163,16 @@ export default class MyPlayer extends Player {
         // update animation according to velocity and send new location and anim to server
         if (vx !== 0 || vy !== 0) network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
         if (vx > 0) {
+          this.setFlipX(false)
           this.play(`${this.playerTexture}_run_right`, true)
         } else if (vx < 0) {
+          this.setFlipX(true)
           this.play(`${this.playerTexture}_run_left`, true)
         } else if (vy > 0) {
+          this.setFlipX(false)
           this.play(`${this.playerTexture}_run_down`, true)
         } else if (vy < 0) {
+          this.setFlipX(false)
           this.play(`${this.playerTexture}_run_up`, true)
         } else {
           const parts = this.anims.currentAnim.key.split('_')

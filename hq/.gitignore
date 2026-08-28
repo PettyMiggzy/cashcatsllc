@@ -5,17 +5,15 @@ build/
 .env.local
 *.log
 
-# Licensed art (tilesets, character sheets, item icons) — bought on your own
-# account, added at deploy time, NEVER committed. This repo is public; see
-# ASSETS.md before touching anything under these paths. Our OWN map.json /
-# map.tmx (authored in Tiled, phase 04) is NOT covered by this and should be
-# committed normally — only the image binaries are excluded here.
-client/public/assets/**/*.png
-client/public/assets/**/*.jpg
-client/public/assets/**/*.jpeg
+# Licensed art still pending purchase (tileset, item icons) — bought on your
+# own account, added at deploy time, NEVER committed. This repo is public;
+# see ASSETS.md. Our OWN map.json / map.tmx (authored in Tiled, phase 04) is
+# NOT covered by this and should be committed normally.
+client/public/assets/tileset/**/*.png
+client/public/assets/items/**/*.png
+client/public/assets/map/**/*.png
 !client/public/assets/**/.gitkeep
-client/src/images/**/*.png
-!client/src/images/**/.gitkeep
-# Self-made TEMP placeholders (not third-party art) — see README, phase 03 replaces these.
-!client/src/images/logo.png
-!client/src/images/login/*_login.png
+
+# Character sprites ARE committed — free CC-BY 3.0, redistribution allowed
+# with credit (see ASSETS.md / README). client/public/assets/character/*.png
+# and client/src/images/**/*.png are intentionally NOT excluded here.

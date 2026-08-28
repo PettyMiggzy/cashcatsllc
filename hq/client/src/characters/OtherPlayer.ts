@@ -45,6 +45,9 @@ export default class OtherPlayer extends Player {
 
       case 'anim':
         if (typeof value === 'string') {
+          // our cat sprites only have one side pose — 'left' is the same
+          // frames as 'right', mirrored, since there's no separate art
+          this.setFlipX(value.endsWith('_left'))
           this.anims.play(value, true)
         }
         break
