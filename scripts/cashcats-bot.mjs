@@ -58,11 +58,19 @@ async function airdropState() {
 }
 
 // ---- keyboards ----
+// Named Mini App short name set in BotFather (/newapp). The t.me/<bot>/<app> link
+// opens the Mini App natively in ANY chat (DM or group) — set after getMe.
+const PFP_APP = process.env.PFP_APP || "pfp";
+let APP_LINK = null;
+// Best PFP button: the t.me Mini App link everywhere once known; else fall back
+// to a web_app button in DMs / a plain site link in groups.
+const pfpBtn = (isPrivate, text = "Make a PFP") =>
+  APP_LINK ? { text, url: APP_LINK }
+           : (isPrivate ? { text, web_app: { url: `${SITE}/pfp` } } : { text, url: `${SITE}/pfp` });
+
 const mainKb = (isPrivate) => ({
   inline_keyboard: [
-    isPrivate
-      ? [{ text: "Make a PFP", web_app: { url: `${SITE}/pfp` } }]
-      : [{ text: "Make a PFP", url: `${SITE}/pfp` }],
+    [pfpBtn(isPrivate)],
     [{ text: "Open Swap", url: `${SITE}/swap` }, { text: "Chart", url: `https://dexscreener.com/robinhood/${POOL}` }],
     [{ text: "How to Buy", url: `${SITE}/#buy` }, { text: "Memes", url: `${SITE}/memes.html` }],
   ],
@@ -83,8 +91,8 @@ async function onText(msg) {
       "Tap below to get started.", { reply_markup: mainKb(isPrivate) });
   }
   if (cmd === "/pfp") {
-    return send(chat, "Build your cash-cat PFP — pick a base, stack traits, send it to the chat.",
-      { reply_markup: { inline_keyboard: [[isPrivate ? { text: "Open PFP Studio", web_app: { url: `${SITE}/pfp` } } : { text: "Open PFP Studio", url: `${SITE}/pfp` }]] } });
+    return send(chat, "Build your cash-cat PFP — pick a base, stack 34 traits, send it to the chat.",
+      { reply_markup: { inline_keyboard: [[pfpBtn(isPrivate, "Open PFP Studio")]] } });
   }
   if (cmd === "/swap") {
     return send(chat, "Trade any token on Robinhood Chain. Opens in your browser — connect your wallet there.",
@@ -152,9 +160,11 @@ async function setup() {
     console.error("    export BOT_TOKEN=123456789:AA...your_real_token\n");
     process.exit(1);
   }
+  APP_LINK = `https://t.me/${me.result.username}/${PFP_APP}`; // Mini App deep-link (needs BotFather /newapp with short name "pfp")
   await api("deleteWebhook", { drop_pending_updates: false }).catch(() => {});
   await setup();
   console.log("cashcats-bot live as @" + me.result.username);
+  console.log("PFP Mini App link:", APP_LINK, "(create it in BotFather /newapp if not done)");
   let offset = 0;
   for (;;) {
     try {
