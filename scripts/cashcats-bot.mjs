@@ -6,7 +6,7 @@
      export CHAT_ID=-1001234567890   # optional: group to post burn/airdrop announcements in
      node scripts/cashcats-bot.mjs        # long-polls, keep alive with pm2/systemd
 
-   Commands: /start /pfp /swap /price /rewards /airdrop /ca /privacy /help
+   Commands: /start /pfp /swap /price /rewards /airdrop /recap /ca /privacy /help
    - PFP opens as a Mini App (image tool — allowed).
    - Swap opens in the user's browser via a normal link (NOT a Mini App):
      Telegram's ToS restricts in-app crypto to TON only, and our swap is a
@@ -83,7 +83,8 @@ const SYS =
   "Personality: a witty, friendly, slightly degen cat. Keep replies SHORT — 1-2 sentences, casual, a little meme-y, occasional cat pun. " +
   "Facts you can use: CashCats LLC is the original registered name that reportedly predated the Robinhood app; " +
   "$CASHCATSLLC trades on Robinhood Chain; the CashCats Swap charges a 1% fee on buys that is paid back to holders as a dividend; " +
-  "there is a PFP studio at t.me/CashCatLLCbot/pfp; an airdrop was sent to top original Cash Cat holders. " +
+  "there is a PFP studio at t.me/CashCatLLCbot/pfp; an airdrop was sent to top original Cash Cat holders; " +
+  "anyone can run /recap in the chat to post the airdrop + dividend totals so far. " +
   "RULES: never give financial advice, never predict or promise future price/gains. For price, market cap, 24h volume, the " +
   "rewards pool, the airdrop, or the contract address — use ONLY the exact figures in the LIVE DATA system message for THIS reply, " +
   "never a number from memory or an earlier message (it may be stale). If no LIVE DATA is attached, or it's missing what's asked, " +
@@ -152,7 +153,7 @@ async function onText(msg) {
       "<b>CashCats LLC</b> — the original name, now a token on Robinhood Chain.\n\n" +
       "• <b>Make a PFP</b> — the cash-cat studio\n" +
       "• <b>Swap</b> — buy/sell any token; 1% of every buy is a dividend to holders\n" +
-      "• /price · /rewards · /airdrop · /ca\n\n" +
+      "• /price · /rewards · /airdrop · /recap · /ca\n\n" +
       "Tap below to get started.", { reply_markup: mainKb(isPrivate) });
   }
   if (cmd === "/pfp") {
@@ -197,6 +198,19 @@ async function onText(msg) {
         `Distributed so far: <b>${fmt(s.dist)}</b>`,
         { reply_markup: { inline_keyboard: [[{ text: "Airdrop contract", url: `${EXPLORER}/address/${AIRDROP}` }]] } });
     } catch { return send(chat, "Couldn't read the airdrop contract right now."); }
+  }
+  if (cmd === "/recap" || cmd === "/announce") {
+    try {
+      const [pool, s] = await Promise.all([balOf(REWARDS), airdropState()]);
+      return send(chat,
+        `📢 <b>CashCats recap</b>\n\n` +
+        `🐱💸 <b>Airdrops</b>\n<b>${fmt0(s.dist)}</b> $CASHCATSLLC sent to <b>${s.n}</b> original Cash Cat holders so far.\n` +
+        `<b>${fmt0(s.pending)}</b> already loaded in the airdrop contract for the next round.\n\n` +
+        `🔥 <b>Dividends</b>\n<b>${fmt0(pool)}</b> $CASHCATSLLC collected from the 1% buy fee, held for holders — moves into the airdrop contract for the next round.`,
+        { reply_markup: { inline_keyboard: [
+          [{ text: "Airdrop contract", url: `${EXPLORER}/address/${AIRDROP}` }, { text: "Rewards wallet", url: `${EXPLORER}/address/${REWARDS}` }],
+        ] } });
+    } catch { return send(chat, "Couldn't pull the recap right now — try again shortly."); }
   }
 
   // ---- not a command: chat via Groq, rate-limited so it never spams ----
@@ -276,6 +290,7 @@ async function setup() {
     { command: "price", description: "$CASHCATSLLC price" },
     { command: "rewards", description: "Holder rewards pool" },
     { command: "airdrop", description: "Cash Cat holder airdrop status" },
+    { command: "recap", description: "Announce airdrops + dividends so far" },
     { command: "ca", description: "Contract address" },
     { command: "privacy", description: "Privacy policy" },
   ] });
