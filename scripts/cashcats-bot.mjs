@@ -83,8 +83,9 @@ const SYS =
   "Personality: a witty, friendly, slightly degen cat. Keep replies SHORT — 1-2 sentences, casual, a little meme-y, occasional cat pun. " +
   "Facts you can use: CashCats LLC is the original registered name that reportedly predated the Robinhood app; " +
   "$CASHCATSLLC trades on Robinhood Chain; the CashCats Swap charges a 1% fee on buys that is paid back to holders as a dividend; " +
-  "there is a PFP studio at t.me/CashCatLLCbot/pfp; an airdrop was sent to top original Cash Cat holders; " +
-  "anyone can run /recap in the chat to post the airdrop + dividend totals so far. " +
+  "there is a PFP studio at t.me/CashCatLLCbot/pfp; an airdrop of $CASHCATSLLC was sent to the top 30 holders of $CASHCAT " +
+  "(cashcat.cc) — $CASHCAT is a SEPARATE, unrelated project, NOT $CASHCATSLLC's own early/original holders, so never phrase " +
+  "the airdrop as going to '$CASHCATSLLC's original holders'; anyone can run /recap in the chat to post the airdrop + dividend totals so far. " +
   "RULES: never give financial advice, never predict or promise future price/gains. For price, market cap, 24h volume, the " +
   "rewards pool, the airdrop, or the contract address — use ONLY the exact figures in the LIVE DATA system message for THIS reply, " +
   "never a number from memory or an earlier message (it may be stale). If no LIVE DATA is attached, or it's missing what's asked, " +
@@ -108,7 +109,7 @@ async function liveFacts() {
   if (pool.status === "fulfilled") lines.push(`Holder rewards pool (1% buy-fee dividend, awaiting airdrop): ${fmt0(pool.value)} $CASHCATSLLC`);
   if (air.status === "fulfilled") {
     const a = air.value;
-    lines.push(`Original Cash Cat holder airdrop: ${a.n} recipients | ${fmt0(a.dist)} $CASHCATSLLC distributed so far | ${fmt0(a.pending)} pending`);
+    lines.push(`Airdrop to $CASHCAT holders (cashcat.cc — a separate, unrelated project, NOT $CASHCATSLLC's own holders): ${a.n} recipients | ${fmt0(a.dist)} $CASHCATSLLC distributed so far | ${fmt0(a.pending)} pending`);
   }
   lines.push(`Contract address: ${CA}`);
   return lines.length ? "LIVE DATA (fetched just now — accurate as of this message; use these exact figures, don't alter them):\n" + lines.join("\n") : "";
@@ -193,7 +194,7 @@ async function onText(msg) {
     try {
       const s = await airdropState();
       return send(chat,
-        `<b>Cash Cat holder airdrop</b>\nRecipients: <b>${s.n}</b> top Cash Cat holders\n` +
+        `<b>$CASHCAT holder airdrop</b> <i>($CASHCAT is a separate project, cashcat.cc — not $CASHCATSLLC's own holders)</i>\nRecipients: <b>${s.n}</b> top $CASHCAT holders\n` +
         `Waiting to distribute: <b>${fmt(s.pending)}</b> $CASHCATSLLC\n` +
         `Distributed so far: <b>${fmt(s.dist)}</b>`,
         { reply_markup: { inline_keyboard: [[{ text: "Airdrop contract", url: `${EXPLORER}/address/${AIRDROP}` }]] } });
@@ -204,7 +205,7 @@ async function onText(msg) {
       const [pool, s] = await Promise.all([balOf(REWARDS), airdropState()]);
       return send(chat,
         `📢 <b>CashCats recap</b>\n\n` +
-        `🐱💸 <b>Airdrops</b>\n<b>${fmt0(s.dist)}</b> $CASHCATSLLC sent to <b>${s.n}</b> original Cash Cat holders so far.\n` +
+        `🐱💸 <b>Airdrops</b>\n<b>${fmt0(s.dist)}</b> $CASHCATSLLC sent to <b>${s.n}</b> top $CASHCAT holders so far <i>($CASHCAT is a separate project, cashcat.cc)</i>.\n` +
         `<b>${fmt0(s.pending)}</b> already loaded in the airdrop contract for the next round.\n\n` +
         `🔥 <b>Dividends</b>\n<b>${fmt0(pool)}</b> $CASHCATSLLC collected from the 1% buy fee, held for holders — moves into the airdrop contract for the next round.`,
         { reply_markup: { inline_keyboard: [
@@ -249,7 +250,7 @@ async function announceTick(state) {
   for (const l of airLogs) {
     const [amount, count] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256", "uint256"], l.data);
     await send(CHAT_ID,
-      `🐱💸 <b>Airdrop sent!</b>\n<b>${fmt0(ethers.formatUnits(amount, 18))}</b> $CASHCATSLLC just went out to <b>${count}</b> Cash Cat holders.\n<a href="${EXPLORER}/tx/${l.transactionHash}">view tx</a>`);
+      `🐱💸 <b>Airdrop sent!</b>\n<b>${fmt0(ethers.formatUnits(amount, 18))}</b> $CASHCATSLLC just went out to <b>${count}</b> top $CASHCAT holders <i>($CASHCAT is a separate project, cashcat.cc)</i>.\n<a href="${EXPLORER}/tx/${l.transactionHash}">view tx</a>`);
   }
 
   // dividend buys landing in the rewards wallet (Transfer of $CASHCATSLLC -> REWARDS)
@@ -289,7 +290,7 @@ async function setup() {
     { command: "swap", description: "Open the CashCats Swap" },
     { command: "price", description: "$CASHCATSLLC price" },
     { command: "rewards", description: "Holder rewards pool" },
-    { command: "airdrop", description: "Cash Cat holder airdrop status" },
+    { command: "airdrop", description: "$CASHCAT holder airdrop status" },
     { command: "recap", description: "Announce airdrops + dividends so far" },
     { command: "ca", description: "Contract address" },
     { command: "privacy", description: "Privacy policy" },

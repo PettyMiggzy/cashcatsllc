@@ -82,7 +82,7 @@ async function tick(state) {
   for (const l of airLogs) {
     const [amount, count] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256", "uint256"], l.data);
     await announce(
-      `🐱💸 <b>Airdrop sent!</b>\n<b>${fmt(amount)}</b> $CASHCATSLLC just went out to <b>${count}</b> Cash Cat holders.\n<a href="${EXPLORER}/tx/${l.transactionHash}">view tx</a>`
+      `🐱💸 <b>Airdrop sent!</b>\n<b>${fmt(amount)}</b> $CASHCATSLLC just went out to <b>${count}</b> top $CASHCAT holders <i>($CASHCAT is a separate project, cashcat.cc)</i>.\n<a href="${EXPLORER}/tx/${l.transactionHash}">view tx</a>`
     );
   }
 
