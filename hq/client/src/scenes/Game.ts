@@ -152,19 +152,10 @@ export default class Game extends Phaser.Scene {
       this
     )
 
-    this.physics.add.overlap(
-      this.myPlayer,
-      this.otherPlayers,
-      this.handlePlayersOverlap,
-      undefined,
-      this
-    )
-
     // register network event listeners
     this.network.onPlayerJoined(this.handlePlayerJoined, this)
     this.network.onPlayerLeft(this.handlePlayerLeft, this)
     this.network.onMyPlayerReady(this.handleMyPlayerReady, this)
-    this.network.onMyPlayerVideoConnected(this.handleMyVideoConnected, this)
     this.network.onPlayerUpdated(this.handlePlayerUpdated, this)
     this.network.onItemUserAdded(this.handleItemUserAdded, this)
     this.network.onItemUserRemoved(this.handleItemUserRemoved, this)
@@ -242,18 +233,10 @@ export default class Game extends Phaser.Scene {
     this.myPlayer.readyToConnect = true
   }
 
-  private handleMyVideoConnected() {
-    this.myPlayer.videoConnected = true
-  }
-
   // function to update target position upon receiving player updates
   private handlePlayerUpdated(field: string, value: number | string, id: string) {
     const otherPlayer = this.otherPlayerMap.get(id)
     otherPlayer?.updateOtherPlayer(field, value)
-  }
-
-  private handlePlayersOverlap(myPlayer, otherPlayer) {
-    otherPlayer.makeCall(myPlayer, this.network?.webRTC)
   }
 
   private handleItemUserAdded(playerId: string, itemId: string, itemType: ItemType) {

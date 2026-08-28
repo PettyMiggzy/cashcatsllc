@@ -3,8 +3,6 @@ import styled from 'styled-components'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Avatar from '@mui/material/Avatar'
-import Alert from '@mui/material/Alert'
-import AlertTitle from '@mui/material/AlertTitle'
 import ArrowRightIcon from '@mui/icons-material/ArrowRight'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -119,14 +117,6 @@ const Bottom = styled.div`
   justify-content: center;
 `
 
-const Warning = styled.div`
-  margin-top: 30px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-`
-
 const avatars = [
   { name: 'adam', img: Adam },
   { name: 'ash', img: Ash },
@@ -145,7 +135,6 @@ export default function LoginDialog() {
   const [avatarIndex, setAvatarIndex] = useState<number>(0)
   const [nameFieldEmpty, setNameFieldEmpty] = useState<boolean>(false)
   const dispatch = useAppDispatch()
-  const videoConnected = useAppSelector((state) => state.user.videoConnected)
   const roomJoined = useAppSelector((state) => state.room.roomJoined)
   const roomName = useAppSelector((state) => state.room.roomName)
   const roomDescription = useAppSelector((state) => state.room.roomDescription)
@@ -209,29 +198,6 @@ export default function LoginDialog() {
               setName((e.target as HTMLInputElement).value)
             }}
           />
-          {!videoConnected && (
-            <Warning>
-              <Alert variant="outlined" severity="warning">
-                <AlertTitle>Warning</AlertTitle>
-                No webcam/mic connected - <strong>connect one for best experience!</strong>
-              </Alert>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => {
-                  game.network.webRTC?.getUserMedia()
-                }}
-              >
-                Connect Webcam
-              </Button>
-            </Warning>
-          )}
-
-          {videoConnected && (
-            <Warning>
-              <Alert variant="outlined">Webcam connected!</Alert>
-            </Warning>
-          )}
         </Right>
       </Content>
       <Bottom>

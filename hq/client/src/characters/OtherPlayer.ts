@@ -1,17 +1,11 @@
 import Phaser from 'phaser'
 import Player from './Player'
-import MyPlayer from './MyPlayer'
 import { sittingShiftData } from './Player'
-import WebRTC from '../web/WebRTC'
-import { Event, phaserEvents } from '../events/EventCenter'
 
 export default class OtherPlayer extends Player {
   private targetPosition: [number, number]
   private lastUpdateTimestamp?: number
-  private connectionBufferTime = 0
-  private connected = false
   private playContainerBody: Phaser.Physics.Arcade.Body
-  private myPlayer?: MyPlayer
 
   constructor(
     scene: Phaser.Scene,
@@ -27,23 +21,6 @@ export default class OtherPlayer extends Player {
 
     this.playerName.setText(name)
     this.playContainerBody = this.playerContainer.body as Phaser.Physics.Arcade.Body
-  }
-
-  makeCall(myPlayer: MyPlayer, webRTC: WebRTC) {
-    this.myPlayer = myPlayer
-    const myPlayerId = myPlayer.playerId
-    if (
-      !this.connected &&
-      this.connectionBufferTime >= 750 &&
-      myPlayer.readyToConnect &&
-      this.readyToConnect &&
-      myPlayer.videoConnected &&
-      myPlayerId > this.playerId
-    ) {
-      webRTC.connectToNewUser(this.playerId)
-      this.connected = true
-      this.connectionBufferTime = 0
-    }
   }
 
   updateOtherPlayer(field: string, value: number | string | boolean) {
@@ -75,12 +52,6 @@ export default class OtherPlayer extends Player {
       case 'readyToConnect':
         if (typeof value === 'boolean') {
           this.readyToConnect = value
-        }
-        break
-
-      case 'videoConnected':
-        if (typeof value === 'boolean') {
-          this.videoConnected = value
         }
         break
     }
@@ -151,21 +122,6 @@ export default class OtherPlayer extends Player {
     // also update playerNameContainer velocity
     this.playContainerBody.setVelocity(vx, vy)
     this.playContainerBody.velocity.setLength(speed)
-
-    // while currently connected with myPlayer
-    // if myPlayer and the otherPlayer stop overlapping, delete video stream
-    this.connectionBufferTime += dt
-    if (
-      this.connected &&
-      !this.body.embedded &&
-      this.body.touching.none &&
-      this.connectionBufferTime >= 750
-    ) {
-      if (this.x < 610 && this.y > 515 && this.myPlayer!.x < 610 && this.myPlayer!.y > 515) return
-      phaserEvents.emit(Event.PLAYER_DISCONNECTED, this.playerId)
-      this.connectionBufferTime = 0
-      this.connected = false
-    }
   }
 }
 

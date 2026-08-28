@@ -16,7 +16,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   playerTexture: string
   playerBehavior = PlayerBehavior.IDLE
   readyToConnect = false
-  videoConnected = false
   playerName: Phaser.GameObjects.Text
   playerContainer: Phaser.GameObjects.Container
   private playerDialogBubble: Phaser.GameObjects.Container

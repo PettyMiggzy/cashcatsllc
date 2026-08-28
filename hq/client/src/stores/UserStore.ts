@@ -15,7 +15,6 @@ export const userSlice = createSlice({
   initialState: {
     backgroundMode: getInitialBackgroundMode(),
     sessionId: '',
-    videoConnected: false,
     loggedIn: false,
     playerNameMap: new Map<string, string>(),
     showJoystick: window.innerWidth < 650,
@@ -31,9 +30,6 @@ export const userSlice = createSlice({
     },
     setSessionId: (state, action: PayloadAction<string>) => {
       state.sessionId = action.payload
-    },
-    setVideoConnected: (state, action: PayloadAction<boolean>) => {
-      state.videoConnected = action.payload
     },
     setLoggedIn: (state, action: PayloadAction<boolean>) => {
       state.loggedIn = action.payload
@@ -53,7 +49,6 @@ export const userSlice = createSlice({
 export const {
   toggleBackgroundMode,
   setSessionId,
-  setVideoConnected,
   setLoggedIn,
   setPlayerNameMap,
   removePlayerNameMap,
