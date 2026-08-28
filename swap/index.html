@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#f4f0e3"/>
 <title>CashCats Swap — Trade Any Token on Robinhood Chain</title>
-<meta name="description" content="The CashCats Swap. Buy or sell any token on Robinhood Chain, with a GoPlus safety check and a pre-sign transaction simulation. Fees buy back and burn $CASHCATSLLC."/>
+<meta name="description" content="The CashCats Swap. Buy or sell any token on Robinhood Chain, with a GoPlus safety check and a pre-sign transaction simulation. A 1% fee buys $CASHCATSLLC and pays it to holders."/>
 <meta property="og:title" content="CashCats Swap"/>
 <meta property="og:image" content="/assets/banner.png"/>
 <link rel="icon" type="image/png" href="/assets/cashcat.png"/>
@@ -137,14 +137,14 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
 
 <nav><div class="navin">
   <a class="brand" href="/"><svg class="seal" viewBox="0 0 200 200"><use href="#seal"/></svg>CashCats <span class="llc">LLC</span></a>
-  <div class="nav-links"><a href="/">Home</a><a href="/#swap">Buy&nbsp;&amp;&nbsp;Burn</a><a href="/pfp/">PFP</a><a href="/memes.html">Memes</a></div>
+  <div class="nav-links"><a href="/">Home</a><a href="/#swap">Buy&nbsp;&amp;&nbsp;Earn</a><a href="/pfp/">PFP</a><a href="/memes.html">Memes</a></div>
   <button class="btn" id="connectTop">Connect</button>
 </div></nav>
 
 <header class="head"><div class="wrap">
   <div class="filed">Exhibit E · Trading Desk</div>
   <h1>CashCats <span class="llc">Swap</span></h1>
-  <p class="sub">Buy or sell any token on Robinhood Chain — with a GoPlus safety check and a transaction simulation before you sign. Fees buy back and burn $CASHCATSLLC.</p>
+  <p class="sub">Buy or sell any token on Robinhood Chain — with a GoPlus safety check and a transaction simulation before you sign. Every buy sends a 1% fee to holders as $CASHCATSLLC.</p>
 </div></header>
 
 <main><div class="swapcard">
@@ -178,16 +178,16 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
     </div>
 
     <div class="burnline">
-      <div class="cap"><svg class="ic"><use href="#i-fire"/></svg> The bigger the buy, the bigger the burn</div>
+      <div class="cap"><svg class="ic"><use href="#i-fire"/></svg> The bigger the buy, the bigger the dividend</div>
       <div class="flames" id="flames"></div>
-      <div class="amt2" id="burnEst" style="font-size:22px">≈ 0 <small>$CASHCATSLLC burned</small></div>
+      <div class="amt2" id="burnEst" style="font-size:22px">≈ 0 <small>to holders</small></div>
     </div>
 
     <div class="secbox" id="secbox"><div class="hd" id="secHd"></div><div class="grid" id="secGrid"></div></div>
 
     <div class="meta">
       <span id="rate">1 — = —</span>
-      <span id="feeInfo">fee 1.0% → burn</span>
+      <span id="feeInfo">fee 1.0% → holders</span>
     </div>
 
     <div class="act"><button class="btn gold" id="swapBtn" disabled>Enter an amount</button></div>
@@ -203,7 +203,7 @@ footer{border-top:2px double var(--line2);padding:26px 0;text-align:center;backg
     <a href="https://x.com/cashcatsllc" target="_blank" rel="noopener">X Community</a>
     <a href="https://t.me/CashCatsLLCCommunity" target="_blank" rel="noopener">Telegram</a>
   </div>
-  <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value. Nothing here is financial advice. Buy &amp; burn is funded by voluntary routing fees. Safety scan by GoPlus is informational, not a guarantee.</p>
+  <p class="disc">$CASHCATSLLC is a meme token with no intrinsic value. Nothing here is financial advice. The 1% holder dividend is funded by voluntary routing fees on buys and distributed to holders by the team. Safety scan by GoPlus is informational, not a guarantee.</p>
 </div></footer>
 
 <div class="modal" id="modal"><div class="modalcard">
@@ -305,7 +305,9 @@ const ERC20_ABI=["function symbol() view returns (string)","function decimals() 
 const QUOTER_ABI=["function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)"];
 const ROUTER_ABI=["function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)","function swapExactTokensForTokens(uint256 amountIn,uint256 amountOutMin,address[] path,address to) payable returns (uint256)","function unwrapWETH9(uint256 amountMinimum,address recipient) payable","function multicall(bytes[] data) payable returns (bytes[])"];
 const DEADADDR="0x000000000000000000000000000000000000dEaD";
-const BURN_BPS=100n; // 1% of a CASHCATSLLC buy is bought again and burned to dead, in the same tx
+// 1% of every ETH buy (FEE_BPS above) is used to buy $CASHCATSLLC into this dividend
+// pool wallet in the same tx; the team airdrops it to holders.
+const REWARDS="0xed86b5eb83476f7b710e8037f5a84d8624288db7";
 // ---- Uniswap V4 (CASHCATSLLC is a native-ETH V4 pool with a launchpad hook) ----
 const V4={UR:"0x8876789976decbfcbbbe364623c63652db8c0904",PM:"0x8366a39cc670b4001a1121b8f6a443a643e40951",
   PERMIT2:"0x000000000022D473030F116dDEE9F6B43aC78BA3",STATEVIEW:"0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
@@ -522,25 +524,27 @@ async function updateQuote(){
     const outNum=+E.formatUnits(route.out,to.dec),inNum=+raw;
     $("amtOut").value=outNum.toLocaleString(undefined,{maximumFractionDigits:6});
     $("rate").textContent="1 "+from.sym+" ≈ "+(outNum/inNum).toLocaleString(undefined,{maximumSignificantDigits:5})+" "+to.sym+" · "+route.proto.toUpperCase();
-    $("feeInfo").textContent=(isNative(from)&&isCC(to))?"1% buys & burns · "+route.proto.toUpperCase():route.proto.toUpperCase()+(route.proto==="v3"?" · pool "+(route.fee/10000)+"%":" route");
+    const feeBuy=isNative(from)&&route.proto==="v4"&&route.buyingToken;   // fee'd buys (V4, ETH in)
+    $("feeInfo").textContent=feeBuy?"1% → $CASHCATSLLC to holders · "+route.proto.toUpperCase():route.proto.toUpperCase()+(route.proto==="v3"?" · pool "+(route.fee/10000)+"%":" route");
     renderBurnFromTrade(inNum,outNum); setSwapBtn(); runSecurity();
   }catch(e){quoting=false;$("rate").textContent="quote unavailable";setSwapBtn();}
 }
 function renderBurnFromTrade(inNum,outNum){
-  // the burn actually fires when buying CASHCATSLLC with ETH (1% is re-bought & sent to dead in the same tx)
-  const burnBuy=isNative(from)&&isCC(to);
-  if(!burnBuy){renderBurn(0);return;}
-  renderBurn(outNum*(Number(BURN_BPS)/10000),"$CASHCATSLLC burned this buy");
+  // the 1% dividend fires on every V4 ETH buy: 1% is used to buy $CASHCATSLLC and sent to the rewards pool, same tx
+  const feeBuy=isNative(from)&&route&&route.proto==="v4"&&route.buyingToken;
+  if(!feeBuy){renderBurn(0);return;}
+  if(isCC(to)) renderBurn(outNum*(Number(FEE_BPS)/10000),"$CASHCATSLLC to holders");
+  else renderBurn(inNum*(Number(FEE_BPS)/10000),"ETH → $CASHCATSLLC to holders");
 }
 function renderBurn(v,unit){
   const box=$("burnEst"),fl=$("flames");
-  if(!v||v<=0){box.style.fontSize="22px";box.innerHTML='≈ 0 <small>$CASHCATSLLC burned</small>';fl.innerHTML="";return;}
+  if(!v||v<=0){box.style.fontSize="22px";box.innerHTML='≈ 0 <small>to holders</small>';fl.innerHTML="";return;}
   const mag=Math.max(0,Math.log10(v+1));
   box.style.fontSize=Math.min(46,22+mag*7)+"px";
   const n=Math.max(1,Math.min(7,Math.round(mag)+1));
   fl.innerHTML=('<svg class="ic" style="width:15px;height:15px"><use href="#i-fire"/></svg>').repeat(n);
   const disp=v>=1?v.toLocaleString(undefined,{maximumFractionDigits:2}):v.toPrecision(2);
-  box.innerHTML="≈ "+disp+" <small>"+(unit||"$CASHCATSLLC burned")+"</small>";
+  box.innerHTML="≈ "+disp+" <small>"+(unit||"to holders")+"</small>";
 }
 // GoPlus token security on the token you're buying
 async function runSecurity(){
@@ -600,21 +604,15 @@ function buildSwapV2(router,amountIn){
 const DL=()=>BigInt(Math.floor(Date.now()/1000)+1200);
 async function doV4Swap(amountIn){
   const ur=new E.Contract(V4.UR,UR_ABI,signer);
-  const mo=minOut(), disc=route.disc, isCCpool=disc.poolId===V4.POOLID;
-  if(route.buyingToken){ // ETH -> token
-    let data;
-    if(isCCpool){ // CASHCATSLLC: user buy (99%) + 1% re-bought and burned to dead, same tx
-      const fee=(amountIn*BURN_BPS)/10000n, userIn=amountIn-fee;
-      const moA=(mo*(10000n-BURN_BPS))/10000n;   // scale the floor to the 99% user leg
-      const legA=v4LegK(disc.key,true,userIn,moA,null);
-      const legB=v4LegK(disc.key,true,fee,0n,DEADADDR);
-      data=ur.interface.encodeFunctionData("execute",["0x1010",[legA,legB],DL()]);
-    } else {
-      const leg=v4LegK(disc.key,true,amountIn,mo,null);
-      data=ur.interface.encodeFunctionData("execute",["0x10",[leg],DL()]);
-    }
+  const mo=minOut(), disc=route.disc;
+  if(route.buyingToken){ // ETH -> token: user gets 99%, 1% buys $CASHCATSLLC into the rewards pool (same tx)
+    const fee=(amountIn*FEE_BPS)/10000n, userIn=amountIn-fee;
+    const moA=(mo*(10000n-FEE_BPS))/10000n;                 // scale the floor to the 99% user leg
+    const legA=v4LegK(disc.key,true,userIn,moA,null);        // the user's buy
+    const legB=v4LegK(V4_KEY,true,fee,0n,REWARDS);           // 1% ETH -> $CASHCATSLLC -> rewards wallet
+    const data=ur.interface.encodeFunctionData("execute",["0x1010",[legA,legB],DL()]);
     const call={to:V4.UR,data,value:amountIn};
-    setStatus(isCCpool?"Simulating the buy + burn…":"Simulating the buy…");
+    setStatus("Simulating the buy + dividend…");
     try{ await signer.call(call); }catch(sim){ setStatus("Simulation failed — not sent. "+err(sim),true); return; }
     setStatus("Simulation ✓ — confirm in your wallet…");
     const tx=await signer.sendTransaction(call);
