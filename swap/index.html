@@ -10,6 +10,8 @@
 <meta property="og:image" content="/assets/banner.png"/>
 <link rel="icon" type="image/png" href="/assets/cashcat.png"/>
 <link rel="apple-touch-icon" href="/assets/cashcat.png"/>
+<!-- Telegram Mini App SDK: no-op on the web; expands to full height inside Telegram -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
   --paper:#f4f0e3;--paper2:#efe9d7;--card:#fbf8ee;--ink:#16150f;--ink2:#4a4736;--ink3:#8a8262;
@@ -289,6 +291,10 @@ const TOKENS=[
   {addr:"0x01d1bae8ae9a4db97fabbfe77acf77efecc8672c",sym:"짧은",name:"The Big Short",dec:18,logo:null}
 ];
 const E=window.ethers;
+// Telegram Mini App: expand to full height + signal ready. No-op on the plain web.
+try{ const TG=window.Telegram&&window.Telegram.WebApp;
+  if(TG&&(TG.initData||(TG.platform&&TG.platform!=="unknown"))){ TG.ready(); TG.expand(); document.documentElement.classList.add("in-telegram"); }
+}catch(e){}
 const CHAIN={id:4663n,hex:"0x1237",name:"Robinhood Chain",rpc:"https://rpc.mainnet.chain.robinhood.com",explorer:"https://robinhoodchain.blockscout.com",symbol:"ETH"};
 const WC_PROJECT="89d7a1882c0fa9a5bbe0a58accafc100"; // WalletConnect (Reown) — mobile "connect any wallet" when no injected wallet
 const WETH="0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73";
