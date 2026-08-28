@@ -55,7 +55,19 @@ lifetime total, `allRecipients()` = the current list.
 
 - `setRecipients(addrs, weights)` — refresh the top-30 after a new snapshot (owner).
 - `rescue(token, to, amount)` — pull tokens back out / recover a wrong token (owner).
-- `transferOwnership(next)` — hand off ownership (owner).
+- `transferOwnership(next)` then `acceptOwnership()` — **two-step** handoff: the
+  current owner nominates, and the new owner must call `acceptOwnership()` to
+  finalize (so a typo'd address can't lock you out).
+
+## Audit
+
+Reviewed with two independent adversarial passes plus a clean solc 0.8.26
+compile (no warnings). Reentrancy guard on `distribute`/`rescue`, safe-transfer
+for non-standard ERC-20 returns, two-step ownership, checked math, and
+remainder-to-last (no stranded dust) all verified. Residual notes are by design:
+the owner is trusted (can `rescue`/`setRecipients`), and `distribute()` is
+permissionless (can only ever pay the preset list). Still get your own review
+before funding it with large value.
 
 ## Safety notes
 
