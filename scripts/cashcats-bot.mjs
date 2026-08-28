@@ -144,10 +144,17 @@ async function setup() {
 
 // ---- long-poll loop ----
 (async () => {
+  // validate the token FIRST so a bad/placeholder token fails loudly instead of polling silently
+  const me = await api("getMe", {});
+  if (!me.ok) {
+    console.error("\n✗ Telegram rejected BOT_TOKEN:", me.description || "invalid token");
+    console.error("  You likely exported the placeholder. Set your REAL token:");
+    console.error("    export BOT_TOKEN=123456789:AA...your_real_token\n");
+    process.exit(1);
+  }
   await api("deleteWebhook", { drop_pending_updates: false }).catch(() => {});
   await setup();
-  const me = await api("getMe", {});
-  console.log("cashcats-bot live as @" + (me.result?.username || "?"));
+  console.log("cashcats-bot live as @" + me.result.username);
   let offset = 0;
   for (;;) {
     try {
