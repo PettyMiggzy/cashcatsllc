@@ -548,8 +548,14 @@
       "key": "extras",
       "label": "Extras",
       "optional": true,
-      "noneWeight": 320,
+      "noneWeight": 360,
       "traits": [
+        {
+          "file": "blunt.png",
+          "name": "Blunt",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
         {
           "file": "cowboy_hat.png",
           "name": "Cowboy Hat",
@@ -569,6 +575,12 @@
           "origin": "cashcats-ai"
         },
         {
+          "file": "gold_chain.png",
+          "name": "Gold Chain",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
           "file": "gold_crown.png",
           "name": "Gold Crown",
           "weight": 100,
@@ -583,6 +595,12 @@
         {
           "file": "laser_eyes.png",
           "name": "Laser Eyes",
+          "weight": 100,
+          "origin": "cashcats-ai"
+        },
+        {
+          "file": "money_rain.png",
+          "name": "Money Rain",
           "weight": 100,
           "origin": "cashcats-ai"
         },
