@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <!-- Page is served at /pfp (no trailing slash), so relative fetches would resolve
-     at the site root. Anchor all relative asset paths (traits.json, trait PNGs)
-     under /pfp/ so the generator loads on the live site and inside Telegram. -->
+     at the site root. Anchor all relative asset paths under /pfp/ so the
+     generator loads on the live site and inside Telegram. -->
 <base href="/pfp/">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CashCats LLC — PFP Studio</title>
@@ -26,17 +26,37 @@
   header h1{margin:0;font-size:19px;letter-spacing:.14em;text-transform:uppercase}
   header h1 b{color:var(--green)}
   header .sub{color:var(--muted);font-size:13px}
-  main{display:grid;grid-template-columns:minmax(320px,1fr) 400px;gap:26px;
-    padding:26px;max-width:1400px;margin:0 auto;align-items:start}
+  main{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:26px;
+    padding:26px;max-width:1200px;margin:0 auto;align-items:start}
   @media(max-width:900px){main{grid-template-columns:1fr}}
 
   .stage{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
     padding:18px;position:sticky;top:20px}
   .canvas-wrap{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
     background:repeating-conic-gradient(#1b2325 0 25%,#141a1c 0 50%) 0 0/28px 28px}
-  canvas{width:100%;height:100%;display:block;image-rendering:auto}
-  .canvas-wrap.busy::after{content:"";position:absolute;inset:0;background:#000a;
-    backdrop-filter:blur(1px)}
+  .canvas-wrap img{width:100%;height:100%;object-fit:cover;display:block;
+    opacity:1;transition:opacity .22s ease}
+  .canvas-wrap img.hidden{opacity:0}
+
+  /* fake-generating overlay */
+  .gen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;background:#07090acc;backdrop-filter:blur(6px)}
+  .gen.on{display:flex}
+  .gen .spin{width:38px;height:38px;border-radius:50%;border:3px solid #1b2426;
+    border-top-color:var(--green);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .gen .label{font:12px/1 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted)}
+  .gen .label b{color:var(--green)}
+  .gen .track{width:70%;max-width:220px;height:3px;border-radius:2px;background:#1b2426;overflow:hidden}
+  .gen .track i{display:block;height:100%;width:0;background:var(--green);
+    transition:width linear}
+  .scanwrap{position:absolute;inset:0;overflow:hidden;display:none}
+  .scanwrap.on{display:block}
+  .scanwrap::after{content:"";position:absolute;left:0;right:0;height:38%;
+    background:linear-gradient(180deg,transparent,#00c80533,transparent);
+    animation:scan 1.1s ease-in-out infinite}
+  @keyframes scan{0%{top:-40%}100%{top:100%}}
 
   .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
   button{font:inherit;font-weight:600;color:var(--ink);background:var(--panel-2);
@@ -53,46 +73,19 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
   .card h2{margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 
-  .layer{display:grid;grid-template-columns:96px 1fr auto auto;gap:8px;align-items:center;
-    padding:7px 0;border-top:1px solid #1b2426}
-  .layer:first-of-type{border-top:0}
-  .layer .name{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  select{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel-2);
-    border:1px solid var(--line);border-radius:8px;padding:8px 9px;cursor:pointer}
-  select:focus{outline:2px solid var(--green);outline-offset:-1px}
-  .lock{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
-    font-size:13px;line-height:1;filter:grayscale(1) opacity(.5)}
-  .lock[aria-pressed="true"]{filter:none;border-color:var(--gold);background:#2a230a}
-  .step{display:flex;gap:4px}
-  .step button{padding:7px 9px;font-size:12px;line-height:1}
-
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  label.field{display:flex;flex-direction:column;gap:5px;font-size:11px;
-    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);flex:1;min-width:110px}
-  input[type=number]{font:inherit;color:var(--ink);background:var(--panel-2);
-    border:1px solid var(--line);border-radius:8px;padding:8px 9px;width:100%}
-  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);
-    text-transform:none;letter-spacing:0;cursor:pointer}
-  input[type=checkbox]{accent-color:var(--green);width:16px;height:16px}
-
-  table.traits{width:100%;border-collapse:collapse;font-size:13px}
-  table.traits td{padding:5px 0;border-top:1px solid #1b2426;vertical-align:top}
-  table.traits tr:first-child td{border-top:0}
-  table.traits td:first-child{color:var(--muted);font-size:10.5px;letter-spacing:.07em;
-    text-transform:uppercase;width:96px;white-space:nowrap;padding-right:10px}
-  table.traits td:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;
-    font-size:12px;white-space:nowrap}
-  .pct.rare{color:var(--gold)}
-
   .status{font-size:13px;color:var(--muted);min-height:20px}
   .status.err{color:#ff6b6b}
-  .bar{height:4px;border-radius:2px;background:#1b2426;overflow:hidden;margin-top:8px;display:none}
-  .bar.on{display:block}
-  .bar i{display:block;height:100%;background:var(--green);width:0;transition:width .18s}
   kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
     border-radius:5px;padding:1px 6px;font:12px ui-monospace,monospace}
-  footer{padding:0 26px 30px;color:var(--muted);font-size:12.5px;max-width:1400px;margin:0 auto}
+  footer{padding:0 26px 30px;color:var(--muted);font-size:12.5px;max-width:1200px;margin:0 auto}
+
+  /* gallery strip */
+  .strip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+  .strip img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;
+    border:1px solid var(--line);opacity:.75;transition:.12s}
+  .strip img:hover{opacity:1}
+  .strip img.active{border-color:var(--green);opacity:1}
+
   /* base-cat project picker */
   .baserow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .basebtn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
@@ -102,7 +95,7 @@
   .catsearch{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
     border-radius:9px;padding:8px 11px;font-size:13px;outline:none}
   .catsearch:focus{border-color:var(--green)}
-  .catgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;max-height:260px;overflow-y:auto}
+  .catgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;max-height:220px;overflow-y:auto}
   @media(max-width:520px){.catgrid{grid-template-columns:repeat(3,1fr)}}
   .catchip{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;overflow:hidden;
     cursor:pointer;background:var(--panel-2);transition:.12s}
@@ -120,14 +113,20 @@
 
 <header>
   <h1><a href="/" style="color:inherit;text-decoration:none">&#8592; CASHCATS <b>LLC</b></a> &nbsp;·&nbsp; PFP STUDIO</h1>
-  <span class="sub" id="comboCount">loading traits…</span>
+  <span class="sub" id="galleryCount">loading…</span>
   <a href="/memes.html" style="margin-left:auto;color:var(--green);font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">Meme Vault &#8594;</a>
 </header>
 
 <main>
   <section class="stage">
     <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="pfp" width="1024" height="1024"></canvas>
+      <img id="pfp" alt="your cat PFP">
+      <div class="scanwrap" id="scanwrap"></div>
+      <div class="gen" id="gen">
+        <div class="spin"></div>
+        <div class="label">generating<span id="genName"></span><b id="dots">...</b></div>
+        <div class="track"><i id="genBar"></i></div>
+      </div>
     </div>
     <div class="actions">
       <button class="primary" id="roll">Generate</button>
@@ -137,7 +136,7 @@
       <button id="copy">Copy</button>
       <button class="primary" id="tgsend" style="display:none">Send to Telegram</button>
     </div>
-    <p class="status" id="status"><kbd>space</kbd> roll · <kbd>←</kbd> <kbd>→</kbd> history · <kbd>D</kbd> download</p>
+    <p class="status" id="status"><kbd>space</kbd> generate · <kbd>←</kbd> <kbd>→</kbd> history · <kbd>D</kbd> download</p>
   </section>
 
   <aside class="panel">
@@ -145,417 +144,190 @@
       <h2>Base Cat</h2>
       <div class="baserow">
         <button id="baseCashcat" class="basebtn active">Cash Cat</button>
-        <span class="basecur" id="baseCur">built-in body · add traits on top</span>
+        <span class="basecur" id="baseCur">the CashCats gallery</span>
       </div>
       <input id="catSearch" class="catsearch" placeholder="search other cat projects…" value="cat" autocomplete="off">
       <div id="catGrid" class="catgrid"><div class="cathint">Loading cat projects…</div></div>
-      <div class="catnote">Pick any cat coin's logo as your base, then stack hats, effects &amp; more on top. Logos via DexScreener.</div>
+      <div class="catnote">Browsing another cat coin's logo shows it as-is — no accessories stacked on it (that's reserved for the CashCats gallery). Logos via DexScreener.</div>
     </div>
 
     <div class="card">
-      <h2>Traits</h2>
-      <div id="layers"></div>
-    </div>
-
-    <div class="card">
-      <h2>Export</h2>
-      <div class="row">
-        <label class="field">Size
-          <select id="size">
-            <option value="512">512 px</option>
-            <option value="1024" selected>1024 px</option>
-            <option value="2048">2048 px</option>
-          </select>
-        </label>
-        <label class="field">Batch
-          <input type="number" id="batchCount" value="20" min="1" max="500">
-        </label>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <label class="check"><input type="checkbox" id="transparent"> Transparent cutout <span style="color:var(--muted)">(drops background, finish &amp; effect)</span></label>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button id="mint">Mint batch → ZIP</button>
-      </div>
-      <div class="bar" id="bar"><i></i></div>
-    </div>
-
-    <div class="card">
-      <h2>This one</h2>
-      <table class="traits"><tbody id="readout"></tbody></table>
+      <h2>Gallery <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">— click any to jump to it</span></h2>
+      <div class="strip" id="strip"></div>
     </div>
   </aside>
 </main>
 
-<footer id="footnote"></footer>
+<footer id="footnote">Each PFP here is a complete, individually made image — not live-assembled from layered stickers, so nothing ever overlaps or covers the cat's face. Hit Generate to see another.</footer>
 
 <script type="module">
 /* ══════════════════════════════════════════════════════════════════
-   $CASHCAT PFP generator
-   Layered canvas compositor driven entirely by traits.json.
-   Add art to traits/<layer>/, re-run scripts/build-manifest.mjs, reload.
+   CashCats PFP Studio — gallery cycler.
+   Every image in gallery/manifest.json is a finished, already-composed
+   PFP (not assembled at runtime from separate trait layers), so there's
+   no layering/overlap to go wrong. "Generate" just reveals one, with a
+   loading beat for feel — it isn't rendering anything live.
    ══════════════════════════════════════════════════════════════════ */
 
-const SIZE = 1024;
 const els = id => document.getElementById(id);
-const canvas = els('pfp');
-const ctx = canvas.getContext('2d', { willReadFrequently: false });
+const img = els('pfp');
 
-let manifest = null;
-let layers = [];               // [{key,label,optional,traits:[...],blend}]
-const locked = new Set();
-let current = [];              // [{key, trait|null}]
-let history = [];
+let gallery = [];        // [{file, label}]
+let history = [];        // [{type:'gallery', file, label} | {type:'project', url, label}]
 let cursor = -1;
 let busy = false;
+let baseImageUrl = null;
 
-const NONE = '__none__';
-const imgCache = new Map();
+const proxied = (u) => '/api/img?url=' + encodeURIComponent(u);
 
-/* ---------- helpers ---------- */
 const setStatus = (msg, isErr = false) => {
   const s = els('status');
   s.textContent = msg;
   s.classList.toggle('err', isErr);
 };
 
-function loadImage(src, cors = false) {
-  if (imgCache.has(src)) return imgCache.get(src);
-  const p = new Promise((res, rej) => {
-    const im = new Image();
-    if (cors) im.crossOrigin = 'anonymous';   // keep the canvas exportable for proxied logos
-    im.onload = () => res(im);
-    im.onerror = () => rej(new Error(`missing asset: ${src}`));
-    im.src = cors ? src : encodeURI(src);
+/* ---------- the fake-generate beat ---------- */
+function playGenerating(label, ms) {
+  return new Promise(resolve => {
+    const gen = els('gen'), bar = els('genBar'), name = els('genName'), scan = els('scanwrap');
+    els('canvasWrap').querySelector('img').classList.add('hidden');
+    gen.classList.add('on');
+    scan.classList.add('on');
+    name.textContent = label ? ` "${label}"` : '';
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${ms}ms linear`;
+      bar.style.width = '100%';
+    });
+    let dots = 0;
+    const dotsEl = els('dots');
+    const dotTimer = setInterval(() => { dots = (dots + 1) % 4; dotsEl.textContent = '.'.repeat(dots || 1); }, 260);
+    setTimeout(() => {
+      clearInterval(dotTimer);
+      gen.classList.remove('on');
+      scan.classList.remove('on');
+      els('canvasWrap').querySelector('img').classList.remove('hidden');
+      resolve();
+    }, ms);
   });
-  imgCache.set(src, p);
-  return p;
 }
 
-// When set, the chosen cat project's logo replaces the Cash Cat body as the base.
-let baseImageUrl = null, baseLabel = '';
-const proxied = (u) => '/api/img?url=' + encodeURIComponent(u);
-
-/** Weighted pick across a layer's traits, plus a "None" slot for optional layers. */
-function rollLayer(layer) {
-  const opts = layer.traits.map(t => [t, t.weight ?? 100]);
-  if (layer.optional) opts.push([null, layer.noneWeight ?? 100]);
-  const total = opts.reduce((n, [, w]) => n + w, 0);
-  let r = Math.random() * total;
-  for (const [t, w] of opts) { if ((r -= w) <= 0) return t; }
-  return opts[opts.length - 1][0];
-}
-
-const rarity = (layer, trait) => {
-  const total = layer.traits.reduce((n, t) => n + (t.weight ?? 100), 0)
-    + (layer.optional ? (layer.noneWeight ?? 100) : 0);
-  const w = trait ? (trait.weight ?? 100) : (layer.noneWeight ?? 100);
-  return (w / total) * 100;
-};
-
-const comboKey = sel => sel.map(s => s.trait ? s.trait.file : NONE).join('|');
-
-/* ---------- rendering ---------- */
-async function paint(sel, target = canvas, size = SIZE, transparent = false) {
-  const c = target.getContext('2d');
-  const pics = await Promise.all(sel.map(s =>
-    s.trait ? loadImage(`/pfp/${manifest.traitDir}/${s.key}/${s.trait.file}`) : null));
-  // load the chosen project logo (CORS-clean via the proxy) if one is picked
-  let baseIm = null;
-  if (baseImageUrl) { try { baseIm = await loadImage(proxied(baseImageUrl), true); } catch (e) { setStatus('logo failed to load — using Cash Cat', true); } }
-
-  c.clearRect(0, 0, size, size);
-  sel.forEach((s, i) => {
-    const layer = layers.find(l => l.key === s.key);
-    // A picked project logo takes the "body" slot — accessories still layer on top.
-    if (baseIm && s.key === 'body') {
-      c.globalCompositeOperation = 'source-over';
-      c.drawImage(baseIm, 0, 0, size, size);
-      return;
-    }
-    const im = pics[i];
-    if (!im) return;
-    if (transparent && layer.fullFrame) return;
-    c.globalCompositeOperation = s.trait.blend ?? layer.blend ?? 'source-over';
-    c.drawImage(im, 0, 0, size, size);
-  });
-  c.globalCompositeOperation = 'source-over';
-}
-
-async function show(sel, { push = true } = {}) {
-  if (busy) return false;
+/* ---------- showing an entry ---------- */
+async function showEntry(entry, { push = true, animate = true, label } = {}) {
+  if (busy) return;
   busy = true;
-  els('canvasWrap').classList.add('busy');
+  els('roll').disabled = true;
   try {
-    await paint(sel, canvas, SIZE, els('transparent').checked);
-    current = sel;
+    const src = entry.type === 'gallery' ? `gallery/${entry.file}` : proxied(entry.url);
+    if (animate) await playGenerating(label ?? entry.label, 900 + Math.random() * 500);
+    await new Promise((res, rej) => {
+      const test = new Image();
+      test.onload = res;
+      test.onerror = () => rej(new Error('image failed to load'));
+      test.src = src;
+    });
+    img.src = src;
     if (push) {
-      history = [...history.slice(0, cursor + 1), sel];
+      history = [...history.slice(0, cursor + 1), entry];
       cursor = history.length - 1;
     }
-    syncControls();
-    setStatus(`${cursor + 1} / ${history.length}  ·  space to roll`);
-    return true;
+    syncStrip();
+    els('prev').disabled = cursor <= 0;
+    els('next').disabled = cursor >= history.length - 1;
+    setStatus(`${cursor + 1} / ${history.length} · space to generate another`);
   } catch (err) {
     setStatus(err.message, true);
-    return false;
   } finally {
     busy = false;
-    els('canvasWrap').classList.remove('busy');
+    els('roll').disabled = false;
   }
 }
 
-/* ---------- selection state ---------- */
-function rollAll() {
-  return layers.map(l => {
-    if (locked.has(l.key)) {
-      const keep = current.find(s => s.key === l.key);
-      if (keep) return keep;
-    }
-    return { key: l.key, trait: rollLayer(l) };
-  });
+function pickNext() {
+  if (gallery.length === 1) return gallery[0];
+  const current = history[cursor];
+  let pick;
+  do { pick = gallery[Math.floor(Math.random() * gallery.length)]; }
+  while (current && current.type === 'gallery' && pick.file === current.file);
+  return pick;
 }
 
-function setLayer(key, file) {
-  const layer = layers.find(l => l.key === key);
-  const trait = file === NONE ? null : layer.traits.find(t => t.file === file);
-  return current.map(s => s.key === key ? { key, trait } : s);
-}
-
-function stepLayer(key, dir) {
-  const layer = layers.find(l => l.key === key);
-  const opts = [...layer.traits.map(t => t.file), ...(layer.optional ? [NONE] : [])];
-  const cur = current.find(s => s.key === key);
-  const at = opts.indexOf(cur?.trait ? cur.trait.file : NONE);
-  return setLayer(key, opts[(at + dir + opts.length) % opts.length]);
-}
-
-/* ---------- UI ---------- */
-function buildControls() {
-  els('layers').innerHTML = '';
-  for (const l of layers) {
-    if (!l.traits.length) continue;
-    const row = document.createElement('div');
-    row.className = 'layer';
-    row.innerHTML = `
-      <span class="name">${l.label}</span>
-      <select data-key="${l.key}" aria-label="${l.label}">
-        ${l.traits.map(t => `<option value="${t.file}">${t.name}</option>`).join('')}
-        ${l.optional ? `<option value="${NONE}">None</option>` : ''}
-      </select>
-      <span class="step">
-        <button data-step="-1" data-key="${l.key}" title="Previous ${l.label}">‹</button>
-        <button data-step="1"  data-key="${l.key}" title="Next ${l.label}">›</button>
-      </span>
-      <button class="lock" data-lock="${l.key}" aria-pressed="false" title="Lock ${l.label}">🔒</button>`;
-    els('layers').append(row);
+function syncStrip() {
+  const cur = history[cursor];
+  for (const el of els('strip').children) {
+    el.classList.toggle('active', !!cur && cur.type === 'gallery' && el.dataset.file === cur.file);
   }
-
-  els('layers').addEventListener('change', e => {
-    const key = e.target.dataset.key;
-    if (key) show(setLayer(key, e.target.value));
-  });
-  els('layers').addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    if (btn.dataset.step) show(stepLayer(btn.dataset.key, Number(btn.dataset.step)));
-    if (btn.dataset.lock) {
-      const k = btn.dataset.lock;
-      locked.has(k) ? locked.delete(k) : locked.add(k);
-      btn.setAttribute('aria-pressed', String(locked.has(k)));
-    }
-  });
 }
 
-function syncControls() {
-  for (const s of current) {
-    const sel = document.querySelector(`select[data-key="${s.key}"]`);
-    if (sel) sel.value = s.trait ? s.trait.file : NONE;
-  }
-  els('readout').innerHTML = current.map(s => {
-    const l = layers.find(x => x.key === s.key);
-    if (!l.traits.length) return '';
-    const pct = rarity(l, s.trait);
-    return `<tr><td>${l.label}</td><td>${s.trait ? s.trait.name : '—'}</td>
-      <td class="pct${pct < 6 ? ' rare' : ''}">${pct.toFixed(1)}%</td></tr>`;
-  }).join('');
-  els('prev').disabled = cursor <= 0;
-  els('next').disabled = cursor >= history.length - 1;
+/* ---------- get the current image as a blob (for download/copy/send) ---------- */
+async function currentBlob() {
+  const entry = history[cursor];
+  const src = entry.type === 'gallery' ? `gallery/${entry.file}` : proxied(entry.url);
+  const r = await fetch(src);
+  if (!r.ok) throw new Error('could not fetch image');
+  return r.blob();
 }
-
-/* ---------- export ---------- */
-async function renderTo(sel, size) {
-  const off = document.createElement('canvas');
-  off.width = off.height = size;
-  await paint(sel, off, size, els('transparent').checked);
-  return off;
-}
-
-const blobOf = cv => new Promise(res => cv.toBlob(res, 'image/png'));
 
 async function downloadCurrent() {
-  const size = Number(els('size').value);
-  const cv = await renderTo(current, size);
-  const blob = await blobOf(cv);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `cashcat-pfp-${Date.now()}.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  try {
+    const blob = await currentBlob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cashcat-pfp-${Date.now()}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch { setStatus('download failed', true); }
 }
 
 async function copyCurrent() {
   try {
-    const blob = await blobOf(await renderTo(current, Number(els('size').value)));
+    const blob = await currentBlob();
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     setStatus('copied to clipboard');
   } catch { setStatus('clipboard blocked — use Download instead', true); }
 }
 
-/* ---------- batch mint (unique combos + metadata, zipped) ---------- */
-async function mintBatch() {
-  const n = Math.max(1, Math.min(500, Number(els('batchCount').value) || 1));
-  const size = Number(els('size').value);
-  const bar = els('bar'), fill = bar.querySelector('i');
-  bar.classList.add('on');
-  els('mint').disabled = true;
-
-  const files = [];
-  const meta = [];
-  const seen = new Set(current.length ? [] : []);
-  let made = 0, tries = 0;
-
-  while (made < n && tries < n * 60) {
-    tries++;
-    const sel = rollAll();
-    const key = comboKey(sel);
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const cv = await renderTo(sel, size);
-    const buf = new Uint8Array(await (await blobOf(cv)).arrayBuffer());
-    const name = `${String(made + 1).padStart(4, '0')}.png`;
-    files.push({ name: `images/${name}`, data: buf });
-    meta.push({
-      name: `$CASHCAT #${made + 1}`,
-      image: `images/${name}`,
-      attributes: sel.filter(s => s.trait).map(s => ({
-        trait_type: layers.find(l => l.key === s.key).label,
-        value: s.trait.name,
-      })),
-    });
-    made++;
-    fill.style.width = `${(made / n) * 100}%`;
-    setStatus(`minting ${made} / ${n}…`);
-    if (made % 4 === 0) await new Promise(r => setTimeout(r));
-  }
-
-  files.push({ name: 'metadata.json', data: new TextEncoder().encode(JSON.stringify(meta, null, 2)) });
-
-  const zip = makeZip(files);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
-  a.download = `cashcat-pfp-batch-${made}.zip`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 8000);
-
-  bar.classList.remove('on');
-  fill.style.width = '0';
-  els('mint').disabled = false;
-  setStatus(`minted ${made} unique PFP${made === 1 ? '' : 's'}`);
-}
-
-/* Minimal STORE-method ZIP writer — PNGs are already compressed. */
-const CRC = (() => {
-  const t = new Uint32Array(256);
-  for (let i = 0; i < 256; i++) {
-    let c = i;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-    t[i] = c >>> 0;
-  }
-  return bytes => {
-    let c = 0xFFFFFFFF;
-    for (let i = 0; i < bytes.length; i++) c = t[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
-    return (c ^ 0xFFFFFFFF) >>> 0;
-  };
-})();
-
-function makeZip(entries) {
-  const enc = new TextEncoder();
-  const chunks = [], central = [];
-  let offset = 0;
-
-  const u16 = v => [v & 255, (v >> 8) & 255];
-  const u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
-
-  for (const { name, data } of entries) {
-    const nameBytes = enc.encode(name);
-    const crc = CRC(data);
-    const local = new Uint8Array([
-      0x50, 0x4b, 3, 4, ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
-      ...u32(crc), ...u32(data.length), ...u32(data.length),
-      ...u16(nameBytes.length), ...u16(0), ...nameBytes,
-    ]);
-    chunks.push(local, data);
-    central.push(new Uint8Array([
-      0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
-      ...u32(crc), ...u32(data.length), ...u32(data.length),
-      ...u16(nameBytes.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0),
-      ...u32(offset), ...nameBytes,
-    ]));
-    offset += local.length + data.length;
-  }
-
-  const centralSize = central.reduce((n, c) => n + c.length, 0);
-  const end = new Uint8Array([
-    0x50, 0x4b, 5, 6, ...u16(0), ...u16(0),
-    ...u16(entries.length), ...u16(entries.length),
-    ...u32(centralSize), ...u32(offset), ...u16(0),
-  ]);
-
-  const all = [...chunks, ...central, end];
-  const out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
-  let p = 0;
-  for (const c of all) { out.set(c, p); p += c.length; }
-  return out;
-}
-
 /* ---------- boot ---------- */
 async function boot() {
   try {
-    manifest = await fetch('/pfp/traits.json').then(r => {
-      if (!r.ok) throw new Error('traits.json not found — run: node scripts/build-manifest.mjs');
+    const manifest = await fetch('/pfp/gallery/manifest.json').then(r => {
+      if (!r.ok) throw new Error('gallery manifest not found');
       return r.json();
     });
+    gallery = manifest.images;
   } catch (err) {
     setStatus(err.message, true);
-    els('comboCount').textContent = 'no traits loaded';
+    els('galleryCount').textContent = 'no gallery loaded';
     return;
   }
 
-  layers = manifest.layers.filter(l => l.traits.length || !l.optional);
-  const combos = layers.reduce((n, l) =>
-    n * Math.max(1, l.traits.length + (l.optional ? 1 : 0)), 1);
-  const total = layers.reduce((n, l) => n + l.traits.length, 0);
-  const mine = layers.reduce((n, l) => n + l.traits.filter(t => t.origin === 'original').length, 0);
-  els('comboCount').textContent =
-    `${total} traits · ${combos.toLocaleString('en-US')} combinations`;
+  els('galleryCount').textContent = `${gallery.length} cats in the gallery`;
   els('footnote').textContent =
-    `${total} trait layers across ${layers.length} slots, ${mine} of them generated locally by scripts/make-extra-traits.mjs. ` +
-    `Drop new PNGs into traits/<layer>/ and re-run scripts/build-manifest.mjs to extend the set.`;
+    `${gallery.length} hand-picked PFPs, each edited from the real CashCats cat with Venice AI and reviewed before going in the gallery — ` +
+    `nothing here is assembled live from separate stickers, so there's nothing that can overlap or cover the cat's face. Hit Generate for another.`;
 
-  buildControls();
-  await show(rollAll());
+  const strip = els('strip');
+  strip.innerHTML = '';
+  for (const g of gallery) {
+    const im = document.createElement('img');
+    im.src = `gallery/${g.file}`;
+    im.dataset.file = g.file;
+    im.title = g.label;
+    im.loading = 'lazy';
+    im.addEventListener('click', () => showEntry({ type: 'gallery', ...g }, { animate: false }));
+    strip.append(im);
+  }
+
+  await showEntry({ type: 'gallery', ...pickNext() }, { animate: true });
 }
 
 /* ---------- wiring ---------- */
-els('roll').onclick = () => show(rollAll());
-els('prev').onclick = () => { if (cursor > 0) { cursor--; show(history[cursor], { push: false }); } };
-els('next').onclick = () => { if (cursor < history.length - 1) { cursor++; show(history[cursor], { push: false }); } };
+els('roll').onclick = () => showEntry({ type: 'gallery', ...pickNext() });
+els('prev').onclick = () => { if (cursor > 0) { cursor--; showEntry(history[cursor], { push: false, animate: false }); } };
+els('next').onclick = () => { if (cursor < history.length - 1) { cursor++; showEntry(history[cursor], { push: false, animate: false }); } };
 els('download').onclick = downloadCurrent;
 els('copy').onclick = copyCurrent;
-els('mint').onclick = mintBatch;
-els('transparent').onchange = () => show(current, { push: false });
 
 addEventListener('keydown', e => {
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
@@ -579,11 +351,8 @@ addEventListener('keydown', e => {
     const hap=(TG.HapticFeedback||{});
     try{ TG.MainButton && TG.MainButton.showProgress && TG.MainButton.showProgress(); }catch(e){}
     try{
-      setStatus('rendering…');
-      let size=Math.min(Number(els('size').value)||1024,1024);
-      let blob=await blobOf(await renderTo(current,size));
-      if(blob.size>3_500_000) blob=await blobOf(await renderTo(current,640)); // stay under the request-body limit
       setStatus('sending to Telegram…');
+      let blob=await currentBlob();
       const img=await b64(blob);
       const r=await fetch('/api/tgphoto',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({initData:TG.initData,img})});
       const j=await r.json().catch(()=>({ok:false,error:'bad response'}));
@@ -610,11 +379,11 @@ async function fetchCatProjects(q) {
     const j = await r.json();
     const seen = new Set(); const out = [];
     for (const p of (j.pairs || [])) {
-      const t = p.baseToken || {}; const img = (p.info || {}).imageUrl;
-      if (!t.address || seen.has(t.address) || !img) continue;
+      const t = p.baseToken || {}; const im = (p.info || {}).imageUrl;
+      if (!t.address || seen.has(t.address) || !im) continue;
       if (!/cat/i.test((t.name || '') + (t.symbol || ''))) continue;
       seen.add(t.address);
-      out.push({ name: t.name, symbol: t.symbol, chain: p.chainId, img });
+      out.push({ name: t.name, symbol: t.symbol, chain: p.chainId, img: im });
       if (out.length >= 24) break;
     }
     catProjects = out;
@@ -635,18 +404,18 @@ function renderCatGrid() {
   }
 }
 function setBase(url, label) {
-  baseImageUrl = url; baseLabel = label;
+  baseImageUrl = url;
   els('baseCashcat').classList.remove('active');
   els('baseCur').textContent = label;
   renderCatGrid();
-  if (current.length) show(current, { push: false });
+  showEntry({ type: 'project', url, label }, { animate: false });
 }
 function clearBase() {
-  baseImageUrl = null; baseLabel = '';
+  baseImageUrl = null;
   els('baseCashcat').classList.add('active');
-  els('baseCur').textContent = 'built-in body · add traits on top';
+  els('baseCur').textContent = 'the CashCats gallery';
   renderCatGrid();
-  if (current.length) show(current, { push: false });
+  showEntry({ type: 'gallery', ...pickNext() }, { animate: false });
 }
 els('baseCashcat').addEventListener('click', clearBase);
 let catSearchT;

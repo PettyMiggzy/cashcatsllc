@@ -158,7 +158,7 @@ async function onText(msg) {
       "Tap below to get started.", { reply_markup: mainKb(isPrivate) });
   }
   if (cmd === "/pfp") {
-    return send(chat, "Build your cash-cat PFP — pick a base, stack 34 traits, send it to the chat.",
+    return send(chat, "Grab a cash-cat PFP — hit Generate to see another, send it to the chat.",
       { reply_markup: { inline_keyboard: [[pfpBtn(isPrivate, "Open PFP Studio")]] } });
   }
   if (cmd === "/swap") {

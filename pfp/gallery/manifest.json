@@ -1,0 +1,22 @@
+{
+  "images": [
+    { "file": "crown.png", "label": "Gold Crown" },
+    { "file": "shades.png", "label": "Designer Shades" },
+    { "file": "tophat.png", "label": "Top Hat" },
+    { "file": "chain.png", "label": "Gold Chain" },
+    { "file": "wizard.png", "label": "Wizard Hat" },
+    { "file": "headphones.png", "label": "DJ Headphones" },
+    { "file": "bandana.png", "label": "Red Bandana" },
+    { "file": "halo.png", "label": "Angel Halo" },
+    { "file": "horns.png", "label": "Devil Horns" },
+    { "file": "cowboy.png", "label": "Cowboy Hat" },
+    { "file": "beanie.png", "label": "Beanie" },
+    { "file": "cap.png", "label": "Backwards Cap" },
+    { "file": "bowtie.png", "label": "Bow Tie" },
+    { "file": "monocle.png", "label": "Gold Monocle" },
+    { "file": "pirate.png", "label": "Pirate Captain" },
+    { "file": "party.png", "label": "Birthday Hat" },
+    { "file": "gradcap.png", "label": "Graduation Cap" },
+    { "file": "laurel.png", "label": "Laurel Crown" }
+  ]
+}
