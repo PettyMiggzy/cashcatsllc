@@ -6,9 +6,10 @@ pinned at commit `5d20037` (v0.16.0). Do not merge upstream mid-build —
 Hyperfy is alpha and its APIs move; treat any upgrade as its own task
 after launch.
 
-Status: **phase 01** — vanilla fork imported, not yet reskinned. Deploy
-this as-is and confirm it runs (desktop + a real phone) before anything
-else changes — that's the rollback point.
+Status: **phase 02 done (rig spike resolved)** — the default avatar is
+now a real cat, verified walking in the running engine. See "The avatar"
+below for what shipped and why. Phase 01's vanilla-fork deploy is still
+the rollback point if anything below needs undoing.
 
 ## Why this over the 2D SkyOffice build
 
@@ -32,14 +33,14 @@ active development moves here.
 1. **Node 22.11.0 exactly** — pinned in `package.json` `engines` and
    `.nvmrc`. `better-sqlite3` is a native module; a different Node ABI
    will fail to build or fail at runtime. `nvm use`.
-2. **The rig is the real risk, not the code.** Hyperfy avatars are VRM
-   only, and VRM is a humanoid spec (21 required bones) — there's no
-   quadruped path. A four-legged cat means skinning it to a humanoid
-   skeleton laid out horizontally (front paws on the arm bones), the
-   "feral rig" trick VRChat quadrupeds use. Prototype this **before**
-   building any world — if it reads as a person on all fours instead of
-   a cat, the fallback is standing the cat up (native VRM + free Mixamo
-   animations, no rig tricks needed).
+2. **The rig risk is resolved — we took the escape hatch.** True
+   quadruped "feral rigging" (skinning a four-legged mesh onto a
+   horizontal humanoid skeleton) needs Blender and real 3D-modeling
+   skill neither of us has readily available. So instead: a genuine
+   bipedal cat-person VRM — cat ears, whiskers, humanoid body — which
+   needs **zero custom rigging** because it's already a standard VRM
+   humanoid; it inherits all 14 stock locomotion/emote clips for free.
+   Verified walking in the actual running engine, not just a screenshot.
 3. **Licensing**: the code is GPL-3.0-only. Because this ships a client
    bundle to every visitor's browser, the safe reading is that counts as
    distribution — our fork's source needs to be public. `cashcatsllc` is
@@ -51,6 +52,26 @@ active development moves here.
    attribution notice anywhere in the upstream repo, so they're covered
    by the same GPL-3.0 as the code — fine to keep as the vanilla
    baseline until they're replaced with our cat.
+
+## The avatar
+
+`src/world/assets/avatar.vrm` is **WeirdCat**, avatar #227 from the
+[100Avatars](https://github.com/PolygonalMind/100avatars) R3 series
+(Polygonal Mind), sourced via [ToxSam's Open Source Avatars
+registry](https://github.com/ToxSam/open-source-avatars). **CC0** — no
+attribution required, but noted here for provenance. It replaces
+Hyperfy's stock robot avatar; since the world's `avatar` setting is
+unset, the code's own fallback chain (`sessionAvatar || avatar ||
+asset://avatar.vrm`) already routes every anonymous visitor to it — no
+extra config needed.
+
+Not custom art, not colored to match the real CashCats cat — it's a
+placeholder that actually works, in the same spirit as the 2D build's
+free sprite pack. A branded cat (matching the PFP studio's look, or the
+real photo) is real v2 work, same "ship cheap, upgrade once it has
+users" logic as everywhere else in this project. At 6.4MB it's also
+above Hyperfy's own "Perfect avatar" budget (≤5MB) — worth a texture
+pass before this goes to real users on phones.
 
 ## Local dev
 
@@ -67,6 +88,7 @@ before any link is public.
 
 ## Not yet done
 
-Rig + gaits, world building, room wiring (swap terminal / chart / rewards
-wall / meme vault), holder gate, mobile perf pass, branding, deploy. Each
-lands as its own commit, same pattern as `hq/`.
+World building, room wiring (swap terminal / chart / rewards wall / meme
+vault), holder gate, mobile perf pass (avatar is 6.4MB, over budget —
+see "The avatar"), branding, deploy, `ADMIN_CODE`. Each lands as its own
+commit, same pattern as `hq/`.
