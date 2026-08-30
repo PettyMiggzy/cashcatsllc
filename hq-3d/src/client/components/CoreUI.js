@@ -796,6 +796,7 @@ function LoadingOverlay({ world }) {
 }
 
 const kickMessages = {
+  holder_gate: 'You need 100,000 $CASHCATSLLC to enter. Visit /gate to connect your wallet.',
   duplicate_user: 'Player already active on another device or window.',
   player_limit: 'Player limit reached.',
   unknown: 'You were kicked.',

@@ -6,10 +6,18 @@ pinned at commit `5d20037` (v0.16.0). Do not merge upstream mid-build —
 Hyperfy is alpha and its APIs move; treat any upgrade as its own task
 after launch.
 
-Status: **phase 04 done** — two rooms are built and walkable: the Filing
-Office (staffed, branded, live on-chain rewards readout) and the Workshop
-(a playable demo of the game economy). Phase 01's vanilla-fork deploy is
-still the rollback point if anything below needs undoing.
+Status: **the world is built** — a campus of four rooms joined by a plaza,
+with the holder gate enforced on the server. Phase 01's vanilla-fork deploy
+is still the rollback point if anything below needs undoing.
+
+```
+        The Vault  [0,0,32]     10,000,000 holders, behind the gate
+              |  gate at z 24.5
+        ---- the plaza ----     spawn at [0,0,17]
+      /             |            \
+ Homestead      Filing Office     Workshop
+ [-22,0,0]        [0,0,0]        [21,0,0]
+```
 
 ## Why this over the 2D SkyOffice build
 
@@ -111,6 +119,10 @@ server caches blueprints at boot and will not pick up an edit on its own.
 ```
 python3 roomsrc/install.py            # The Filing Office  -> [0,0,0]
 python3 roomsrc/install_workshop.py   # The Workshop       -> [21,0,0]
+python3 roomsrc/install_homestead.py  # The Homestead      -> [-22,0,0]
+python3 roomsrc/install_vault.py      # The Vault          -> [0,0,32]
+python3 roomsrc/install_campus.py     # plaza, signs, gate, and the spawn
+python3 roomsrc/install_brand.py      # world title, share image, avatar
 ```
 
 **The Filing Office** (`roomsrc/filing_office.js`) — reception desk,
@@ -155,9 +167,22 @@ levels 1 / 4 / 8, so the level gate that caps the ratings also paces the
 abilities. Every skill effect is deterministic — "every 3rd hit", "below
 25% HP" — so the no-RNG rule holds in combat, not just at the workbench.
 
-A seventh board stubs the housing/farming system rather than faking it —
-land, houses, farms yielding resources for boosts, materials and trades,
-with buildings wearing out like equipment.
+**The Homestead** (`roomsrc/homestead.js`) — the housing and farming loop,
+now built rather than stubbed. Buy a plot (three sizes, priced up front),
+raise a house on it, and work the farm. Beds set the harvest, produce mills
+into timber, and both the house and the farm wear out every harvest exactly
+like equipment does. Spare produce buys the temporary stat boosts the dev
+described.
+
+One thing that needed adding: the yard sells timber for tokens. Without it
+the loop deadlocks — harvesting needs a house, the house needs timber, and
+timber only comes from produce. It doubles as another sink, which is the
+direction the dev wanted anyway.
+
+**The Vault** (`roomsrc/vault.js`) — the 10,000,000 room, in black and gold,
+and deliberately the only space with nothing to grind in it. It states what
+the tier does and does not carry: a seat at the table and early access, but
+no stat advantage, because holding is not playing.
 
 ### One thing to flag before this ships
 
@@ -182,9 +207,44 @@ purchased tileset, nothing licensed to keep out of the repo.
   `toLocaleString` returns unseparated digits. Multi-line copy is one
   node per line, and numbers go through a hand-rolled `commas()`.
 
+## The holder gate
+
+100,000 `$CASHCATSLLC` to enter, 10,000,000 for The Vault, and the check
+happens **on the server, at join, against the chain**. A hidden door is not
+a gate: anyone can walk through a door the server already let them past,
+and anyone can edit a client.
+
+```
+GET  /api/gate/nonce    single-use nonce, 5 minute TTL
+     holder signs it with their wallet (EIP-191 personal_sign)
+POST /api/gate/verify   recover the signer, confirm it matches the claimed
+                        address, read balanceOf, mint a 12h JWT pass
+     ws /ws?pass=...    checked in ServerNetwork.onConnection, before a
+                        player entity exists at all
+```
+
+The signature step is the point. Without it anyone could type in a whale's
+address and walk in. `/gate` serves a standalone wallet page — deliberately
+not part of the React client, so the world bundle carries no wallet code
+and a wallet is only ever touched on one screen. It asks for a signature,
+never a transaction.
+
+The Vault is a room in the same world, so `ServerVaultGuard` watches its
+volume server-side and teleports anyone below the vip tier back out. Client
+positions can be lied about, but lying only moves you somewhere the server
+then reads and corrects.
+
+Verified against the obvious attacks — spoofing another address, forging a
+signature, replaying a spent nonce, and presenting a made-up pass on the
+websocket are each refused.
+
+**The gate is off unless `GATE_ENABLED=1`**, so a misconfigured deploy fails
+open to a world people can enter rather than one nobody can. Turn it on in
+production, and do not leave `JWT_SECRET` at its default — it signs the
+passes.
+
 ## Not yet done
 
-Holder gate (100k = entry, 10M = VIP — must be enforced server-side on
-room join, not just hidden in the client UI), mobile perf pass (avatar is
-6.4MB, over budget — see "The avatar"), branding the shell, deploy, and
-`ADMIN_CODE`. Each lands as its own commit, same pattern as `hq/`.
+Deploy, and a mobile perf pass (the avatar is 6.0MB, over Hyperfy's 5MB
+budget — see "The avatar"). `ADMIN_CODE` is set locally in `.env`; it must
+be set on the droplet too, because blank means every visitor is an admin.

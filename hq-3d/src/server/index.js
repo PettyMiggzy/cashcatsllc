@@ -14,6 +14,8 @@ import multipart from '@fastify/multipart'
 import { createServerWorld } from '../core/createServerWorld'
 import { getDB } from './db'
 import { Storage } from './Storage'
+import { GATE_ENABLED, issueNonce, verifyAndIssuePass } from './holderGate'
+import { gatePage } from './gatePage'
 import { assets } from './assets'
 import { collections } from './collections'
 import { cleaner } from './cleaner'
@@ -147,6 +149,24 @@ const envsCode = `
   if (!globalThis.env) globalThis.env = {}
   globalThis.env = ${JSON.stringify(publicEnvs)}
 `
+// ---------------------------------------------------------------- holder gate
+fastify.get('/api/gate/nonce', async (req, reply) => {
+  if (!GATE_ENABLED) return { enabled: false }
+  return { enabled: true, ...issueNonce() }
+})
+
+fastify.post('/api/gate/verify', async (req, reply) => {
+  if (!GATE_ENABLED) return { ok: false, reason: 'gate_disabled' }
+  const { address, signature, nonce } = req.body || {}
+  const result = await verifyAndIssuePass({ address, signature, nonce })
+  if (!result.ok) reply.code(403)
+  return result
+})
+
+fastify.get('/gate', async (req, reply) => {
+  reply.type('text/html').send(gatePage())
+})
+
 fastify.get('/env.js', async (req, reply) => {
   reply.type('application/javascript').send(envsCode)
 })
