@@ -107,18 +107,45 @@ an `eth_call` `balanceOf` every 60s. Three staff standees are the real
 Cash Cat edited into filing clerks (`npc_*.png`).
 
 **The Workshop** (`roomsrc/workshop.js`) — the playable economy, built to
-the spec the dev gave us and deliberately provable on screen:
+the dev's spec and deliberately provable on screen. Six boards, seven
+actions, no hidden state:
 
-- **No RNG.** Upgrades always succeed. `upgradeCost(t) = 120 * t²`, fixed
-  and printed on the board before you commit.
-- **No paid odds.** Nothing purchasable changes a probability, because
-  there are no probabilities.
-- **Everything wears out**, golden gear included — 8 durability per shift
-  standard, 11 golden. Repair scales with tier, so higher grade costs
-  more to keep running.
-- **No blind boxes.** The Golden Cash Cat panel lists every trait and the
-  exact price *before* purchase. It grinds 1.6x faster and wears harder:
-  an entry to a bigger sink, never an exit from the loop.
+- **No RNG anywhere.** `upgradeCost(t) = 3t` parts, fixed and printed
+  before you commit; upgrades never fail. Spare loot drops on a counter
+  (every third shift), not a roll.
+- **No paid odds.** Nothing purchasable touches a probability, because
+  there are none.
+- **Equipment and buildings wear out — cosmetics never do.** 8 durability
+  per shift; repair scales with tier.
+- **Four NFT tiers**: Common / Copper / Silver / Gold, every price and
+  rating listed on the rack before purchase. Holdings *stack* — Cosmetic
+  Rating comes from the number of NFTs held, so owning all four is worth
+  all four.
+- **Cosmetic Rating is account-wide** (every cat you own gets it, equipped
+  or not) and comes only from NFTs held or `$CASHCATSLLC` spent.
+  **Equipment Rating is per-cat.** Both are shown on the public PLAYER
+  INFO board, and both are **capped by the cat's level** — the board says
+  so out loud when you are over the cap ("210 held, level 3 allows 45").
+- **Level requirement to wear gear**, so a tier you can afford is not
+  automatically a tier you can equip.
+- **Nothing is wasted**: spare loot dismantles into scrap, and 5 scrap
+  combine into 1 part, so low-grade material always has a route upward.
+- **One-way sink.** The burn ledger states plainly that the game has no
+  token faucet and never pays `$CASHCATSLLC` out.
+
+A sixth board stubs the housing/farming system rather than faking it —
+land, houses, farms yielding resources for boosts, materials and trades,
+with buildings wearing out like equipment.
+
+### One thing to flag before this ships
+
+Under the spec as written, Cosmetic Rating gives stat boosts and comes
+*only* from tokens spent or NFTs held. A player who spends nothing has a
+Cosmetic Rating of zero, and the level cap does not change that — it caps
+the top, it does not give free players a floor. That is buy-for-power in
+PvE, which may be entirely fine; it becomes a real problem the moment
+there is PvP or a competitive leaderboard. Worth a decision, not a
+silent assumption. The room is built to spec regardless.
 
 Both rooms are built entirely from `prim`/`ui`/`image` nodes — no GLB, no
 purchased tileset, nothing licensed to keep out of the repo.
