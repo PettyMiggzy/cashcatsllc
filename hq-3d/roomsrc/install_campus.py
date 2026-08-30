@@ -19,7 +19,7 @@ import texprops
 con = sqlite3.connect(DB)
 
 script = put(os.path.join(ROOT, 'campus.js'), 'js')
-model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
+model  = put(os.path.join(ROOT, 'cats.glb'), 'glb')
 
 BP = 'cashcats-campus'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — Campus', 'image': None, 'author': None,

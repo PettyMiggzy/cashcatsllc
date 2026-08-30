@@ -310,96 +310,6 @@ for(let i=0;i<3;i++){
   skRows.push([ text(cls,'',26,CREAM,600,i===0?12:12), text(cls,'',22,DIM,400,2) ])
 }
 
-/* ---------------- carved cat statues ----------------
- * Real geometry, not billboards: ellipsoids from scaled spheres, cones for
- * ears, cylinders for legs and tail.
- *
- * What makes these read as cats rather than as a pile of spheres:
- *   - the head is large and sits clearly ABOVE a neck, not sunk in the chest
- *   - the ears are big. They are the strongest silhouette cue a cat has and
- *     the first version's little nubs were why nothing looked feline
- *   - a sitting cat TAPERS — wide haunches, narrower chest, narrow shoulders.
- *     Uniform girth just makes a pear
- *   - the front legs stand proud in Z, in front of the chest, or they vanish
- *     inside the torso
- */
-function catStatue(cfg){
-  const { x, z, rotY = 0, s = 1, pose = 'sit', mat = {}, baseY = FLOOR_Y,
-          girth = 1, headR = 1, earH = 1, bodyLen = 1, mouth = 0 } = cfg
-  const Y0 = baseY
-  const parts = []
-
-  function part(type, size, p, sc, rot){
-    const c = Math.cos(rotY), si = Math.sin(rotY)
-    const px = p[0] * s, py = p[1] * s, pz = p[2] * s
-    const n = prim(type, size.map(v => v * s), mat.col,
-      [x + px * c + pz * si, Y0 + py, z - px * si + pz * c],
-      { scale: sc ? [sc[0]*s, sc[1]*s, sc[2]*s] : undefined,
-        rotY: rotY + (rot && rot[1] ? rot[1] : 0),
-        rotX: rot && rot[0] ? rot[0] : undefined,
-        rotZ: rot && rot[2] ? rot[2] : undefined,
-        tex: mat.tex, rough: mat.rough, metal: mat.metal })
-    parts.push(n)
-    return n
-  }
-  const S = [1]
-  const g = 0.55 + 0.45 * girth          // girth is a nudge, not a balloon
-
-  let hy, hz                              // where the head ends up
-  if (pose === 'sit') {
-    part('sphere', S, [0, 0.34, -0.16], [0.54*g, 0.34, 0.62*g])   // haunches, widest
-    part('sphere', S, [0, 0.60, -0.22], [0.46*g, 0.34, 0.48])     // back rising
-    part('sphere', S, [0, 0.76,  0.02], [0.38*g, 0.38, 0.34])     // chest
-    part('sphere', S, [0, 1.00,  0.06], [0.29*g, 0.24, 0.27])     // shoulders, narrow
-    part('cylinder', [0.15, 0.17, 0.20], [0, 1.14, 0.07])         // neck
-    for (const sx of [-1, 1]) {
-      // proud of the chest in z, or they disappear inside the torso
-      part('cylinder', [0.075, 0.085, 0.60], [sx*0.17, 0.32, 0.30])
-      part('sphere', S, [sx*0.17, 0.06, 0.38], [0.10, 0.07, 0.16])
-      part('sphere', S, [sx*0.33*g, 0.10, -0.02], [0.13, 0.09, 0.22])  // hind paw
-    }
-    hy = 1.34; hz = 0.09
-  } else {
-    const L = 0.60 * bodyLen
-    part('sphere', S, [0, 0.86, 0], [0.34*g, 0.32, L])
-    part('sphere', S, [0, 0.90, L*0.72], [0.31*g, 0.30, 0.30])
-    part('sphere', S, [0, 0.84, -L*0.76], [0.33*g, 0.31, 0.30])
-    for (const sx of [-1, 1]) for (const sz of [1, -1]) {
-      part('cylinder', [0.075, 0.09, 0.80], [sx*0.21, 0.44, sz*L*0.66])
-      part('sphere', S, [sx*0.21, 0.07, sz*L*0.66 + 0.04], [0.10,0.07,0.14])
-    }
-    part('cylinder', [0.15, 0.17, 0.26], [0, 1.06, L + 0.14], null, [0.5, 0, 0])
-    hy = 1.22; hz = L + 0.30
-  }
-
-  /* head — big, and clearly sitting on top of the neck rather than in it */
-  const h = 0.30 * headR
-  part('sphere', S, [0, hy, hz], [h, h*0.92, h*0.96])
-  for (const sx of [-1, 1])                                   // cheek tufts
-    part('sphere', S, [sx*h*0.78, hy-0.05, hz+0.02], [h*0.34, h*0.40, h*0.36])
-  part('sphere', S, [0, hy-0.06, hz+h*0.80], [h*0.50, h*0.38, h*0.44])   // muzzle
-  part('sphere', S, [0, hy-0.02, hz+h*1.12], [0.045, 0.038, 0.038])      // nose
-  if (mouth)
-    part('sphere', S, [0, hy-0.15, hz+h*0.86], [h*0.34, h*0.40, h*0.34])
-  // brow ridge, so the face is not a featureless dome
-  part('sphere', S, [0, hy+h*0.38, hz+h*0.50], [h*0.60, h*0.12, h*0.26])
-  /* Ears — large, and BROAD rather than tall. These carry the silhouette more
-   * than anything else does, and a narrow cone tilted well out reads as a
-   * horn, which is exactly what the first attempt looked like. */
-  for (const sx of [-1, 1])
-    part('cone', [0.23*headR, 0.38*earH], [sx*h*0.60, hy + h*0.80 + 0.07*earH, hz - 0.03],
-         null, [0.05, 0, sx * 0.12])
-
-  /* tail, swept out and round so the outline is not symmetrical */
-  const t0 = pose === 'sit' ? [0.16, 0.12, -0.50] : [0.12, 0.84, -0.60*bodyLen - 0.18]
-  const seg = [[0,0,0],[0.20,0.05,-0.16],[0.42,0.18,-0.22],[0.60,0.40,-0.18],[0.68,0.64,-0.04]]
-  for (let i = 0; i < seg.length; i++)
-    part('sphere', S, [t0[0]+seg[i][0], t0[1]+seg[i][1], t0[2]+seg[i][2]],
-         [0.095 - i*0.007, 0.095 - i*0.007, 0.095 - i*0.007])
-
-  return parts
-}
-
 /* ===================== board 3c: choose your cat =====================
  * The cat is the protagonist; the class is the job. Both are picked, never
  * rolled, and both are listed in full before you commit.
@@ -421,31 +331,30 @@ for(let i=0;i<CATS.length;i++){
 text(cast,'The class you pick decides what you do.',22,'#c9bfa6',400,22)
 text(cast,'The cat you pick decides what you bring.',22,'#c9bfa6',400,2)
 
-// The chosen cat, carved, on a plinth beside their board. All five are built
-// once and hidden; picking one just toggles which is active.
+// The chosen cat, sculpted, on a plinth beside their board. The meshes ride
+// in on this app's model (roomsrc/cats.glb, built by roomsrc/mkcats.py);
+// picking a cat just toggles which node is active.
 const STATUE_X = RIGHT_X - 1.05, STATUE_Z = 0.8
 prim('box',[1.9,0.32,1.9],'#ffffff',[STATUE_X,FLOOR_Y+0.16,STATUE_Z],{tex:'pavingRoom',rough:0.9})
 prim('box',[1.75,0.05,1.75],GOLD,[STATUE_X,FLOOR_Y+0.34,STATUE_Z],{metal:0.8,rough:0.35})
 
-const STONE_MAT = { col:'#ffffff', tex:'pavingRoom', rough:0.85 }
-const GOLD_MAT  = { col:GOLD_L, metal:0.9, rough:0.3 }
-const SHAPES = {
-  catCash:    { pose:'sit',   s:0.72, girth:1.0,  headR:1.0,  earH:1.05, mat:GOLD_MAT },
-  catLong:    { pose:'stand', s:0.62, girth:0.82, headR:0.92, bodyLen:2.15, mat:STONE_MAT },
-  catSerious: { pose:'sit',   s:0.68, girth:1.18, headR:1.12, earH:0.85, mat:STONE_MAT },
-  catApple:   { pose:'sit',   s:0.66, girth:1.32, headR:1.28, earH:0.8,  mat:STONE_MAT },
-  catPop:     { pose:'sit',   s:0.66, girth:0.95, headR:1.05, earH:1.1, mouth:1, mat:STONE_MAT },
+const NODE_OF = {
+  catCash:'cat_cash', catLong:'cat_long', catSerious:'cat_serious',
+  catApple:'cat_apple', catPop:'cat_pop',
 }
+const SIZE_OF = { catCash:0.74, catLong:0.60, catSerious:0.70, catApple:0.68, catPop:0.68 }
 const statues = {}
 for (const c of CATS) {
-  const sh = SHAPES[c.key]
-  statues[c.key] = catStatue({
-    x: STATUE_X, z: STATUE_Z, rotY: -Math.PI/2, baseY: FLOOR_Y + 0.36,
-    s: sh.s, pose: sh.pose, mat: sh.mat, girth: sh.girth, headR: sh.headR,
-    earH: sh.earH || 1, bodyLen: sh.bodyLen || 1, mouth: sh.mouth || 0,
-  })
-  for (const n of statues[c.key]) n.active = false
+  const st = app.get(NODE_OF[c.key])
+  if (!st) continue
+  const sc = SIZE_OF[c.key]
+  st.position.set(STATUE_X, FLOOR_Y + 0.36, STATUE_Z)
+  st.scale.set(sc, sc, sc)
+  st.rotation.y = -Math.PI/2          // turned to face out into the room
+  st.active = false
+  statues[c.key] = st
 }
+
 
 /* ===================== board 4: the nft rack ===================== */
 const rack = panel(700,660,0.0038,[RIGHT_X,2.95,-1.0],-Math.PI/2,'#1d1a10',GOLD)
@@ -594,8 +503,7 @@ function render(){
   vCat.color = GOLD_L
   nCat.value = CAT().trait + ' — ' + CAT().desc
   for (const c of CATS) {
-    const on = c.key === CAT().key
-    for (const n of statues[c.key]) n.active = on
+    if (statues[c.key]) statues[c.key].active = (c.key === CAT().key)
   }
   for(let i=0;i<castRows.length;i++){
     const on = i === s.cat

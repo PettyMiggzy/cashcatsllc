@@ -168,18 +168,40 @@ the numbers — Cash Cat pays double every fifth shift, Long Cat wears gear
 dismantles for half again as much, Pop Cat upgrades for one part less. All
 deterministic, so the no-RNG rule survives contact with the roster.
 
-They stand on the plaza as **carved statues built from real geometry** —
-spheres squashed with non-uniform scale, cones for ears, cylinders for legs
-and tail — so they read from every angle instead of turning into a line
-edge-on the way a billboard does. `catStatue()` in `roomsrc/campus.js` is
-parametric: girth, head size, ear height, body length and an open mouth,
-which is enough to tell Apple Cat from Long Cat from Pop Cat by silhouette
-alone. Carving them in stone is doing double duty, since a statue is
-allowed to be stylised.
+They stand on the plaza as **sculpted meshes**, built by
+`roomsrc/mkcats.py` and shipped as `roomsrc/cats.glb`:
 
-The same builder is duplicated into `workshop.js` (apps are separate
-sandboxes with no shared modules), where all five are built once and hidden,
-and picking a cat just toggles which one is active on the plinth.
+```
+python3 roomsrc/mkcats.py roomsrc/cats.glb
+```
+
+Each cat is described as a set of ellipsoid signed-distance fields — body,
+head, muzzle, ears, legs, tail — combined with an exponential smooth
+minimum and pulled out as one surface with marching cubes. The result is a
+single continuous body rather than a pile of visible spheres, which is what
+assembling primitives always looks like. `app.get('cat_pop')` reaches the
+node, so the campus places all five along the plaza and the workshop
+positions them on one plinth and toggles which is active.
+
+Three things that decide whether it reads as a cat:
+
+- **The union constant is the whole game.** Larger k is a *tighter* union.
+  Summing exponentials across many overlapping parts inflates the surface
+  the way metaballs do, so a soft k melts the head into the shoulders and
+  swallows the legs entirely. 26 keeps the parts legible while still fusing
+  them; 11 produced a featureless blob.
+- **Metaballs size deceptively.** The first attempt used a Wyvill falloff,
+  where a lone blob's iso-surface sits at only ~0.45 of its stated radius.
+  Everything came out spindly and the tail broke into beads. An SDF means a
+  radius means what it says.
+- **`step` is the quality/weight dial.** 0.023 gives ~195k triangles across
+  the five and a 4.7MB glb. 0.016 is marginally crisper for twice the
+  weight, which is the wrong trade for something usually seen from several
+  metres away in a browser.
+
+Venice has no part in this: 338 models across text, image, video, music,
+embedding, tts, upscale, inpaint and asr, and not one mesh generator. The
+geometry is generated locally with numpy and scikit-image.
 
 Their generated portraits (prompts in `roomsrc/cast/prompts/`) are still
 used on the roster board, where a picture is the right thing. **The player

@@ -133,96 +133,6 @@ text(board,'The numbers on the boards are the real',24,INK,400,14)
 text(board,'proposed rules, running live — not mockups.',24,INK,400,2)
 
 
-/* ---------------- carved cat statues ----------------
- * Real geometry, not billboards: ellipsoids from scaled spheres, cones for
- * ears, cylinders for legs and tail.
- *
- * What makes these read as cats rather than as a pile of spheres:
- *   - the head is large and sits clearly ABOVE a neck, not sunk in the chest
- *   - the ears are big. They are the strongest silhouette cue a cat has and
- *     the first version's little nubs were why nothing looked feline
- *   - a sitting cat TAPERS — wide haunches, narrower chest, narrow shoulders.
- *     Uniform girth just makes a pear
- *   - the front legs stand proud in Z, in front of the chest, or they vanish
- *     inside the torso
- */
-function catStatue(cfg){
-  const { x, z, rotY = 0, s = 1, pose = 'sit', mat = {}, baseY = Y + 0.38,
-          girth = 1, headR = 1, earH = 1, bodyLen = 1, mouth = 0 } = cfg
-  const Y0 = baseY
-  const parts = []
-
-  function part(type, size, p, sc, rot){
-    const c = Math.cos(rotY), si = Math.sin(rotY)
-    const px = p[0] * s, py = p[1] * s, pz = p[2] * s
-    const n = prim(type, size.map(v => v * s), mat.col,
-      [x + px * c + pz * si, Y0 + py, z - px * si + pz * c],
-      { scale: sc ? [sc[0]*s, sc[1]*s, sc[2]*s] : undefined,
-        rotY: rotY + (rot && rot[1] ? rot[1] : 0),
-        rotX: rot && rot[0] ? rot[0] : undefined,
-        rotZ: rot && rot[2] ? rot[2] : undefined,
-        tex: mat.tex, rough: mat.rough, metal: mat.metal })
-    parts.push(n)
-    return n
-  }
-  const S = [1]
-  const g = 0.55 + 0.45 * girth          // girth is a nudge, not a balloon
-
-  let hy, hz                              // where the head ends up
-  if (pose === 'sit') {
-    part('sphere', S, [0, 0.34, -0.16], [0.54*g, 0.34, 0.62*g])   // haunches, widest
-    part('sphere', S, [0, 0.60, -0.22], [0.46*g, 0.34, 0.48])     // back rising
-    part('sphere', S, [0, 0.76,  0.02], [0.38*g, 0.38, 0.34])     // chest
-    part('sphere', S, [0, 1.00,  0.06], [0.29*g, 0.24, 0.27])     // shoulders, narrow
-    part('cylinder', [0.15, 0.17, 0.20], [0, 1.14, 0.07])         // neck
-    for (const sx of [-1, 1]) {
-      // proud of the chest in z, or they disappear inside the torso
-      part('cylinder', [0.075, 0.085, 0.60], [sx*0.17, 0.32, 0.30])
-      part('sphere', S, [sx*0.17, 0.06, 0.38], [0.10, 0.07, 0.16])
-      part('sphere', S, [sx*0.33*g, 0.10, -0.02], [0.13, 0.09, 0.22])  // hind paw
-    }
-    hy = 1.34; hz = 0.09
-  } else {
-    const L = 0.60 * bodyLen
-    part('sphere', S, [0, 0.86, 0], [0.34*g, 0.32, L])
-    part('sphere', S, [0, 0.90, L*0.72], [0.31*g, 0.30, 0.30])
-    part('sphere', S, [0, 0.84, -L*0.76], [0.33*g, 0.31, 0.30])
-    for (const sx of [-1, 1]) for (const sz of [1, -1]) {
-      part('cylinder', [0.075, 0.09, 0.80], [sx*0.21, 0.44, sz*L*0.66])
-      part('sphere', S, [sx*0.21, 0.07, sz*L*0.66 + 0.04], [0.10,0.07,0.14])
-    }
-    part('cylinder', [0.15, 0.17, 0.26], [0, 1.06, L + 0.14], null, [0.5, 0, 0])
-    hy = 1.22; hz = L + 0.30
-  }
-
-  /* head — big, and clearly sitting on top of the neck rather than in it */
-  const h = 0.30 * headR
-  part('sphere', S, [0, hy, hz], [h, h*0.92, h*0.96])
-  for (const sx of [-1, 1])                                   // cheek tufts
-    part('sphere', S, [sx*h*0.78, hy-0.05, hz+0.02], [h*0.34, h*0.40, h*0.36])
-  part('sphere', S, [0, hy-0.06, hz+h*0.80], [h*0.50, h*0.38, h*0.44])   // muzzle
-  part('sphere', S, [0, hy-0.02, hz+h*1.12], [0.045, 0.038, 0.038])      // nose
-  if (mouth)
-    part('sphere', S, [0, hy-0.15, hz+h*0.86], [h*0.34, h*0.40, h*0.34])
-  // brow ridge, so the face is not a featureless dome
-  part('sphere', S, [0, hy+h*0.38, hz+h*0.50], [h*0.60, h*0.12, h*0.26])
-  /* Ears — large, and BROAD rather than tall. These carry the silhouette more
-   * than anything else does, and a narrow cone tilted well out reads as a
-   * horn, which is exactly what the first attempt looked like. */
-  for (const sx of [-1, 1])
-    part('cone', [0.23*headR, 0.38*earH], [sx*h*0.60, hy + h*0.80 + 0.07*earH, hz - 0.03],
-         null, [0.05, 0, sx * 0.12])
-
-  /* tail, swept out and round so the outline is not symmetrical */
-  const t0 = pose === 'sit' ? [0.16, 0.12, -0.50] : [0.12, 0.84, -0.60*bodyLen - 0.18]
-  const seg = [[0,0,0],[0.20,0.05,-0.16],[0.42,0.18,-0.22],[0.60,0.40,-0.18],[0.68,0.64,-0.04]]
-  for (let i = 0; i < seg.length; i++)
-    part('sphere', S, [t0[0]+seg[i][0], t0[1]+seg[i][1], t0[2]+seg[i][2]],
-         [0.095 - i*0.007, 0.095 - i*0.007, 0.095 - i*0.007])
-
-  return parts
-}
-
 /* ---------------- the cast, out on the plaza ----------------
  * The protagonists, standing where everyone walks in. Standee planes rather
  * than models: rigged VRMs for each of them is real modelling work, and a
@@ -231,34 +141,30 @@ function catStatue(cfg){
 // Ordered along the walk in from spawn, with a clear gap down the middle for
 // the path to the Filing Office. They were behind the spawn point at first,
 // which meant you arrived with your back to the whole cast.
-// Ordered along the walk in from spawn, with a clear gap down the middle for
-// the path to the Filing Office. They were behind the spawn point at first,
-// which meant you arrived with your back to the whole cast.
 //
-// Each is carved rather than printed on a board: proportions carry the
-// character, since a stone cat cannot rely on fur colour or an expression.
-const STONE_MAT = { col:'#ffffff', tex:'paving', rough:0.85 }
-const GOLD_MAT  = { col:GOLD_L, metal:0.9, rough:0.3 }
-
+// The statues themselves are sculpted meshes carried by this app's model
+// (roomsrc/cats.glb, built by roomsrc/mkcats.py). Assembling them from prims
+// meant you could always see the spheres; a metaball surface blends the
+// parts into one continuous body the way an animal actually is.
 const CAST = [
-  { key:'catSerious', label:'SERIOUS CAT', x:-17.0, mat:STONE_MAT,
-    pose:'sit',   s:1.05, girth:1.18, headR:1.12, earH:0.85 },
-  { key:'catLong',    label:'LONG CAT',    x:-10.0, mat:STONE_MAT,
-    pose:'stand', s:0.95, girth:0.82, headR:0.92, bodyLen:2.15 },
-  { key:'catCash',    label:'CASH CAT',    x: -3.6, mat:GOLD_MAT,
-    pose:'sit',   s:1.15, girth:1.0,  headR:1.0,  earH:1.05 },
-  { key:'catPop',     label:'POP CAT',     x:  3.6, mat:STONE_MAT,
-    pose:'sit',   s:1.0,  girth:0.95, headR:1.05, earH:1.1, mouth:1 },
-  { key:'catApple',   'label':'APPLE CAT', x: 10.0, mat:STONE_MAT,
-    pose:'sit',   s:1.0,  girth:1.32, headR:1.28, earH:0.8 },
+  { node:'cat_serious', label:'SERIOUS CAT', x:-17.0, s:1.05 },
+  { node:'cat_long',    label:'LONG CAT',    x:-10.0, s:0.95 },
+  { node:'cat_cash',    label:'CASH CAT',    x: -3.6, s:1.15 },
+  { node:'cat_pop',     label:'POP CAT',     x:  3.6, s:1.00 },
+  { node:'cat_apple',   label:'APPLE CAT',   x: 10.0, s:1.00 },
 ]
 for (const c of CAST) {
   const z = 11.4
   prim('box',[2.4,0.35,2.0],'#ffffff',[c.x,Y+0.18,z],{tex:'paving',rough:0.9})
   prim('box',[2.2,0.06,1.8],GOLD_D,[c.x,Y+0.37,z],{metal:0.8,rough:0.35})
-  catStatue({ x:c.x, z:z, rotY:0, s:c.s, pose:c.pose, mat:c.mat,
-              girth:c.girth, headR:c.headR, earH:c.earH || 1,
-              bodyLen:c.bodyLen || 1, mouth:c.mouth || 0 })
+
+  const st = app.get(c.node)
+  if (st) {
+    st.position.set(c.x, Y + 0.40, z)
+    st.scale.set(c.s, c.s, c.s)
+    st.rotation.y = 0              // sculpted facing +Z, which is the walk-in
+  }
+
   // on the front of the plinth, where a statue's name belongs — floating it
   // at chest height put it straight across the cat it was naming
   const plaque = panel(360,88,0.0046,[c.x,Y+0.20,z+1.01],0,'#0e1f18',GOLD)

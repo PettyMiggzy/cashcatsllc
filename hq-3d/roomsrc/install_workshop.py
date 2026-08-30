@@ -14,7 +14,7 @@ def put(path, ext):
 now=datetime.datetime.utcnow().isoformat()+'Z'
 con=sqlite3.connect(DB)
 script=put(os.path.join(ROOT,'workshop.js'),'js')
-model =put(os.path.join(ROOT,'empty.glb'),'glb')
+model =put(os.path.join(ROOT,'cats.glb'),'glb')
 gold  =put(os.path.join(ROOT,'gold_cat.png'),'png')
 
 BP='cashcats-workshop'
