@@ -91,6 +91,36 @@ Three things about that script are worth knowing before editing it:
   muzzle. It gets a stronger value lift than the body, or the cat reads
   grey-faced.
 
+### Bringing in a character from anywhere
+
+`roomsrc/glb2vrm.py` is the last mile of the character pipeline. Every AI
+character service worth using — Tripo, Meshy, Mixamo before them — hands you
+a rigged GLB or FBX with a conventional skeleton. None of them emit the VRM
+humanoid extension, and that extension is the only thing Hyperfy reads in
+order to retarget its fourteen stock clips.
+
+```
+python3 roomsrc/glb2vrm.py in.glb out.vrm --name "Pop Cat"
+python3 roomsrc/glb2vrm.py in.glb out.vrm --faces=-z    # already VRM-facing
+```
+
+Bone names are matched against the conventions those tools actually emit —
+Mixamo (`Hips`, `LeftUpLeg`, `LeftArm`), VRoid (`J_Bip_L_UpperArm`), Unreal
+(`upperarm_l`) and plain snake/camel case — so nothing normally needs
+renaming. Anything it cannot place is listed rather than guessed at, and it
+refuses a mesh with no skin instead of writing a broken avatar.
+
+Verified by stripping the VRM extension off the working avatar to make a
+plain rigged glb, then converting it back: 22 bones mapped, and the result
+loads, poses arms down and walks. **One open caveat** — the round-tripped
+file reports a height of 1.22m where the original reports 1.68m, so the
+scale needs pinning down before this is trusted in production.
+
+`--faces` matters more than it looks: VRM 0.0 models face −Z and most rigged
+exports face +Z, so the default adds a 180° root rotation. Skip it and left
+and right mirror, which makes Hyperfy's hard-coded arms-down pose lift both
+arms into the air instead.
+
 ### Generating a rig from scratch
 
 `roomsrc/mkavatar.py` builds a complete rigged VRM with no external service:
