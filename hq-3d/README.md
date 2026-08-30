@@ -91,6 +91,35 @@ Three things about that script are worth knowing before editing it:
   muzzle. It gets a stronger value lift than the body, or the cat reads
   grey-faced.
 
+### Generating a rig from scratch
+
+`roomsrc/mkavatar.py` builds a complete rigged VRM with no external service:
+a skinned mesh on a 26-bone VRM humanoid skeleton, weighted by
+nearest-bone-segment, written straight to GLB.
+
+```
+python3 roomsrc/mkavatar.py roomsrc/cashcat_avatar.vrm
+```
+
+It works — it loads, skins, walks, and drives all fourteen stock clips. Two
+things are worth writing down because neither is guessable:
+
+- **VRM 0.0 avatars face −Z, so the character's left is −X.** Authoring it
+  facing +Z mirrors left and right, and `createVRMFactory` poses the arms
+  down at load with a hard-coded `leftUpperArm.rotation.z = +75°`. Mirrored,
+  that same rotation lifts *both* arms into the air and no clip ever
+  corrects it. The fix is a 180° Y rotation of the mesh and skeleton, plus
+  reversing triangle winding.
+- **The world's avatar is content-addressed** through `settings.avatar`, so
+  overwriting `avatar.vrm` changes nothing until `install_brand.py` re-hashes
+  it. Easy to spend a while testing a file the world is not loading.
+
+**It is not what ships.** The generated body is a smooth featureless figure —
+no face, no clothing — and the repainted WeirdCat below is plainly better. The
+generator is kept because it is the working half of the problem: if the shapes
+improve, or someone supplies proper cat meshes, the rigging and export are
+solved.
+
 It is still a repaint of someone else's mesh, not our own cat: the
 proportions are a bipedal cartoon cat, not the real photo. A purpose-built
 VRM is real v2 work. At 6.0MB it also remains above Hyperfy's "Perfect
