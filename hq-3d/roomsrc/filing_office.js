@@ -154,8 +154,8 @@ plaque.position.set(0, 1.55, -D / 2 + T / 2 + 0.02)
 app.add(plaque)
 
 const eyebrow = app.create('uitext')
-eyebrow.value = 'ARTICLE I  ·  CONTRACT ON RECORD'
-eyebrow.fontSize = 34
+eyebrow.value = 'ARTICLE I  ·  CONTRACT ON RECORD  ·  ROBINHOOD CHAIN'
+eyebrow.fontSize = 30
 eyebrow.color = GREEN
 eyebrow.fontWeight = 700
 eyebrow.textAlign = 'center'

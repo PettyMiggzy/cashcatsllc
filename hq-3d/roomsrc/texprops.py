@@ -26,6 +26,15 @@ TEXTURES = {
     'skyHdr':      ('sky_env.hdr',        'hdr'),
 }
 
+# The playable cast. Cash Cat is the real brand image; the rest are generated
+# to match it (prompts in cast/prompts).
+CAST = {
+    'catLong':    'cast/cat_long.png',
+    'catSerious': 'cast/cat_serious.png',
+    'catApple':   'cast/cat_apple.png',
+    'catPop':     'cast/cat_pop.png',
+}
+
 
 def put(path, ext):
     d = open(path, 'rb').read()
@@ -44,4 +53,15 @@ def props(names=None):
         ext = fname.rsplit('.', 1)[1]
         url = put(os.path.join(ROOT, 'tex', fname), ext)
         out[key] = {'type': kind, 'name': fname, 'url': url}
+    return out
+
+
+def cast():
+    """Portraits of the playable cats, plus Cash Cat from the brand assets."""
+    out = {}
+    for key, rel in CAST.items():
+        url = put(os.path.join(ROOT, rel), 'png')
+        out[key] = {'type': 'image', 'name': os.path.basename(rel), 'url': url}
+    url = put(os.path.join(HQ, '..', 'assets', 'cashcat.png'), 'png')
+    out['catCash'] = {'type': 'image', 'name': 'cashcat.png', 'url': url}
     return out

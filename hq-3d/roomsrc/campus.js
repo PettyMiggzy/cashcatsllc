@@ -94,7 +94,7 @@ function planter(x,z){
   prim('box',[1.9,0.25,1.9],GREEN_D,[x,Y+0.55,z])
   prim('sphere',[0.85],GREEN,[x,Y+1.35,z],{rough:0.95})
 }
-for(const x of [-16,-6,6,16]) planter(x,13.5)
+for(const x of [-20,-13,13,20]) planter(x,19.5)
 
 /* ---------------- nameplates over each door ---------------- */
 function plate(x,z,title,sub){
@@ -109,8 +109,8 @@ plate( 21, 5.8,  'THE WORKSHOP',  'gear · materials · NFT tiers')
 
 /* ---------------- the directory, facing spawn ---------------- */
 const dir = panel(820,620,0.0052,[-9.5,2.9,15.0],0.35,'#0e1f18',GOLD)
-text(dir,'CASHCATS HQ',52,GOLD_L,700)
-text(dir,'holder-gated · 100,000 $CASHCATSLLC to enter',24,DIM,400,8)
+text(dir,'WORLD OF CASHCATS',48,GOLD_L,700)
+text(dir,'on Robinhood Chain · 100,000 $CASHCATSLLC to enter',24,DIM,400,8)
 function entry(name,desc,mt){
   text(dir,name,32,CREAM,600,mt)
   text(dir,desc,24,DIM,400,4)
@@ -128,6 +128,37 @@ text(board,'No wallet is connected, nothing is minted,',24,INK,400,10)
 text(board,'and no $CASHCATSLLC actually moves.',24,INK,400,2)
 text(board,'The numbers on the boards are the real',24,INK,400,14)
 text(board,'proposed rules, running live — not mockups.',24,INK,400,2)
+
+/* ---------------- the cast, out on the plaza ----------------
+ * The protagonists, standing where everyone walks in. Standee planes rather
+ * than models: rigged VRMs for each of them is real modelling work, and a
+ * flat cutout is honest about being a placeholder.
+ */
+// Ordered along the walk in from spawn, with a clear gap down the middle for
+// the path to the Filing Office. They were behind the spawn point at first,
+// which meant you arrived with your back to the whole cast.
+const CAST = [
+  ['catSerious', 'SERIOUS CAT', -17.0],
+  ['catLong',    'LONG CAT',    -10.0],
+  ['catCash',    'CASH CAT',     -3.6],
+  ['catPop',     'POP CAT',       3.6],
+  ['catApple',   'APPLE CAT',    10.0],
+]
+for (const [key, label, x] of CAST) {
+  const z = 11.4
+  prim('box',[2.2,0.35,1.6],STONE_D,[x,Y+0.18,z],{tex:'paving',rough:0.9})
+  prim('box',[2.0,0.06,1.4],GOLD_D,[x,Y+0.37,z],{metal:0.8,rough:0.35})
+  const pic = app.create('image')
+  pic.src = props[key] ? props[key].url : null
+  pic.width = 2.0; pic.height = 2.0
+  pic.color = 'transparent'; pic.lit = false; pic.doubleside = true
+  pic.pivot = 'bottom-center'
+  pic.position.set(x, Y + 0.4, z)
+  app.add(pic)
+  const plaque = panel(360,90,0.0055,[x,0.72,z-0.85],0,'#0e1f18',GOLD)
+  plaque.alignItems='center'
+  text(plaque,label,42,GOLD_L,700)
+}
 
 /* ---------------- the gate to The Vault ---------------- */
 const GZ = 24.5

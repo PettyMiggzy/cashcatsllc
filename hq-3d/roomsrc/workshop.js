@@ -71,6 +71,22 @@ const NFT = [
   { name:'Silver', price:200000, cos:55  },
   { name:'Gold',   price:500000, cos:120 },
 ]
+// The playable cats. Each carries one signature trait, per the dev: the cat
+// is who you are, the class is what you do. Every trait is deterministic —
+// "every 5th shift", "one part less" — never a chance.
+const CATS = [
+  { key:'catCash',    name:'Cash Cat',    trait:'Payday',
+    desc:'every 5th shift pays double' },
+  { key:'catLong',    name:'Long Cat',    trait:'Long Reach',
+    desc:'gear wears 6 per shift instead of 8' },
+  { key:'catSerious', name:'Serious Cat', trait:'Due Diligence',
+    desc:'repairs cost 20% less' },
+  { key:'catApple',   name:'Apple Cat',   trait:'Windfall',
+    desc:'dismantling returns half again as much' },
+  { key:'catPop',     name:'Pop Cat',     trait:'Pop Off',
+    desc:'upgrades cost one part less' },
+]
+
 // Four classes. Every skill effect below is deterministic — "every 3rd hit",
 // "below 25% HP" — so the no-RNG rule holds in combat too, not just at the
 // workbench.
@@ -102,6 +118,7 @@ const WEAR = 8             // equipment only — cosmetics never wear
 const COMBINE_RATE = 5     // 5 scrap -> 1 part, so low grade is never wasted
 
 const s = {
+  cat: 0,               // index into CATS — which protagonist you are
   cls: 0,               // index into CLASSES — the cat's class
   owned: [0,0,0,0,0],   // how many of each tier the account holds
   bought: 0,       // cosmetic rating bought directly with tokens
@@ -122,8 +139,10 @@ const eqpCap = () => s.level * 12
 
 const gearRating  = t => t * 12
 const gearReq     = t => t * 2 - 1          // level needed to wear tier t
-const upgradeCost = t => 3 * t              // parts, deterministic
-const repairCost  = () => Math.round((100 - s.dur) * (1 + 0.5*(s.gear-1)))
+const CAT = () => CATS[s.cat]
+const upgradeCost = t => Math.max(1, 3 * t - (CAT().key === 'catPop' ? 1 : 0))
+const repairCost  = () => Math.round((100 - s.dur) * (1 + 0.5*(s.gear-1)) * (CAT().key === 'catSerious' ? 0.8 : 1))
+const wearPer     = () => CAT().key === 'catLong' ? 6 : WEAR
 const yieldPer    = () => 10 * s.gear
 
 // every NFT held contributes, so tiers stack rather than replace each other
@@ -220,10 +239,12 @@ function bar(pct,color){
  * The dev asked for Cosmetic and Equipment Ratings to be on the player info
  * tab and visible to everyone, so they are the headline here.
  */
-const info = panel(740,800,0.0042,[-3.6,2.6,BACK_Z],0,'#0e1f18',GOLD)
+const info = panel(740,880,0.0042,[-3.6,2.6,BACK_Z],0,'#0e1f18',GOLD)
 text(info,'PLAYER INFO',46,GOLD_L,700)
 text(info,'public — anyone can view this',22,DIM,400,6)
-const vCls   = row(info,'Class',30,20,320)
+const vCat   = row(info,'Cat',30,20,320)
+const nCat   = indented(info,22,DIM,2,320)
+const vCls   = row(info,'Class',30,12,320)
 const vNft   = row(info,'NFT tier',30,8,320)
 const vLvl   = row(info,'Level',30,8,320)
 const vCos   = row(info,'Cosmetic Rating',30,16,320)
@@ -286,6 +307,36 @@ for(let i=0;i<3;i++){
   skRows.push([ text(cls,'',26,CREAM,600,i===0?12:12), text(cls,'',22,DIM,400,2) ])
 }
 
+/* ===================== board 3c: choose your cat =====================
+ * The cat is the protagonist; the class is the job. Both are picked, never
+ * rolled, and both are listed in full before you commit.
+ */
+const cast = panel(700,760,0.0038,[RIGHT_X,2.85,2.6],-Math.PI/2,'#12100e',GOLD)
+text(cast,'WORLD OF CASHCATS',42,GOLD_L,700)
+text(cast,'choose your cat · each carries one signature trait',22,DIM,400,6)
+const castRows = []
+for(let i=0;i<CATS.length;i++){
+  const v=app.create('uiview'); v.flexDirection='column'
+  v.margin=[i===0?22:14,0,0,0]; cast.add(v)
+  const n=app.create('uitext')
+  n.value=''; n.fontSize=30; n.color=CREAM; n.fontWeight=600; v.add(n)
+  const d=app.create('uitext')
+  d.value=CATS[i].trait + ' — ' + CATS[i].desc
+  d.fontSize=22; d.color=DIM; d.margin=[2,0,0,0]; v.add(d)
+  castRows.push([n,d])
+}
+text(cast,'The class you pick decides what you do.',22,'#c9bfa6',400,22)
+text(cast,'The cat you pick decides what you bring.',22,'#c9bfa6',400,2)
+
+// the chosen cat, standing next to their board
+const portrait = app.create('image')
+portrait.width = 1.7; portrait.height = 1.7
+portrait.color = 'transparent'; portrait.lit = false; portrait.doubleside = true
+portrait.pivot = 'bottom-center'
+portrait.position.set(RIGHT_X-0.06, FLOOR_Y, 1.0)
+portrait.rotation.y = -Math.PI/2
+app.add(portrait)
+
 /* ===================== board 4: the nft rack ===================== */
 const rack = panel(700,660,0.0038,[RIGHT_X,2.95,-1.0],-Math.PI/2,'#1d1a10',GOLD)
 text(rack,'CASH CAT NFT TIERS',42,GOLD_L,700)
@@ -346,9 +397,11 @@ const BY = FLOOR_Y+1.2
 
 const aWork = action('Work a shift',[-3.6,BY,-2.6],()=>{
   if(s.dur<=0){ lRep.value='Gear is broken — repair before working.'; return }
-  s.scrap += yieldPer()
-  s.dur = Math.max(0, s.dur - WEAR)
   s.shifts++
+  // Payday lands on a counter, not a roll
+  const double = CAT().key === 'catCash' && s.shifts % 5 === 0
+  s.scrap += yieldPer() * (double ? 2 : 1)
+  s.dur = Math.max(0, s.dur - wearPer())
   // deterministic, not a drop roll: every third shift leaves spare loot
   if(s.shifts % 3 === 0) s.spares++
   if(s.level < MAX_LEVEL && s.shifts % SHIFTS_PER_LEVEL === 0) s.level++
@@ -378,7 +431,7 @@ const aUpgrade = action('Upgrade gear',[1.8,BY,-2.6],()=>{
 
 const aDismantle = action('Dismantle spare loot',[3.6,BY,-2.6],()=>{
   if(s.spares<=0) return
-  s.scrap += s.spares * 6             // nothing is wasted
+  s.scrap += Math.round(s.spares * (CAT().key === 'catApple' ? 9 : 6))  // nothing is wasted
   s.spares = 0
   render()
 })
@@ -387,6 +440,11 @@ const aMint = action('',[RIGHT_X-1.5,BY,-1.0],()=>{
   const t = nextTier()
   s.owned[t]++
   s.burned += NFT[t].price            // demo: the real build burns on-chain
+  render()
+},3.6)
+
+const aCat = action('',[RIGHT_X-1.4,BY,2.0],()=>{
+  s.cat = (s.cat + 1) % CATS.length     // picked, never rolled
   render()
 },3.6)
 
@@ -422,6 +480,17 @@ function render(){
   vPow.value = String(power())
   vPow.color = LIME
 
+  vCat.value = CAT().name
+  vCat.color = GOLD_L
+  nCat.value = CAT().trait + ' — ' + CAT().desc
+  portrait.src = props[CAT().key] ? props[CAT().key].url : null
+  for(let i=0;i<castRows.length;i++){
+    const on = i === s.cat
+    castRows[i][0].value = CATS[i].name + (on ? '  ◄' : '')
+    castRows[i][0].color = on ? LIME : CREAM
+    castRows[i][1].color = on ? '#a9c4b6' : '#5f7168'
+  }
+
   vCls.value = C().name
   vCls.color = GOLD_L
   for(let i=0;i<clsRows.length;i++){
@@ -440,6 +509,7 @@ function render(){
   }
 
   aCls.label = 'Switch class — ' + CLASSES[(s.cls+1) % CLASSES.length].name + ' (free, no roll)'
+  aCat.label = 'Play as ' + CATS[(s.cat+1) % CATS.length].name
 
   vTier.value = s.gear + ' / ' + MAX_GEAR + '   (rating ' + gearRating(s.gear) + ')'
   vDur.value  = s.dur + '%'

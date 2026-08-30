@@ -1,6 +1,7 @@
-# CashCats HQ — 3D
+# World of CashCats
 
-A holder-gated 3D walkable world for the `$CASHCATSLLC` community — forked
+A holder-gated 3D walkable world for the `$CASHCATSLLC` community on
+**Robinhood Chain** — forked
 from [Hyperfy](https://github.com/hyperfy-xyz/hyperfy) (GPL-3.0-only),
 pinned at commit `5d20037` (v0.16.0). Do not merge upstream mid-build —
 Hyperfy is alpha and its APIs move; treat any upgrade as its own task
@@ -158,6 +159,19 @@ actions, no hidden state:
   combine into 1 part, so low-grade material always has a route upward.
 - **One-way sink.** The burn ledger states plainly that the game has no
   token faucet and never pays `$CASHCATSLLC` out.
+
+**The cast**: Cash Cat, Long Cat, Serious Cat, Apple Cat and Pop Cat. The
+cat is who you are, the class is what you do, and both are picked rather
+than rolled. Each cat carries one signature trait that genuinely changes
+the numbers — Cash Cat pays double every fifth shift, Long Cat wears gear
+6 per shift instead of 8, Serious Cat repairs for 20% less, Apple Cat
+dismantles for half again as much, Pop Cat upgrades for one part less. All
+deterministic, so the no-RNG rule survives contact with the roster.
+
+Their portraits are generated to match the real Cash Cat photo (prompts in
+`roomsrc/cast/prompts/`) and stand on the plaza as flat cutouts. Rigged
+VRMs for each of them is real modelling work — a standee is at least
+honest about being a placeholder.
 
 **Classes**: each cat is a Warrior, Archer, Elemental or Assassin, picked
 at a board and never rolled. Class sets the base HP/ATK/SPD spread and

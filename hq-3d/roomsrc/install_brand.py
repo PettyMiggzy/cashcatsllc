@@ -28,9 +28,10 @@ logo   = put(os.path.join(HQ, '..', 'assets', 'cashcat.png'), 'png')
 avatar = put(os.path.join(HQ, 'src', 'world', 'assets', 'avatar.vrm'), 'vrm')
 
 settings.update({
-    'title': 'CashCats LLC — HQ',
-    'desc': ('A holder-gated 3D world for $CASHCATSLLC. '
-             'Filing Office, Workshop, Homestead and the Vault.'),
+    'title': 'World of CashCats',
+    'desc': ('A holder-gated 3D world for $CASHCATSLLC on Robinhood Chain. '
+             'Cash Cat, Long Cat, Serious Cat, Apple Cat and Pop Cat, across '
+             'the Filing Office, the Workshop, the Homestead and the Vault.'),
     'image':  {'type': 'image',  'name': 'cashcat.png', 'url': logo},
     'avatar': {'type': 'avatar', 'name': 'avatar.vrm',  'url': avatar},
 })
