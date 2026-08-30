@@ -92,15 +92,44 @@ for (let i = 0; i < 4; i++) {
   }
 }
 
-/* ---------- the seal / logo on the back wall ---------- */
+/* ---------- the corporate portrait on the back wall ---------- */
 const logo = app.create('image')
-logo.src = props.logo?.url || null
-logo.width = 3
-logo.height = 3
+logo.src = props.logo ? props.logo.url : null
+logo.width = 2.2
+logo.height = 2.2
 logo.color = 'transparent'
 logo.lit = false
-logo.position.set(0, 3.0, -D / 2 + T / 2 + 0.02)
+logo.position.set(0, 3.4, -D / 2 + T / 2 + 0.02)
 app.add(logo)
+
+/* ---------- staff: the Cash Cat actually working the office ----------
+ * Standee-style image planes. Each is the real cashcatllc.help cat edited
+ * into a filing-office role, cut to transparent, so the room is staffed
+ * rather than decorated with a logo.
+ */
+function staff(propKey, w, h, pos, rotY) {
+  const prop = props[propKey]
+  if (!prop) return
+  const n = app.create('image')
+  n.src = prop.url
+  n.width = w
+  n.height = h
+  n.color = 'transparent'
+  n.lit = false
+  n.doubleside = true
+  n.pivot = 'bottom-center'
+  n.position.set(pos[0], pos[1], pos[2])
+  if (rotY) n.rotation.y = rotY
+  app.add(n)
+  return n
+}
+
+// clerk stamping paperwork, behind the reception desk
+staff('npcStamp',   1.5, 1.9, [-1.2, FLOOR_Y, -4.1], 0)
+// clerk hauling folders, over by the filing cabinets
+staff('npcFolders', 1.4, 1.9, [-W / 2 + 2.3, FLOOR_Y, -1.0], Math.PI / 2.6)
+// clerk reading a file, near the swap terminal side
+staff('npcCabinet', 1.4, 1.9, [4.6, FLOOR_Y, -1.6], -Math.PI / 5)
 
 /* ---------- contract-address plaque ---------- */
 const plaque = app.create('ui')
@@ -204,7 +233,7 @@ tTitle.textAlign = 'center'
 term.add(tTitle)
 
 const tSub = app.create('uitext')
-tSub.value = 'Buy $CASHCATSLLC\n1% of every buy is\npaid back to holders'
+tSub.value = 'Buy $CASHCATSLLC\n\n1% of every buy is bought\nback and airdropped to\n$CASHCAT holders'
 tSub.fontSize = 30
 tSub.color = '#e8f2ec'
 tSub.lineHeight = 1.4
@@ -301,7 +330,7 @@ rVal.margin = 18
 rw.add(rVal)
 
 const rSub = app.create('uitext')
-rSub.value = '$CASHCATSLLC held for holders'
+rSub.value = '$CASHCATSLLC held for the\n$CASHCAT holder airdrop'
 rSub.fontSize = 26
 rSub.color = '#8fa39a'
 rSub.textAlign = 'center'

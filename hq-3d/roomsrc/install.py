@@ -23,6 +23,9 @@ model_url,_  = put_asset(os.path.join(ROOT,'empty.glb'), 'glb')
 # 2. the real CashCats logo from cashcatllc.help
 logo_src = os.path.join(HQ,'..','assets','cashcat.png')
 logo_url, logo_hash = put_asset(logo_src, 'png')
+npc_stamp_url,_   = put_asset(os.path.join(ROOT,'npc_stamp.png'), 'png')
+npc_folders_url,_ = put_asset(os.path.join(ROOT,'npc_folders.png'), 'png')
+npc_cabinet_url,_ = put_asset(os.path.join(ROOT,'npc_cabinet.png'), 'png')
 
 BP = 'cashcats-filing-office'
 blueprint = {
@@ -33,7 +36,10 @@ blueprint = {
     'model': model_url,
     'script': script_url,
     'props': {
-        'logo': { 'type':'image', 'name':'cashcat.png', 'url': logo_url }
+        'logo':       { 'type':'image', 'name':'cashcat.png',   'url': logo_url },
+        'npcStamp':   { 'type':'image', 'name':'npc_stamp.png',   'url': npc_stamp_url },
+        'npcFolders': { 'type':'image', 'name':'npc_folders.png', 'url': npc_folders_url },
+        'npcCabinet': { 'type':'image', 'name':'npc_cabinet.png', 'url': npc_cabinet_url },
     },
     'preload': True,
     'public': False,

@@ -6,10 +6,10 @@ pinned at commit `5d20037` (v0.16.0). Do not merge upstream mid-build —
 Hyperfy is alpha and its APIs move; treat any upgrade as its own task
 after launch.
 
-Status: **phase 02 done (rig spike resolved)** — the default avatar is
-now a real cat, verified walking in the running engine. See "The avatar"
-below for what shipped and why. Phase 01's vanilla-fork deploy is still
-the rollback point if anything below needs undoing.
+Status: **phase 04 done** — two rooms are built and walkable: the Filing
+Office (staffed, branded, live on-chain rewards readout) and the Workshop
+(a playable demo of the game economy). Phase 01's vanilla-fork deploy is
+still the rollback point if anything below needs undoing.
 
 ## Why this over the 2D SkyOffice build
 
@@ -86,9 +86,56 @@ Open `http://localhost:3000`. `ADMIN_CODE` is blank by default in
 `.env.example` — meaning **everyone who joins is an admin**. Must be set
 before any link is public.
 
+## The rooms
+
+Both rooms live in `roomsrc/` as plain app scripts and are pushed into
+`world/db.sqlite` by their install scripts. `world/` is gitignored, so
+the DB is disposable — the scripts are the source of truth. Re-run an
+install script and restart the server to apply a change; the running
+server caches blueprints at boot and will not pick up an edit on its own.
+
+```
+python3 roomsrc/install.py            # The Filing Office  -> [0,0,0]
+python3 roomsrc/install_workshop.py   # The Workshop       -> [21,0,0]
+```
+
+**The Filing Office** (`roomsrc/filing_office.js`) — reception desk,
+filing cabinets, the real `cashcatllc.help` cat on the wall, the contract
+address on a plaque, an Article II memo board, a Swap Terminal that opens
+the buy link, and a Rewards Wall that reads the rewards balance live with
+an `eth_call` `balanceOf` every 60s. Three staff standees are the real
+Cash Cat edited into filing clerks (`npc_*.png`).
+
+**The Workshop** (`roomsrc/workshop.js`) — the playable economy, built to
+the spec the dev gave us and deliberately provable on screen:
+
+- **No RNG.** Upgrades always succeed. `upgradeCost(t) = 120 * t²`, fixed
+  and printed on the board before you commit.
+- **No paid odds.** Nothing purchasable changes a probability, because
+  there are no probabilities.
+- **Everything wears out**, golden gear included — 8 durability per shift
+  standard, 11 golden. Repair scales with tier, so higher grade costs
+  more to keep running.
+- **No blind boxes.** The Golden Cash Cat panel lists every trait and the
+  exact price *before* purchase. It grinds 1.6x faster and wears harder:
+  an entry to a bigger sink, never an exit from the loop.
+
+Both rooms are built entirely from `prim`/`ui`/`image` nodes — no GLB, no
+purchased tileset, nothing licensed to keep out of the repo.
+
+### Two engine gotchas worth remembering
+
+- **There are no light nodes.** Lighting comes only from the sky, so a
+  sealed room renders pitch black. Both rooms use an open beam roof plus
+  emissive strip lights.
+- **`ui` text does not honour `\n`** — it soft-wraps and collapses
+  embedded newlines — and the app sandbox has no `Intl`, so
+  `toLocaleString` returns unseparated digits. Multi-line copy is one
+  node per line, and numbers go through a hand-rolled `commas()`.
+
 ## Not yet done
 
-World building, room wiring (swap terminal / chart / rewards wall / meme
-vault), holder gate, mobile perf pass (avatar is 6.4MB, over budget —
-see "The avatar"), branding, deploy, `ADMIN_CODE`. Each lands as its own
-commit, same pattern as `hq/`.
+Holder gate (100k = entry, 10M = VIP — must be enforced server-side on
+room join, not just hidden in the client UI), mobile perf pass (avatar is
+6.4MB, over budget — see "The avatar"), branding the shell, deploy, and
+`ADMIN_CODE`. Each lands as its own commit, same pattern as `hq/`.
