@@ -59,19 +59,33 @@ active development moves here.
 [100Avatars](https://github.com/PolygonalMind/100avatars) R3 series
 (Polygonal Mind), sourced via [ToxSam's Open Source Avatars
 registry](https://github.com/ToxSam/open-source-avatars). **CC0** — no
-attribution required, but noted here for provenance. It replaces
-Hyperfy's stock robot avatar; since the world's `avatar` setting is
-unset, the code's own fallback chain (`sessionAvatar || avatar ||
-asset://avatar.vrm`) already routes every anonymous visitor to it — no
-extra config needed.
+attribution required, but noted here for provenance, and CC0 is what
+makes the repaint below allowed.
 
-Not custom art, not colored to match the real CashCats cat — it's a
-placeholder that actually works, in the same spirit as the 2D build's
-free sprite pack. A branded cat (matching the PFP studio's look, or the
-real photo) is real v2 work, same "ship cheap, upgrade once it has
-users" logic as everywhere else in this project. At 6.4MB it's also
-above Hyperfy's own "Perfect avatar" budget (≤5MB) — worth a texture
-pass before this goes to real users on phones.
+**It is repainted into the Cash Cat.** `roomsrc/recolor_avatar.py` rewrites
+the albedo so the fur matches the real cream cat on cashcatllc.help, the
+vest becomes CashCats green, and the huge cyan eye discs become amber.
+Geometry, rig, UVs and the other two textures are untouched — the script
+splices a single replacement PNG back into the GLB and shifts the later
+bufferView offsets, so all 14 stock locomotion clips still work.
+
+Three things about that script are worth knowing before editing it:
+
+- Fur is separated from the leather **by hue**, not saturation — fur sits
+  at hue ~0 and the leather at ~30. The model's dark facial marking is
+  hue ~0 at saturation ~0.5, so a saturation-based mask leaves it black
+  while the rest of the head goes cream.
+- The fur mask is a **soft weight**, not a binary one. A hard cutoff bands
+  visibly through the gradient around that marking.
+- The head island is atlas `x 0-560, y 1360-2048`, confirmed by packing a
+  colour-grid atlas and rendering it to see which cell landed on the
+  muzzle. It gets a stronger value lift than the body, or the cat reads
+  grey-faced.
+
+It is still a repaint of someone else's mesh, not our own cat: the
+proportions are a bipedal cartoon cat, not the real photo. A purpose-built
+VRM is real v2 work. At 6.0MB it also remains above Hyperfy's "Perfect
+avatar" budget (5MB) — worth a texture pass before this reaches phones.
 
 ## Local dev
 
@@ -133,7 +147,15 @@ actions, no hidden state:
 - **One-way sink.** The burn ledger states plainly that the game has no
   token faucet and never pays `$CASHCATSLLC` out.
 
-A sixth board stubs the housing/farming system rather than faking it —
+**Classes**: each cat is a Warrior, Archer, Elemental or Assassin, picked
+at a board and never rolled. Class sets the base HP/ATK/SPD spread and
+decides which stat Equipment Rating feeds; Cosmetic Rating, being
+account-wide, spreads across all three. Three skills per class unlock at
+levels 1 / 4 / 8, so the level gate that caps the ratings also paces the
+abilities. Every skill effect is deterministic — "every 3rd hit", "below
+25% HP" — so the no-RNG rule holds in combat, not just at the workbench.
+
+A seventh board stubs the housing/farming system rather than faking it —
 land, houses, farms yielding resources for boosts, materials and trades,
 with buildings wearing out like equipment.
 

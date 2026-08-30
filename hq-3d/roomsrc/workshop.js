@@ -68,6 +68,28 @@ const NFT = [
   { name:'Silver', price:200000, cos:55  },
   { name:'Gold',   price:500000, cos:120 },
 ]
+// Four classes. Every skill effect below is deterministic — "every 3rd hit",
+// "below 25% HP" — so the no-RNG rule holds in combat too, not just at the
+// workbench.
+const CLASSES = [
+  { name:'Warrior',   hp:140, atk:22, spd: 8, feeds:'HP',
+    skills:[[1,'Guard Stance','take 25% less damage while standing still'],
+            [4,'Shield Bash','every 3rd hit stuns'],
+            [8,'Last Stand','below 25% HP, attack +50%']] },
+  { name:'Archer',    hp: 95, atk:26, spd:14, feeds:'SPD',
+    skills:[[1,'Quick Draw','first shot of a fight is instant'],
+            [4,'Piercing Shot','every 3rd arrow ignores armour'],
+            [8,'Arrow Storm','five-arrow volley, fixed damage']] },
+  { name:'Elemental', hp: 90, atk:30, spd:10, feeds:'ATK',
+    skills:[[1,'Spark','chains to 1 extra target'],
+            [4,'Chain Bolt','chains to 3 targets'],
+            [8,'Surge','every 5th cast lands double']] },
+  { name:'Assassin',  hp: 85, atk:24, spd:20, feeds:'ATK',
+    skills:[[1,'Backstab','+40% damage from behind'],
+            [4,'Shadowstep','blink behind the target'],
+            [8,'Execute','finishes a target below 15% HP']] },
+]
+
 const COS_PACK  = 5        // cosmetic rating per pack
 const COS_COST  = 20000    // $CASHCATSLLC per pack, burned
 const MAX_GEAR  = 5
@@ -77,6 +99,7 @@ const WEAR = 8             // equipment only — cosmetics never wear
 const COMBINE_RATE = 5     // 5 scrap -> 1 part, so low grade is never wasted
 
 const s = {
+  cls: 0,               // index into CLASSES — the cat's class
   owned: [0,0,0,0,0],   // how many of each tier the account holds
   bought: 0,       // cosmetic rating bought directly with tokens
   level: 1,
@@ -111,7 +134,13 @@ const topTier  = () => { for(let i=NFT.length-1;i>=1;i--) if(s.owned[i]) return 
 const nextTier = () => { for(let i=1;i<NFT.length;i++) if(!s.owned[i]) return i; return NFT.length-1 }
 const cosRate = () => Math.min(cosRaw(), cosCap())
 const eqpRate = () => Math.min(gearRating(s.gear), eqpCap())
-const power   = () => 100 + cosRate() + eqpRate()
+// class sets the base spread; equipment feeds that class's own stat, and
+// cosmetic rating (being account-wide) spreads across all three
+const C = () => CLASSES[s.cls]
+const statHP  = () => C().hp  + (C().feeds==='HP'  ? eqpRate() : 0) + Math.round(cosRate()*0.5)
+const statATK = () => C().atk + (C().feeds==='ATK' ? eqpRate() : 0) + Math.round(cosRate()*0.2)
+const statSPD = () => C().spd + (C().feeds==='SPD' ? eqpRate() : 0) + Math.round(cosRate()*0.2)
+const power   = () => statHP() + 4*statATK() + 3*statSPD()
 
 // the sandbox has no Intl, so toLocaleString leaves numbers unseparated
 const commas = n => {
@@ -188,19 +217,23 @@ function bar(pct,color){
  * The dev asked for Cosmetic and Equipment Ratings to be on the player info
  * tab and visible to everyone, so they are the headline here.
  */
-const info = panel(740,600,0.0046,[-3.6,2.6,BACK_Z],0,'#0e1f18',GOLD)
+const info = panel(740,800,0.0042,[-3.6,2.6,BACK_Z],0,'#0e1f18',GOLD)
 text(info,'PLAYER INFO',46,GOLD_L,700)
 text(info,'public — anyone can view this',22,DIM,400,6)
-const vNft   = row(info,'NFT tier',30,22,320)
+const vCls   = row(info,'Class',30,20,320)
+const vNft   = row(info,'NFT tier',30,8,320)
 const vLvl   = row(info,'Level',30,8,320)
 const vCos   = row(info,'Cosmetic Rating',30,16,320)
 const nCos   = indented(info,22,DIM,2,320)
 const vEqp   = row(info,'Equipment Rating',30,14,320)
 const nEqp   = indented(info,22,DIM,2,320)
-const vPow   = row(info,'Power',30,16,320)
+const vHP    = row(info,'HP',30,16,320)
+const vATK   = row(info,'ATK',30,6,320)
+const vSPD   = row(info,'SPD',30,6,320)
+const vPow   = row(info,'Power',30,14,320)
 
 /* ===================== board 2: the bench ===================== */
-const gear = panel(740,600,0.0046,[3.6,2.6,BACK_Z],0,'#0e1f18',GOLD)
+const gear = panel(740,660,0.0042,[3.6,2.75,BACK_Z],0,'#0e1f18',GOLD)
 text(gear,'EQUIPMENT & MATERIALS',38,GOLD_L,700)
 text(gear,'equipment wears. cosmetics never do.',22,DIM,400,6)
 const vTier  = row(gear,'Gear tier',30,22,320)
@@ -214,7 +247,7 @@ const lRep   = text(gear,'',24,DIM,400,4)
 const lComb  = text(gear,'',24,DIM,400,4)
 
 /* ===================== board 3: house rules ===================== */
-const rules = panel(700,580,0.0038,[LEFT_X,2.85,-1.0],Math.PI/2,PAPER,GOLD)
+const rules = panel(700,580,0.0038,[LEFT_X,2.85,-2.6],Math.PI/2,PAPER,GOLD)
 text(rules,'HOUSE RULES',46,GREEN_D,700)
 function rule(n,head,body){
   text(rules,n+'. '+head,28,GREEN_D,700,n===1?22:16)
@@ -225,6 +258,30 @@ rule(2,'No paid odds.','Nothing you buy changes the chance of anything.')
 rule(3,'Equipment and buildings wear out.','Cosmetics never do. Higher tier costs more to repair.')
 rule(4,'No blind boxes.','Every trait and price is listed before purchase.')
 rule(5,'One-way sink.','The game burns $CASHCATSLLC. It never pays any out.')
+
+/* ===================== board 3b: choose your class =====================
+ * Class is per-cat and picked, never rolled. Skills unlock on level, so the
+ * same level gate that caps the ratings also paces the abilities.
+ */
+const cls = panel(700,820,0.0038,[LEFT_X,2.9,2.0],Math.PI/2,'#14100e',GOLD)
+text(cls,'CHOOSE YOUR CLASS',42,GOLD_L,700)
+text(cls,'each cat is one class · skills unlock by level',22,DIM,400,6)
+const ch = row3(cls,[240,250,140],24,20)
+ch[0].value='CLASS'; ch[1].value='HP / ATK / SPD'; ch[2].value='GEAR FEEDS'
+ch[0].color=DIM; ch[1].color=DIM; ch[2].color=DIM
+const clsRows = []
+for(let i=0;i<CLASSES.length;i++){
+  const c = row3(cls,[240,250,140],28,10)
+  c[0].value = CLASSES[i].name
+  c[1].value = CLASSES[i].hp + ' / ' + CLASSES[i].atk + ' / ' + CLASSES[i].spd
+  c[2].value = CLASSES[i].feeds
+  clsRows.push(c)
+}
+const skHead = text(cls,'',30,GOLD_L,700,24)
+const skRows = []
+for(let i=0;i<3;i++){
+  skRows.push([ text(cls,'',26,CREAM,600,i===0?12:12), text(cls,'',22,DIM,400,2) ])
+}
 
 /* ===================== board 4: the nft rack ===================== */
 const rack = panel(700,660,0.0038,[RIGHT_X,2.95,-1.0],-Math.PI/2,'#1d1a10',GOLD)
@@ -330,6 +387,11 @@ const aMint = action('',[RIGHT_X-1.5,BY,-1.0],()=>{
   render()
 },3.6)
 
+const aCls = action('',[LEFT_X+1.4,BY,2.0],()=>{
+  s.cls = (s.cls + 1) % CLASSES.length     // picked, never rolled
+  render()
+},3.6)
+
 const aCos = action('',[RIGHT_X-1.5,BY,-3.0],()=>{
   s.bought += COS_PACK
   s.burned += COS_COST
@@ -351,8 +413,30 @@ function render(){
       : 'applies to every cat on the account'
   vEqp.value = er + ' / ' + eqpCap()
   nEqp.value = 'this cat only'
+  vHP.value  = String(statHP())
+  vATK.value = String(statATK())
+  vSPD.value = String(statSPD())
   vPow.value = String(power())
   vPow.color = LIME
+
+  vCls.value = C().name
+  vCls.color = GOLD_L
+  for(let i=0;i<clsRows.length;i++){
+    const on = i === s.cls
+    clsRows[i][0].value = CLASSES[i].name + (on ? '  ◄' : '')
+    for(let k=0;k<3;k++) clsRows[i][k].color = on ? LIME : (k===0 ? CREAM : DIM)
+  }
+  skHead.value = 'SKILLS — ' + C().name
+  for(let i=0;i<3;i++){
+    const [lv,nm,desc] = C().skills[i]
+    const on = s.level >= lv
+    skRows[i][0].value = 'Lv ' + lv + '   ' + nm + (on ? '' : '   (locked)')
+    skRows[i][0].color = on ? LIME : '#5f7168'
+    skRows[i][1].value = desc
+    skRows[i][1].color = on ? DIM : '#4a5952'
+  }
+
+  aCls.label = 'Switch class — ' + CLASSES[(s.cls+1) % CLASSES.length].name + ' (free, no roll)'
 
   vTier.value = s.gear + ' / ' + MAX_GEAR + '   (rating ' + gearRating(s.gear) + ')'
   vDur.value  = s.dur + '%'
