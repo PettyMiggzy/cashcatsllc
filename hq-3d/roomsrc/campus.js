@@ -124,6 +124,7 @@ for(const x of [-8.6,8.6]){                       // low wing walls, not a barri
 
 const gate = panel(700,330,0.0060,[0,3.1,GZ-0.75],Math.PI,'#1d1010','#7a3b2a')
 gate.alignItems='center'
+gate.doubleside=false
 text(gate,'THE VAULT',52,'#e8c25a',700)
 text(gate,'10,000,000 $CASHCATSLLC',30,'#e0a080',600,10)
 text(gate,'Checked on the server at join, not here.',22,'#a08078',400,10)

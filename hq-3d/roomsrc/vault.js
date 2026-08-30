@@ -13,7 +13,7 @@
  */
 
 const GOLD='#a9812a', GOLD_L='#e8c25a', GOLD_D='#6b4f16'
-const BLACK='#141210', DARK='#1d1a14', CREAM='#e8f2ec', DIM='#9a8f78'
+const BLACK='#26221b', DARK='#332e24', CREAM='#e8f2ec', DIM='#b3a68a'
 const GREEN='#1a7f4b', LIME='#2ecc71'
 
 const W=14, D=12, H=5.0, T=0.25, FLOOR_Y=0.06
@@ -62,7 +62,11 @@ wall([(W-3.4)/2,H,T],[-(W+3.4)/4,0,-D/2]); wall([(W-3.4)/2,H,T],[(W+3.4)/4,0,-D/
 prim('box',[3.4,H-3.2,T],DARK,[0,H-(H-3.2)/2,-D/2])
 // open beams: with no light nodes a sealed room renders black
 for(let i=-2;i<=2;i++) prim('box',[W,0.24,0.34],GOLD_D,[0,H+0.12,i*(D/5)])
-for(let i=-2;i<=2;i++) prim('box',[W-1.4,0.07,0.14],'#fff2cc',[0,H-0.22,i*(D/5)],{emissive:'#ffe9a8'})
+for(let i=-2;i<=2;i++) prim('box',[W-1.4,0.10,0.18],'#fff6dd',[0,H-0.22,i*(D/5)],{emissive:'#ffeec0'})
+// wall washers at head height, so the room is lit rather than merely not black
+for(const x of [-W/2+0.3, W/2-0.3])
+  for(let i=-1;i<=1;i++)
+    prim('box',[0.12,0.1,2.6],'#fff6dd',[x,2.9,i*3.2],{emissive:'#ffeec0'})
 
 /* ---------------- the golden cat on a plinth ---------------- */
 prim('cylinder',[2.2,0.35,2.2],GOLD_D,[0,FLOOR_Y+0.18,3.2])
