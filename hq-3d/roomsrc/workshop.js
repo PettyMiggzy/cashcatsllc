@@ -311,12 +311,17 @@ for(let i=0;i<3;i++){
 }
 
 /* ---------------- carved cat statues ----------------
- * Real geometry, not billboards: spheres squashed with non-uniform scale,
- * cones for ears, cylinders for legs and tail. They read from every angle,
- * which a flat cutout never did.
+ * Real geometry, not billboards: ellipsoids from scaled spheres, cones for
+ * ears, cylinders for legs and tail.
  *
- * Carving them as stone is doing double duty — a statue is allowed to be
- * stylised, so the crude silhouette is a choice rather than a limitation.
+ * What makes these read as cats rather than as a pile of spheres:
+ *   - the head is large and sits clearly ABOVE a neck, not sunk in the chest
+ *   - the ears are big. They are the strongest silhouette cue a cat has and
+ *     the first version's little nubs were why nothing looked feline
+ *   - a sitting cat TAPERS — wide haunches, narrower chest, narrow shoulders.
+ *     Uniform girth just makes a pear
+ *   - the front legs stand proud in Z, in front of the chest, or they vanish
+ *     inside the torso
  */
 function catStatue(cfg){
   const { x, z, rotY = 0, s = 1, pose = 'sit', mat = {}, baseY = FLOOR_Y,
@@ -324,7 +329,6 @@ function catStatue(cfg){
   const Y0 = baseY
   const parts = []
 
-  // place a part in the statue's own space, then rotate it into the world
   function part(type, size, p, sc, rot){
     const c = Math.cos(rotY), si = Math.sin(rotY)
     const px = p[0] * s, py = p[1] * s, pz = p[2] * s
@@ -338,50 +342,61 @@ function catStatue(cfg){
     parts.push(n)
     return n
   }
-  const S = [1]                              // unit sphere, shaped by scale
+  const S = [1]
+  const g = 0.55 + 0.45 * girth          // girth is a nudge, not a balloon
 
+  let hy, hz                              // where the head ends up
   if (pose === 'sit') {
-    part('sphere', S, [0, 0.60, -0.20], [0.62*girth, 0.62, 0.74*girth])   // haunches
-    part('sphere', S, [0, 0.95, -0.30], [0.52*girth, 0.44, 0.56])         // rump
-    part('sphere', S, [0, 1.02,  0.10], [0.46*girth, 0.54, 0.44])         // chest
-    part('cylinder', [0.20, 0.24, 0.30], [0, 1.34, 0.12])                 // neck
+    part('sphere', S, [0, 0.34, -0.16], [0.54*g, 0.34, 0.62*g])   // haunches, widest
+    part('sphere', S, [0, 0.60, -0.22], [0.46*g, 0.34, 0.48])     // back rising
+    part('sphere', S, [0, 0.76,  0.02], [0.38*g, 0.38, 0.34])     // chest
+    part('sphere', S, [0, 1.00,  0.06], [0.29*g, 0.24, 0.27])     // shoulders, narrow
+    part('cylinder', [0.15, 0.17, 0.20], [0, 1.14, 0.07])         // neck
     for (const sx of [-1, 1]) {
-      part('cylinder', [0.10, 0.11, 0.66], [sx*0.21, 0.33, 0.40])         // front legs
-      part('sphere', S, [sx*0.21, 0.07, 0.50], [0.13, 0.09, 0.19])        // front paws
-      part('sphere', S, [sx*0.34, 0.09, 0.06], [0.17, 0.11, 0.26])        // hind paws
+      // proud of the chest in z, or they disappear inside the torso
+      part('cylinder', [0.075, 0.085, 0.60], [sx*0.17, 0.32, 0.30])
+      part('sphere', S, [sx*0.17, 0.06, 0.38], [0.10, 0.07, 0.16])
+      part('sphere', S, [sx*0.33*g, 0.10, -0.02], [0.13, 0.09, 0.22])  // hind paw
     }
+    hy = 1.34; hz = 0.09
   } else {
-    const L = 0.62 * bodyLen
-    part('sphere', S, [0, 0.98, 0], [0.40*girth, 0.38, L])                // barrel
-    part('sphere', S, [0, 1.00, L*0.75], [0.36*girth, 0.36, 0.34])        // shoulders
-    part('sphere', S, [0, 0.96, -L*0.78], [0.36*girth, 0.35, 0.32])       // hips
+    const L = 0.60 * bodyLen
+    part('sphere', S, [0, 0.86, 0], [0.34*g, 0.32, L])
+    part('sphere', S, [0, 0.90, L*0.72], [0.31*g, 0.30, 0.30])
+    part('sphere', S, [0, 0.84, -L*0.76], [0.33*g, 0.31, 0.30])
     for (const sx of [-1, 1]) for (const sz of [1, -1]) {
-      part('cylinder', [0.085, 0.10, 0.86], [sx*0.24, 0.50, sz*L*0.68])   // legs
-      part('sphere', S, [sx*0.24, 0.09, sz*L*0.68 + 0.05], [0.12,0.08,0.16])
+      part('cylinder', [0.075, 0.09, 0.80], [sx*0.21, 0.44, sz*L*0.66])
+      part('sphere', S, [sx*0.21, 0.07, sz*L*0.66 + 0.04], [0.10,0.07,0.14])
     }
+    part('cylinder', [0.15, 0.17, 0.26], [0, 1.06, L + 0.14], null, [0.5, 0, 0])
+    hy = 1.22; hz = L + 0.30
   }
 
-  // head, sat where the pose puts it
-  const hy = pose === 'sit' ? 1.62 : 1.30
-  const hz = pose === 'sit' ? 0.16 : 0.62 * bodyLen + 0.34
-  part('sphere', S, [0, hy, hz], [0.37*headR, 0.35*headR, 0.35*headR])
-  part('sphere', S, [0, hy - 0.09, hz + 0.26*headR], [0.21*headR, 0.15*headR, 0.17*headR])
-  part('sphere', S, [0, hy - 0.05, hz + 0.38*headR], [0.055, 0.045, 0.045])
-  if (mouth) {                                // Pop Cat's open O
-    part('sphere', S, [0, hy - 0.17, hz + 0.30*headR], [0.115, 0.135, 0.12])
-  }
-  for (const sx of [-1, 1]) {
-    part('cone', [0.155*headR, 0.34*earH], [sx*0.21*headR, hy + 0.32, hz - 0.05],
-         null, [0.12, 0, sx * 0.18])
-  }
+  /* head — big, and clearly sitting on top of the neck rather than in it */
+  const h = 0.30 * headR
+  part('sphere', S, [0, hy, hz], [h, h*0.92, h*0.96])
+  for (const sx of [-1, 1])                                   // cheek tufts
+    part('sphere', S, [sx*h*0.78, hy-0.05, hz+0.02], [h*0.34, h*0.40, h*0.36])
+  part('sphere', S, [0, hy-0.06, hz+h*0.80], [h*0.50, h*0.38, h*0.44])   // muzzle
+  part('sphere', S, [0, hy-0.02, hz+h*1.12], [0.045, 0.038, 0.038])      // nose
+  if (mouth)
+    part('sphere', S, [0, hy-0.15, hz+h*0.86], [h*0.34, h*0.40, h*0.34])
+  // brow ridge, so the face is not a featureless dome
+  part('sphere', S, [0, hy+h*0.38, hz+h*0.50], [h*0.60, h*0.12, h*0.26])
+  /* Ears — large, and BROAD rather than tall. These carry the silhouette more
+   * than anything else does, and a narrow cone tilted well out reads as a
+   * horn, which is exactly what the first attempt looked like. */
+  for (const sx of [-1, 1])
+    part('cone', [0.23*headR, 0.38*earH], [sx*h*0.60, hy + h*0.80 + 0.07*earH, hz - 0.03],
+         null, [0.05, 0, sx * 0.12])
 
-  // tail, swept round to one side so the silhouette is not symmetrical
-  const t0 = pose === 'sit' ? [0.10, 0.32, -0.62] : [0.10, 0.94, -0.62*bodyLen - 0.16]
-  const seg = [[0,0,0],[0.16,0.10,-0.16],[0.34,0.26,-0.22],[0.50,0.46,-0.18],[0.58,0.66,-0.06]]
-  for (let i = 0; i < seg.length; i++) {
+  /* tail, swept out and round so the outline is not symmetrical */
+  const t0 = pose === 'sit' ? [0.16, 0.12, -0.50] : [0.12, 0.84, -0.60*bodyLen - 0.18]
+  const seg = [[0,0,0],[0.20,0.05,-0.16],[0.42,0.18,-0.22],[0.60,0.40,-0.18],[0.68,0.64,-0.04]]
+  for (let i = 0; i < seg.length; i++)
     part('sphere', S, [t0[0]+seg[i][0], t0[1]+seg[i][1], t0[2]+seg[i][2]],
-         [0.10 - i*0.008, 0.10 - i*0.008, 0.10 - i*0.008])
-  }
+         [0.095 - i*0.007, 0.095 - i*0.007, 0.095 - i*0.007])
+
   return parts
 }
 
