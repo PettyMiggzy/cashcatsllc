@@ -168,10 +168,24 @@ the numbers — Cash Cat pays double every fifth shift, Long Cat wears gear
 dismantles for half again as much, Pop Cat upgrades for one part less. All
 deterministic, so the no-RNG rule survives contact with the roster.
 
-Their portraits are generated to match the real Cash Cat photo (prompts in
-`roomsrc/cast/prompts/`) and stand on the plaza as flat cutouts. Rigged
-VRMs for each of them is real modelling work — a standee is at least
-honest about being a placeholder.
+They stand on the plaza as **carved statues built from real geometry** —
+spheres squashed with non-uniform scale, cones for ears, cylinders for legs
+and tail — so they read from every angle instead of turning into a line
+edge-on the way a billboard does. `catStatue()` in `roomsrc/campus.js` is
+parametric: girth, head size, ear height, body length and an open mouth,
+which is enough to tell Apple Cat from Long Cat from Pop Cat by silhouette
+alone. Carving them in stone is doing double duty, since a statue is
+allowed to be stylised.
+
+The same builder is duplicated into `workshop.js` (apps are separate
+sandboxes with no shared modules), where all five are built once and hidden,
+and picking a cat just toggles which one is active on the plinth.
+
+Their generated portraits (prompts in `roomsrc/cast/prompts/`) are still
+used on the roster board, where a picture is the right thing. **The player
+avatar is still the one repainted cat** — choosing Long Cat changes your
+stats, your portrait and the statue, not your body. Five rigged VRMs is
+real modelling work.
 
 **Classes**: each cat is a Warrior, Archer, Elemental or Assassin, picked
 at a board and never rolled. Class sets the base HP/ATK/SPD spread and
