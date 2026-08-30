@@ -28,6 +28,9 @@ function prim(type, size, color, pos, opts = {}) {
   if (opts.rotX) n.rotation.x = opts.rotX
   if (opts.emissive) n.emissive = opts.emissive
   if (opts.collider === false && 'collider' in n) n.collider = false
+  if (opts.tex && props[opts.tex]) n.texture = props[opts.tex].url
+  if (opts.rough !== undefined) n.roughness = opts.rough
+  if (opts.metal !== undefined) n.metalness = opts.metal
   app.add(n)
   return n
 }
@@ -43,20 +46,20 @@ const WAINSCOT = 1.3
 // the world terrain sits at y=0, so the floor slab is raised a few cm to
 // render above it instead of z-fighting with the meadow
 const FLOOR_Y = 0.06
-prim('box', [W, 0.3, D], PAPER, [0, FLOOR_Y - 0.15, 0])           // floor
+prim('box', [W, 0.3, D], '#ffffff', [0, FLOOR_Y - 0.15, 0], { tex: 'pavingRoom', rough: 0.9 })  // floor
 
 function wall(size, pos, opts) {
   // paper upper + green wainscot lower, built as two slabs
   const [w, h, d] = size
   const horizontal = w > d
   const upperH = h - WAINSCOT
-  prim('box', horizontal ? [w, upperH, d] : [w, upperH, d], PAPER,
-       [pos[0], WAINSCOT + upperH / 2, pos[2]], opts)
-  prim('box', horizontal ? [w, WAINSCOT, d] : [w, WAINSCOT, d], GREEN,
-       [pos[0], WAINSCOT / 2, pos[2]], opts)
+  prim('box', [w, upperH, d], '#ffffff',
+       [pos[0], WAINSCOT + upperH / 2, pos[2]], { ...opts, tex: 'plaster', rough: 0.95 })
+  prim('box', [w, WAINSCOT, d], '#ffffff',
+       [pos[0], WAINSCOT / 2, pos[2]], { ...opts, tex: 'wainscot', rough: 0.6 })
   // gold chair rail
   const railD = horizontal ? [w, 0.07, d + 0.04] : [w + 0.04, 0.07, d]
-  prim('box', railD, GOLD, [pos[0], WAINSCOT + 0.035, pos[2]], opts)
+  prim('box', railD, GOLD, [pos[0], WAINSCOT + 0.035, pos[2]], { ...opts, metal: 0.85, rough: 0.3 })
 }
 
 wall([W, H, T], [0, 0, -D / 2])          // back

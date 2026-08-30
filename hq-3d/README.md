@@ -194,8 +194,34 @@ PvE, which may be entirely fine; it becomes a real problem the moment
 there is PvP or a competitive leaderboard. Worth a decision, not a
 silent assumption. The room is built to spec regardless.
 
-Both rooms are built entirely from `prim`/`ui`/`image` nodes — no GLB, no
+Every room is built entirely from `prim`/`ui`/`image` nodes — no GLB, no
 purchased tileset, nothing licensed to keep out of the repo.
+
+## Materials
+
+The first pass was flat-coloured boxes and looked like programmer art. The
+surfaces are now textured with materials generated through Venice
+(`roomsrc/tex/`, prompts kept alongside in `tex/prompts/`), plus a
+golden-hour sky panorama.
+
+Three things about that are not obvious:
+
+- **`prim` has no texture repeat.** A texture stretches across UV 0..1 of
+  each face, so one 1k tile over a 64m plaza is absurd. The tiling is baked
+  into the images by `roomsrc/tile.py`, which also mirrors each source into
+  a 2x2 block so it repeats without a seam. Mirroring costs some symmetry —
+  fine for stone and plaster, wrong for anything with lettering.
+- **The sky is what lights the world.** With no light nodes, everything is
+  lit from `scene.environment`, which needs a real `.hdr` and not a PNG.
+  `roomsrc/mkhdr.py` converts the LDR panorama to Radiance RGBE, de-gamma'd
+  to linear with the highlights pushed above 1.0 so the sky behaves like a
+  light source. Swapping the cold default sky for a warm one did more for
+  how the place looks than any single texture.
+- **`prim` sizes are per-shape, not x/y/z.** `sphere` is `[radius]`,
+  `cylinder` is `[radiusTop, radiusBtm, height]`, `cone` is
+  `[radius, height]`. Writing a cylinder as `[0.13, 4.0, 0.13]` expecting
+  x/y/z gives a four-metre-radius disc, which is exactly what the gate
+  railings were until this was caught.
 
 ### Two engine gotchas worth remembering
 

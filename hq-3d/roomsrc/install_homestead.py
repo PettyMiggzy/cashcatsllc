@@ -15,6 +15,7 @@ def put(path, ext):
     return 'asset://%s.%s' % (h, ext)
 
 now = datetime.datetime.utcnow().isoformat() + 'Z'
+import texprops
 con = sqlite3.connect(DB)
 
 script = put(os.path.join(ROOT, 'homestead.js'), 'js')
@@ -22,7 +23,7 @@ model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-homestead'
 bp = {'id': BP, 'version': 1, 'name': 'The Homestead', 'image': None, 'author': None,
-      'url': None, 'desc': None, 'model': model, 'script': script, 'props': {},
+      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props()),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

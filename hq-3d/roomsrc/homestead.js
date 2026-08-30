@@ -26,17 +26,20 @@ function prim(type,size,color,pos,opts={}){
   n.position.set(pos[0],pos[1],pos[2])
   if(opts.rotY) n.rotation.y=opts.rotY
   if(opts.emissive) n.emissive=opts.emissive
+  if(opts.tex && props[opts.tex]) n.texture = props[opts.tex].url
+  if(opts.rough !== undefined) n.roughness = opts.rough
+  if(opts.metal !== undefined) n.metalness = opts.metal
   app.add(n); return n
 }
 function wall(size,pos){
   const [w,h,d]=size, upper=h-WAINSCOT
-  prim('box',[w,upper,d],PAPER,[pos[0],WAINSCOT+upper/2,pos[2]])
-  prim('box',[w,WAINSCOT,d],GREEN,[pos[0],WAINSCOT/2,pos[2]])
-  prim('box',[w>d?w:w+0.04,0.07,w>d?d+0.04:d],GOLD,[pos[0],WAINSCOT+0.035,pos[2]])
+  prim('box',[w,upper,d],'#ffffff',[pos[0],WAINSCOT+upper/2,pos[2]],{tex:'plaster',rough:0.95})
+  prim('box',[w,WAINSCOT,d],'#ffffff',[pos[0],WAINSCOT/2,pos[2]],{tex:'wainscot',rough:0.6})
+  prim('box',[w>d?w:w+0.04,0.07,w>d?d+0.04:d],GOLD,[pos[0],WAINSCOT+0.035,pos[2]],{metal:0.85,rough:0.3})
 }
 
 /* shell — open beam roof, because sealed rooms render black with no lights */
-prim('box',[W,0.3,D],PAPER,[0,FLOOR_Y-0.15,0])
+prim('box',[W,0.3,D],'#ffffff',[0,FLOOR_Y-0.15,0],{tex:'pavingRoom',rough:0.9})
 wall([W,H,T],[0,0,-D/2]); wall([T,H,D],[-W/2,0,0]); wall([T,H,D],[W/2,0,0])
 wall([(W-3)/2,H,T],[-(W+3)/4,0,D/2]); wall([(W-3)/2,H,T],[(W+3)/4,0,D/2])
 prim('box',[3,H-3,T],PAPER,[0,H-(H-3)/2,D/2])
@@ -202,16 +205,19 @@ rule(3,'Nothing is wasted.','Spare produce mills into timber for construction an
 rule(4,'One-way sink.','Land and building burn $CASHCATSLLC. The farm never pays any back.')
 
 /* ---- the farm itself ---- */
-prim('box',[9,0.12,4.2],SOIL_D,[0,FLOOR_Y+0.06,1.6])
+prim('box',[9,0.12,4.2],'#ffffff',[0,FLOOR_Y+0.06,1.6],{tex:'soil',rough:1.0})
 for(let r=0;r<4;r++){
   prim('box',[8.6,0.16,0.55],SOIL,[0,FLOOR_Y+0.14,0.1+r*1.0])
-  for(let c=-4;c<=4;c++) prim('box',[0.22,0.42,0.22],CROP,[c*0.95,FLOOR_Y+0.36,0.1+r*1.0])
+  for(let c=-4;c<=4;c++){
+    prim('cone',[0.17,0.6],CROP,[c*0.95,FLOOR_Y+0.44,0.1+r*1.0],{rough:0.9})
+    prim('cylinder',[0.035,0.045,0.26],GREEN_D,[c*0.95,FLOOR_Y+0.25,0.1+r*1.0],{rough:0.9})
+  }
 }
 /* the house frame, raised once it is built */
 const houseParts = []
 function housePart(n){ houseParts.push(n); n.active = false; return n }
-housePart(prim('box',[3.4,2.2,3.0],WOOD_L,[-4.6,FLOOR_Y+1.1,3.4]))
-housePart(prim('box',[3.8,0.28,3.4],WOOD,[-4.6,FLOOR_Y+2.3,3.4]))
+housePart(prim('box',[3.4,2.2,3.0],'#ffffff',[-4.6,FLOOR_Y+1.1,3.4],{tex:'wood',rough:0.8}))
+housePart(prim('box',[3.8,0.28,3.4],'#ffffff',[-4.6,FLOOR_Y+2.3,3.4],{tex:'wood',rough:0.7}))
 housePart(prim('box',[0.9,1.5,0.12],WOOD,[-4.6,FLOOR_Y+0.75,4.92]))
 /* the plot marker, before anything is built on it */
 const stakes = []

@@ -1,4 +1,6 @@
 import hashlib, json, os, shutil, sqlite3, datetime, sys
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 HQ   = os.path.dirname(ROOT)
@@ -14,6 +16,7 @@ def put_asset(path, ext):
     return f'asset://{h}.{ext}', h
 
 now = datetime.datetime.utcnow().isoformat()+'Z'
+import texprops
 con = sqlite3.connect(DB)
 
 # 1. the room script
@@ -35,12 +38,12 @@ blueprint = {
     'image': None, 'author': None, 'url': None, 'desc': None,
     'model': model_url,
     'script': script_url,
-    'props': {
+    'props': dict(texprops.props(), **{
         'logo':       { 'type':'image', 'name':'cashcat.png',   'url': logo_url },
         'npcStamp':   { 'type':'image', 'name':'npc_stamp.png',   'url': npc_stamp_url },
         'npcFolders': { 'type':'image', 'name':'npc_folders.png', 'url': npc_folders_url },
         'npcCabinet': { 'type':'image', 'name':'npc_cabinet.png', 'url': npc_cabinet_url },
-    },
+    }),
     'preload': True,
     'public': False,
     'locked': False,
