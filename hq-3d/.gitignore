@@ -20,3 +20,9 @@ roomsrc/cast_vrm/*
 # Deploy secrets, written on the server by deploy/setup.sh. Ignored before
 # anything writes here, so the admin code cannot reach a public repo.
 deploy/secrets/
+
+# Generated props. The finished models are tracked — they are what the world
+# places. The raw downloads are ten to fifteen MB each and regenerable, and
+# state.json is task ids, not source.
+roomsrc/props/*_raw.glb
+roomsrc/props/state.json
