@@ -53,20 +53,26 @@ await page.evaluate(({ zoom, orbit }) => {
   if (orbit) p.cam.rotation.y += orbit * Math.PI / 180
 }, { zoom, orbit })
 
-const step = async (ms, keys) => {
-  await page.evaluate(async ({ ms, keys }) => {
+// Drive input as real key events. The engine reads its own control state
+// each tick, so holding a key down across our manual ticks is enough — and
+// unlike poking at internals it goes through the same path a player does.
+const step = async ms => {
+  await page.evaluate(async ms => {
     const w = window.world
-    for (const k of keys || []) w.controls?.setKey?.(k, true)
     window.__t += ms
     await new Promise(r => requestAnimationFrame(() => { w.tick(window.__t); r() }))
-  }, { ms, keys })
+  }, ms)
 }
 
+await page.click('canvas', { position: { x: 640, y: 600 } }).catch(() => {})
+
 // settle, then optionally walk
-for (let i = 0; i < 40; i++) await step(1000 / 30, [])
+for (let i = 0; i < 40; i++) await step(1000 / 30)
 if (walk) {
+  await page.keyboard.down('w')
   const frames = Math.round(seconds * 30)
-  for (let i = 0; i < frames; i++) await step(1000 / 30, ['keyW'])
+  for (let i = 0; i < frames; i++) await step(1000 / 30)
+  await page.keyboard.up('w')
 }
 
 // one more frame must be presented before the compositor has anything to grab
