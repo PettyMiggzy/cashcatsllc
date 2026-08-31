@@ -112,6 +112,20 @@ const CLASSES = [
             [8,'Execute','finishes a target below 15% HP']] },
 ]
 
+// Gold Cash Cat — a separate token from $CASHCATSLLC, and the prized asset.
+// Earned from boss chests or bought outright, spent in-game and burned, and
+// bound to the player rather than tradeable between them.
+const GCC_CA = '0x2f6A90cE9Dcece3215df206B3Ac6fF7368E27acc'
+const BOSSES = [
+  { name:'Field Boss',   chests:2  },
+  { name:'Dungeon Boss', chests:4  },
+  { name:'Raid Boss',    chests:7  },
+  { name:'World Boss',   chests:15 },
+]
+const CHEST_RATE = 0.05        // per chest, per the dev
+const MATS_COST  = 3           // gold cash cats -> premium crafting materials
+const HERB_COST  = 2           // gold cash cats -> rare potion ingredients
+
 const COS_PACK  = 5        // cosmetic rating per pack
 const COS_COST  = 20000    // $CASHCATSLLC per pack, burned
 const MAX_GEAR  = 5
@@ -133,6 +147,12 @@ const s = {
   parts: 0,
   spares: 0,
   burned: 0,
+  gcc: 0,           // Gold Cash Cats held
+  mats: 0,          // premium crafting materials
+  herbs: 0,         // rare potion ingredients
+  kills: 0,
+  chests: 0,
+  boss: 0,          // index into BOSSES
 }
 
 // caps scale with level: a rating can be bought, but not past what the cat
@@ -260,7 +280,7 @@ const vSPD   = row(info,'SPD',30,6,320)
 const vPow   = row(info,'Power',30,14,320)
 
 /* ===================== board 2: the bench ===================== */
-const gear = panel(740,660,0.0042,[3.6,2.75,BACK_Z],0,'#0e1f18',GOLD)
+const gear = panel(740,800,0.0042,[3.6,2.75,BACK_Z],0,'#0e1f18',GOLD)
 text(gear,'EQUIPMENT & MATERIALS',38,GOLD_L,700)
 text(gear,'equipment wears. cosmetics never do.',22,DIM,400,6)
 const vTier  = row(gear,'Gear tier',30,22,320)
@@ -269,6 +289,9 @@ const vBar   = indented(gear,30,LIME,2,320)
 const vScrap = row(gear,'Scrap',30,14,320)
 const vParts = row(gear,'Parts',30,8,320)
 const vSpare = row(gear,'Spare loot',30,8,320)
+const vGcc   = row(gear,'Gold Cash Cats',30,14,320)
+const vMats  = row(gear,'Premium materials',30,8,320)
+const vHerbs = row(gear,'Rare ingredients',30,8,320)
 const lNext  = text(gear,'',24,DIM,400,18)
 const lRep   = text(gear,'',24,DIM,400,4)
 const lComb  = text(gear,'',24,DIM,400,4)
@@ -280,8 +303,8 @@ function rule(n,head,body){
   text(rules,n+'. '+head,28,GREEN_D,700,n===1?22:16)
   text(rules,body,23,INK,400,4)
 }
-rule(1,'No RNG.','Upgrades always succeed. Costs are fixed and shown before you commit.')
-rule(2,'No paid odds.','Nothing you buy changes the chance of anything.')
+rule(1,'No paid randomness.','Upgrades never roll. Boss chests do — but killing a boss and opening its chests is free, so no roll is ever bought.')
+rule(2,'No paid odds.','Nothing you buy changes a drop rate. Money buys the Gold Cash Cat directly, never a better chance at one.')
 rule(3,'Equipment and buildings wear out.','Cosmetics never do. Higher tier costs more to repair.')
 rule(4,'No blind boxes.','Every trait and price is listed before purchase.')
 rule(5,'One-way sink.','The game burns $CASHCATSLLC. It never pays any out.')
@@ -355,6 +378,34 @@ for (const c of CATS) {
   statues[c.key] = st
 }
 
+
+/* ===================== board 3d: boss drops =====================
+ * The Gold Cash Cat is the prized asset and it drops from chests. This is the
+ * one place in the game with a real roll in it, so the odds and the chest
+ * counts are posted rather than buried.
+ */
+const boss = panel(700,780,0.0038,[LEFT_X,2.85,-5.6],Math.PI/2,'#1d1410',GOLD)
+text(boss,'GOLD CASH CAT',44,GOLD_L,700)
+text(boss,'boss drops · ' + Math.round(CHEST_RATE*100) + '% per chest',22,DIM,400,6)
+const bh = row3(boss,[260,190,180],24,20)
+bh[0].value='BOSS'; bh[1].value='CHESTS'; bh[2].value='EXPECTED'
+bh[0].color=DIM; bh[1].color=DIM; bh[2].color=DIM
+const bossRows = []
+for(let i=0;i<BOSSES.length;i++){
+  const c = row3(boss,[260,190,180],28,10)
+  c[0].value = BOSSES[i].name
+  c[1].value = String(BOSSES[i].chests)
+  c[2].value = (BOSSES[i].chests * CHEST_RATE).toFixed(2) + ' per kill'
+  bossRows.push(c)
+}
+text(boss,'Killing a boss and opening its chests costs',23,'#c9bfa6',400,20)
+text(boss,'nothing. You never buy a roll.',23,'#c9bfa6',400,2)
+text(boss,'Bound to you — Gold Cash Cats cannot be traded',23,'#c9bfa6',400,14)
+text(boss,'to another player in-game.',23,'#c9bfa6',400,2)
+text(boss,'Or buy the token outright and burn it in-game:',22,DIM,400,14)
+text(boss,GCC_CA,19,GOLD_L,600,4)
+const lBoss = text(boss,'',24,DIM,400,18)
+const lGcc  = text(boss,'',23,DIM,400,6)
 
 /* ===================== board 4: the nft rack ===================== */
 const rack = panel(700,660,0.0038,[RIGHT_X,2.95,-1.0],-Math.PI/2,'#1d1a10',GOLD)
@@ -462,6 +513,34 @@ const aMint = action('',[RIGHT_X-1.5,BY,-1.0],()=>{
   render()
 },3.6)
 
+const aBoss = action('',[LEFT_X+1.4,BY,-5.6],()=>{
+  const b = BOSSES[s.boss]
+  s.kills++
+  // the roll the dev asked for. free to attempt — you are never buying it.
+  let got = 0
+  for (let i = 0; i < b.chests; i++) {
+    s.chests++
+    if (Math.random() < CHEST_RATE) got++
+  }
+  s.gcc += got
+  lBoss.value = got
+      ? b.name + ' down — ' + got + ' Gold Cash Cat' + (got > 1 ? 's' : '')
+      : b.name + ' down — no drop from ' + b.chests + ' chests'
+  lBoss.color = got ? GOLD_L : DIM
+  s.boss = (s.boss + 1) % BOSSES.length
+  render()
+},3.6)
+
+const aMats = action('',[2.4,BY,-2.6],()=>{
+  if (s.gcc < MATS_COST) { lGcc.value = 'Premium materials: ' + MATS_COST + ' GCC (not enough)'; return }
+  s.gcc -= MATS_COST; s.mats++; render()
+})
+
+const aHerb = action('',[3.6,BY,-2.6],()=>{
+  if (s.gcc < HERB_COST) { lGcc.value = 'Rare ingredients: ' + HERB_COST + ' GCC (not enough)'; return }
+  s.gcc -= HERB_COST; s.herbs++; render()
+})
+
 const aCat = action('',[RIGHT_X-1.4,BY,2.0],()=>{
   s.cat = (s.cat + 1) % CATS.length     // picked, never rolled
   render()
@@ -531,6 +610,10 @@ function render(){
 
   aCls.label = 'Switch class — ' + CLASSES[(s.cls+1) % CLASSES.length].name + ' (free, no roll)'
   aCat.label = 'Play as ' + CATS[(s.cat+1) % CATS.length].name
+  aBoss.label = 'Fight the ' + BOSSES[s.boss].name + ' — ' + BOSSES[s.boss].chests + ' chests, free'
+  aMats.label = 'Buy premium materials — ' + MATS_COST + ' Gold Cash Cat'
+  aHerb.label = 'Buy rare ingredients — ' + HERB_COST + ' Gold Cash Cat'
+  if (!lGcc.value) lGcc.value = 'Spend them on materials, potion ingredients, or the House Vault.'
 
   vTier.value = s.gear + ' / ' + MAX_GEAR + '   (rating ' + gearRating(s.gear) + ')'
   vDur.value  = s.dur + '%'
@@ -539,6 +622,10 @@ function render(){
   vScrap.value= String(s.scrap)
   vParts.value= String(s.parts)
   vSpare.value= String(s.spares)
+  vGcc.value  = String(s.gcc)
+  vGcc.color  = s.gcc ? GOLD_L : CREAM
+  vMats.value = String(s.mats)
+  vHerbs.value= String(s.herbs)
 
   if(s.gear>=MAX_GEAR) lNext.value = 'Gear is max tier.'
   else if(s.level<gearReq(s.gear+1)) lNext.value = 'Tier '+(s.gear+1)+' needs level '+gearReq(s.gear+1)

@@ -62,6 +62,13 @@ const TIMBER_RATE = 3       // produce -> timber
 // The yard sells timber for tokens. Without it the loop deadlocks: harvesting
 // needs a house, the house needs timber, and timber only comes from produce.
 // It is also the sink the dev asked for — tokens in, nothing out.
+// The House Vault: stack Gold Cash Cats and the whole holding gets better.
+// Straight from the dev — faster yield, a Cosmetic Rating bump capped by the
+// cat's level, and land you can only unlock by stacking more.
+const VAULT_YIELD = 0.15    // +15% harvest per Gold Cash Cat vaulted
+const VAULT_COS   = 4       // +4 Cosmetic Rating each, capped by level
+const PLOT_GCC    = [0, 1, 3]   // gold cash cats needed to unlock each plot
+
 const TIMBER_LOT   = 20
 const TIMBER_PRICE = 25000
 
@@ -75,10 +82,15 @@ const s = {
   harvests: 0,
   boosts: 0,
   burned: 0,
+  gcc: 3,        // Gold Cash Cats on hand (earned from bosses in the Workshop)
+  vault: 0,      // ...and how many are stacked in the House Vault
+  level: 6,      // the cat's level, which caps what the vault can give
 }
 
 const beds      = () => s.plot < 0 ? 0 : PLOTS[s.plot].beds
-const yieldPer  = () => s.house ? beds() * YIELD_PER_BED : 0
+const vaultMult = () => 1 + VAULT_YIELD * s.vault
+const vaultCos  = () => Math.min(VAULT_COS * s.vault, s.level * 5)   // level caps it
+const yieldPer  = () => s.house ? Math.round(beds() * YIELD_PER_BED * vaultMult()) : 0
 const repairCost= (dur) => Math.round((100 - dur) * REPAIR_RATE)
 
 const commas = n => {          // no Intl in the app sandbox
@@ -192,6 +204,21 @@ text(land,'A plot with no house on it yields nothing.',23,'#c9bfa6',400,4)
 text(land,'Timber is sold in the yard for tokens, so a new',23,'#c9bfa6',400,14)
 text(land,'holder can raise a first house without a farm.',23,'#c9bfa6',400,4)
 
+/* ---- the house vault ---- */
+const vault = panel(700,660,0.0038,[RIGHT_X,2.8,-4.4],-Math.PI/2,'#1d1a10',GOLD)
+text(vault,'HOUSE VAULT',44,GOLD_L,700)
+text(vault,'stack Gold Cash Cats — the holding improves',22,DIM,400,6)
+const vGcc   = row(vault,'On hand',30,20,300)
+const vVault = row(vault,'Vaulted',30,8,300)
+const vMult  = row(vault,'Harvest',30,16,300)
+const vVCos  = row(vault,'Cosmetic Rating',30,8,300)
+const nVCos  = indented(vault,22,DIM,2,300)
+const lLand  = text(vault,'',24,DIM,400,18)
+text(vault,'Each Gold Cash Cat vaulted is +' + Math.round(VAULT_YIELD*100) + '% harvest',23,'#c9bfa6',400,18)
+text(vault,'and +' + VAULT_COS + ' Cosmetic Rating, capped by your level.',23,'#c9bfa6',400,2)
+text(vault,'Bigger plots need them too — the more territory',23,'#c9bfa6',400,12)
+text(vault,'you unlock, the more it takes.',23,'#c9bfa6',400,2)
+
 /* ---- rules ---- */
 const rules = panel(700,540,0.0038,[RIGHT_X,2.8,-1.0],-Math.PI/2,PAPER,GOLD)
 text(rules,'HOMESTEAD RULES',42,GREEN_D,700)
@@ -237,8 +264,18 @@ const BY = FLOOR_Y+1.2
 const aBuy = action('',[LEFT_X+1.5,BY,-1.0],()=>{
   if(s.plot >= PLOTS.length-1) return
   const next = s.plot + 1
+  if(s.vault < PLOT_GCC[next]){
+    lLand.value = PLOTS[next].name + ' needs ' + PLOT_GCC[next] + ' vaulted (have ' + s.vault + ')'
+    return
+  }
   s.burned += PLOTS[next].price      // demo: the real build burns on-chain
   s.plot = next
+  render()
+},3.2)
+
+const aVault = action('',[RIGHT_X-1.5,BY,-4.4],()=>{
+  if(s.gcc <= 0) return
+  s.gcc--; s.vault++                 // bound to the player, never traded away
   render()
 },3.2)
 
@@ -314,6 +351,22 @@ function render(){
   lYield.value = s.house
       ? 'Each harvest: ' + yieldPer() + ' produce (' + beds() + ' beds x ' + YIELD_PER_BED + ')'
       : 'No house yet — the farm yields nothing.'
+  vGcc.value   = String(s.gcc)
+  vVault.value = String(s.vault)
+  vVault.color = s.vault ? GOLD_L : CREAM
+  vMult.value  = 'x' + vaultMult().toFixed(2) + '   (' + yieldPer() + ' per harvest)'
+  vVCos.value  = '+' + vaultCos()
+  nVCos.value  = VAULT_COS * s.vault > s.level * 5
+      ? 'capped — ' + (VAULT_COS * s.vault) + ' earned, level ' + s.level + ' allows ' + (s.level * 5)
+      : 'applies to every cat on the account'
+  const nxt = s.plot + 1
+  lLand.value = nxt < PLOTS.length
+      ? PLOTS[nxt].name + ' needs ' + PLOT_GCC[nxt] + ' vaulted'
+      : 'All territory unlocked.'
+  aVault.label = s.gcc > 0
+      ? 'Vault a Gold Cash Cat (' + s.gcc + ' on hand)'
+      : 'No Gold Cash Cats — win them from bosses'
+
   vBurn.value  = commas(s.burned)
   vBurn.color  = s.burned ? '#e08a6a' : CREAM
   lMill.value  = 'Mill: ' + TIMBER_RATE + ' produce -> 1 timber'
