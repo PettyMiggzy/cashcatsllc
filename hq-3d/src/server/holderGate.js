@@ -28,7 +28,12 @@ const DEC = 10n ** 18n
 // world you can enter rather than one nobody can.
 export const GATE_ENABLED = process.env.GATE_ENABLED === '1'
 
-const TOKEN = (process.env.GATE_TOKEN || '0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc').toLowerCase()
+// GATE_TOKEN_ADDRESS, not GATE_TOKEN: this is the ERC-20 contract, which is
+// public and printed on the plaque in the Filing Office. Named *_TOKEN it
+// reads as a credential to a secret scanner, and to anyone skimming the env.
+// The old name is still honoured so a deployed .env keeps working.
+const TOKEN = (process.env.GATE_TOKEN_ADDRESS || process.env.GATE_TOKEN ||
+               '0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc').toLowerCase()
 const RPC = process.env.GATE_RPC || 'https://rpc.mainnet.chain.robinhood.com'
 const ENTRY = BigInt(process.env.GATE_ENTRY || '100000') * DEC
 const VIP = BigInt(process.env.GATE_VIP || '10000000') * DEC
