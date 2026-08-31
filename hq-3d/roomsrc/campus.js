@@ -122,6 +122,7 @@ entry('◄  The Homestead','Buy land, build, and farm resources.',26)
 entry('▲  The Filing Office','Contract address, swap, rewards wall.',18)
 entry('►  The Workshop','Gear, materials, classes, NFT tiers.',18)
 entry('▲▲ The Vault','10,000,000 holders only. Behind the gate.',18)
+entry('►► The Pit','The arena. Last cat standing takes the purse.',18)
 
 /* ---------------- house rules of the campus, facing spawn ---------------- */
 const board = panel(760,520,0.0052,[9.5,2.8,15.0],-0.35,PAPER,GOLD)
