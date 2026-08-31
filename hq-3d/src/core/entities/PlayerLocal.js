@@ -17,8 +17,14 @@ const DOWN = new THREE.Vector3(0, -1, 0)
 const FORWARD = new THREE.Vector3(0, 0, -1)
 const BACKWARD = new THREE.Vector3(0, 0, 1)
 const SCALE_IDENTITY = new THREE.Vector3(1, 1, 1)
-const POINTER_LOOK_SPEED = 0.1
-const PAN_LOOK_SPEED = 0.4
+// Radians per pixel of pointer movement. NOT multiplied by frame time:
+// pointer.delta already accumulates movementX/Y for the frame and is cleared
+// every frame, so scaling it by delta again makes the sensitivity a function
+// of frame rate — at 10fps the mouse swings six times further per pixel than
+// at 60, which is unusable exactly when the world is struggling.
+// Values chosen to match how it felt at 60fps before.
+const POINTER_LOOK_SPEED = 0.0017
+const PAN_LOOK_SPEED = 0.0067
 const ZOOM_SPEED = 2
 const MIN_ZOOM = 0
 const MAX_ZOOM = 8
@@ -174,7 +180,10 @@ export class PlayerLocal extends Entity {
     bindRotations(this.cam.quaternion, this.cam.rotation)
     this.cam.quaternion.copy(this.base.quaternion)
     this.cam.rotation.x += -15 * DEG2RAD
-    this.cam.zoom = 1.5
+    // Far enough back to actually see your cat. At 1.5 the camera sits on the
+    // avatar's shoulders and reads as first person — you spend the money on a
+    // character and then look out of its eyes. Scroll still goes 0..8.
+    this.cam.zoom = 4.5
 
     if (this.world.loader?.preloader) {
       await this.world.loader.preloader
@@ -829,13 +838,13 @@ export class PlayerLocal extends Entity {
       }
     } else if (this.control.pointer.locked) {
       // or pointer lock, rotate camera with pointer movement
-      this.cam.rotation.x += -this.control.pointer.delta.y * POINTER_LOOK_SPEED * delta
-      this.cam.rotation.y += -this.control.pointer.delta.x * POINTER_LOOK_SPEED * delta
+      this.cam.rotation.x += -this.control.pointer.delta.y * POINTER_LOOK_SPEED
+      this.cam.rotation.y += -this.control.pointer.delta.x * POINTER_LOOK_SPEED
       this.cam.rotation.z = 0
     } else if (this.pan) {
       // or when touch panning
-      this.cam.rotation.x += -this.pan.delta.y * PAN_LOOK_SPEED * delta
-      this.cam.rotation.y += -this.pan.delta.x * PAN_LOOK_SPEED * delta
+      this.cam.rotation.x += -this.pan.delta.y * PAN_LOOK_SPEED
+      this.cam.rotation.y += -this.pan.delta.x * PAN_LOOK_SPEED
       this.cam.rotation.z = 0
     }
 

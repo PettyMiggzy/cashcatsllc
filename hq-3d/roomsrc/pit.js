@@ -121,14 +121,17 @@ for(let s=0;s<STEPS;s++){
   prim('box',[w,0.5,1.4],'#d8d0b8',[0,y, (d/2)],{tex:'paving',rough:.95})
   prim('box',[1.4,0.5,d],'#d8d0b8',[-(w/2),y,0],{tex:'paving',rough:.95})
   prim('box',[1.4,0.5,d],'#d8d0b8',[ (w/2),y,0],{tex:'paving',rough:.95})
-  // the crowd: a jacket is enough at this distance, and a hundred cats is
-  // a hundred meshes nobody's frame budget wants
-  const JACKETS=['#c0392b','#1f9d55','#2b6cb0','#e0821e','#8e44ad','#d4a017']
-  for(let i=0;i<Math.floor(w/1.5);i++){
-    const jx = -w/2 + 0.9 + i*1.5
-    const jc = JACKETS[(i+s)%JACKETS.length]
-    prim('box',[0.42,0.62,0.34],jc,[jx,y+0.62,-(d/2)],{rough:.85})
-    prim('box',[0.42,0.62,0.34],jc,[jx,y+0.62, (d/2)],{rough:.85})
+  // The crowd, on the front two tiers only and spaced out. Filling every seat
+  // on every tier came to a hundred and eighty separate meshes for scenery
+  // nobody looks at, and the frame rate went with it.
+  if(s < 2){
+    const JACKETS=['#c0392b','#1f9d55','#2b6cb0','#e0821e','#8e44ad','#d4a017']
+    for(let i=0;i<Math.floor(w/3.2);i++){
+      const jx = -w/2 + 1.6 + i*3.2
+      const jc = JACKETS[(i+s)%JACKETS.length]
+      prim('box',[0.42,0.62,0.34],jc,[jx,y+0.62,-(d/2)],{rough:.85})
+      prim('box',[0.42,0.62,0.34],jc,[jx,y+0.62, (d/2)],{rough:.85})
+    }
   }
 }
 

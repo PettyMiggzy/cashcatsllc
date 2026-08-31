@@ -159,11 +159,18 @@ for (const c of CAST) {
   prim('box',[2.4,0.35,2.0],'#ffffff',[c.x,Y+0.18,z],{tex:'paving',rough:0.9})
   prim('box',[2.2,0.06,1.8],GOLD_D,[c.x,Y+0.37,z],{metal:0.8,rough:0.35})
 
-  const st = app.get(c.node)
-  if (st) {
-    st.position.set(c.x, Y + 0.40, z)
+  // The real character model, not a sculpt of one. These were marching-cubes
+  // blobs built before there was any way to make a cat — legs that read as
+  // stacked spheres, because that is literally what they were. The cast now
+  // exists as actual models, so the plinths carry those instead.
+  const url = props[c.av] && props[c.av].url
+  if (url) {
+    const st = app.create('avatar')
+    st.src = url
+    st.position.set(c.x, Y + 0.44, z)
+    st.rotation.y = Math.PI        // avatars face -Z; turn them to the walk-in
     st.scale.set(c.s, c.s, c.s)
-    st.rotation.y = 0              // sculpted facing +Z, which is the walk-in
+    app.add(st)
   }
 
   // on the front of the plinth, where a statue's name belongs — floating it
