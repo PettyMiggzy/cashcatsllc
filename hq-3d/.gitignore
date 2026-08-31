@@ -26,3 +26,7 @@ deploy/secrets/
 # state.json is task ids, not source.
 roomsrc/props/*_raw.glb
 roomsrc/props/state.json
+
+# Fetched CC0 packs. Not committed — 31MB of someone else's assets, and
+# fetch_packs.py pulls them on demand. The script is the source of truth.
+roomsrc/packs/
