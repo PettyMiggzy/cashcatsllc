@@ -363,7 +363,9 @@ const aIn = app.create('action')
 aIn.label = 'Enter the Pit'
 aIn.distance = 4
 aIn.duration = 0.5
-aIn.position.set(0, 1.6, HALF_Z+6)
+// the offset lives inside prim() and panel(); an action built by hand skips
+// it, which left the arena entrance standing in the middle of the plaza
+aIn.position.set(OX, 1.6, OZ + HALF_Z + 6)
 aIn.onTrigger = () => {
   const p = world.getPlayer()
   if(p) p.teleport(new Vector3(OX, DECK_Y+1.2, OZ), 0)
