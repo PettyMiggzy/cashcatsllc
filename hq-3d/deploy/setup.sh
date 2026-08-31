@@ -118,7 +118,7 @@ done
 echo "==> world"
 # The scripts are the source of truth for every room; the database is
 # disposable. Re-running refreshes each room in place.
-for s in install install_workshop install_homestead install_vault install_campus install_brand; do
+for s in install install_workshop install_homestead install_vault install_pit install_campus install_brand; do
   python3 "roomsrc/$s.py" >/dev/null && echo "    $s"
 done
 
