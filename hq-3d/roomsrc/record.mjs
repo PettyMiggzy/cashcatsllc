@@ -50,19 +50,22 @@ const ROUTES = {
   spin: [{ t: 8.0, keys: [], turn: 45 }],
 
   // Spawn is on the plaza at z=17 facing the statue row at z=11.4, so 'w'
-  // walks straight at it. Drift right with 'd' to arrive in front of Pop Cat
-  // rather than in the gap between the two middle plinths, close enough for
-  // its action to offer itself, then hold 'e' long enough to beat the 0.4s
-  // trigger. Everything after that is the new cat walking.
+  // walks straight at it, and 'd' drifts across to arrive in front of a
+  // statue rather than in the gap between two plinths. Five seconds of that
+  // lands on Apple Cat: the player moves about 1.4m/s, which is a good deal
+  // slower than it looks, and the first cut of this route stopped four
+  // metres short of the action and filmed nothing happening.
+  //
+  // Then hold 'e' well past the 0.4s trigger, wait for the swap to land, and
+  // swing the camera round to the front so the new cat is actually seen
+  // before it walks off.
   demo: [
-    { t: 1.2, keys: [], turn: 0 },
-    { t: 1.9, keys: ['w', 'd'], turn: 0 },
-    { t: 0.9, keys: [], turn: 0 },
-    { t: 0.9, keys: ['e'], turn: 0 },
     { t: 1.0, keys: [], turn: 0 },
-    { t: 1.8, keys: ['s'], turn: 0 },
-    { t: 1.6, keys: ['a'], turn: 34 },
-    { t: 2.2, keys: [], turn: 22 },
+    { t: 5.0, keys: ['w', 'd'], turn: 0 },
+    { t: 0.6, keys: [], turn: 0 },
+    { t: 0.9, keys: ['e'], turn: 0 },
+    { t: 1.4, keys: [], turn: 78 },
+    { t: 2.4, keys: ['w'], turn: 0 },
   ],
 }
 const route = ROUTES[routeName]
