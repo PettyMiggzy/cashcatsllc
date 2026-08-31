@@ -96,7 +96,17 @@ def write_glb(gltf, binary, path):
 
 
 def _trs(node):
-    """Local matrix of a glTF node, as a 4x4 list-of-lists."""
+    """
+    Local matrix of a glTF node, as a 4x4 list-of-lists.
+
+    A node may carry either TRS components or a single flat matrix, and
+    exporters differ on which — gltfpack writes matrices, and reading only
+    the TRS half of the spec silently treats every one of its nodes as
+    sitting at the origin, which collapses the whole skeleton into a point.
+    """
+    if node.get('matrix'):
+        m = node['matrix']              # column-major, per the spec
+        return [[m[j * 4 + i] for j in range(4)] for i in range(4)]
     t = node.get('translation') or [0.0, 0.0, 0.0]
     q = node.get('rotation') or [0.0, 0.0, 0.0, 1.0]
     sc = node.get('scale') or [1.0, 1.0, 1.0]

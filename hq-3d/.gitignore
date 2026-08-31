@@ -11,5 +11,8 @@ build/
 __pycache__/
 *.pyc
 
-# per-run tripo pipeline state — task ids, not source
-roomsrc/cast_vrm/
+# Tripo pipeline output. The finished avatars are tracked — they are what
+# makes a fresh clone playable, and thinned down they are a couple of MB each.
+# The intermediates are not: they are ten times the size and regenerable.
+roomsrc/cast_vrm/*
+!roomsrc/cast_vrm/*.vrm

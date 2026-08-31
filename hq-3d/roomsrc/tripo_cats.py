@@ -35,6 +35,7 @@ import time
 import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+HQ = os.path.dirname(ROOT)
 OUT = os.path.join(ROOT, 'cast_vrm')
 STATE = os.path.join(OUT, 'state.json')
 
@@ -170,9 +171,23 @@ def main(which):
         urllib.request.urlretrieve(url, glb)
         print('    downloaded %s (%.1f MB)' % (os.path.basename(glb), os.path.getsize(glb) / 1e6))
 
+        # Tripo returns 200-400k triangles, ten times what a character wants
+        # and enough to make the world crawl once a few are on screen. Thin it
+        # out before the VRM extension goes on, so nothing downstream has to
+        # know the mesh was ever touched.
+        #
+        # -noq matters: quantised vertex data is stored as integers, and the
+        # rest-pose rebuild rewrites positions as floats. Left on, the model
+        # measures 16383m tall and every bone lands on the origin.
+        lean = os.path.join(OUT, 'cat_%s_lean.glb' % key)
+        subprocess.check_call(['npx', 'gltfpack', '-i', glb, '-o', lean,
+                               '-si', '0.12', '-kn', '-noq'], cwd=HQ)
+        print('    thinned %.1f MB -> %.1f MB'
+              % (os.path.getsize(glb) / 1e6, os.path.getsize(lean) / 1e6))
+
         vrm = os.path.join(OUT, 'cat_%s.vrm' % key)
         subprocess.check_call([sys.executable, os.path.join(ROOT, 'glb2vrm.py'),
-                               glb, vrm, '--name', title])
+                               lean, vrm, '--name', title])
         st['vrm'] = vrm
         save_state(state)
         print('    -> %s' % vrm)
