@@ -28,6 +28,9 @@ function prim(type, size, color, pos, opts = {}) {
   if (opts.rotX) n.rotation.x = opts.rotX
   if (opts.emissive) n.emissive = opts.emissive
   if (opts.collider === false && 'collider' in n) n.collider = false
+  if (opts.tex && props[opts.tex]) n.texture = props[opts.tex].url
+  if (opts.rough !== undefined) n.roughness = opts.rough
+  if (opts.metal !== undefined) n.metalness = opts.metal
   app.add(n)
   return n
 }
@@ -43,20 +46,20 @@ const WAINSCOT = 1.3
 // the world terrain sits at y=0, so the floor slab is raised a few cm to
 // render above it instead of z-fighting with the meadow
 const FLOOR_Y = 0.06
-prim('box', [W, 0.3, D], PAPER, [0, FLOOR_Y - 0.15, 0])           // floor
+prim('box', [W, 0.3, D], '#ffffff', [0, FLOOR_Y - 0.15, 0], { tex: 'pavingRoom', rough: 0.9 })  // floor
 
 function wall(size, pos, opts) {
   // paper upper + green wainscot lower, built as two slabs
   const [w, h, d] = size
   const horizontal = w > d
   const upperH = h - WAINSCOT
-  prim('box', horizontal ? [w, upperH, d] : [w, upperH, d], PAPER,
-       [pos[0], WAINSCOT + upperH / 2, pos[2]], opts)
-  prim('box', horizontal ? [w, WAINSCOT, d] : [w, WAINSCOT, d], GREEN,
-       [pos[0], WAINSCOT / 2, pos[2]], opts)
+  prim('box', [w, upperH, d], '#ffffff',
+       [pos[0], WAINSCOT + upperH / 2, pos[2]], { ...opts, tex: 'plaster', rough: 0.95 })
+  prim('box', [w, WAINSCOT, d], '#ffffff',
+       [pos[0], WAINSCOT / 2, pos[2]], { ...opts, tex: 'wainscot', rough: 0.6 })
   // gold chair rail
   const railD = horizontal ? [w, 0.07, d + 0.04] : [w + 0.04, 0.07, d]
-  prim('box', railD, GOLD, [pos[0], WAINSCOT + 0.035, pos[2]], opts)
+  prim('box', railD, GOLD, [pos[0], WAINSCOT + 0.035, pos[2]], { ...opts, metal: 0.85, rough: 0.3 })
 }
 
 wall([W, H, T], [0, 0, -D / 2])          // back
@@ -92,15 +95,44 @@ for (let i = 0; i < 4; i++) {
   }
 }
 
-/* ---------- the seal / logo on the back wall ---------- */
+/* ---------- the corporate portrait on the back wall ---------- */
 const logo = app.create('image')
-logo.src = props.logo?.url || null
-logo.width = 3
-logo.height = 3
+logo.src = props.logo ? props.logo.url : null
+logo.width = 2.2
+logo.height = 2.2
 logo.color = 'transparent'
 logo.lit = false
-logo.position.set(0, 3.0, -D / 2 + T / 2 + 0.02)
+logo.position.set(0, 3.4, -D / 2 + T / 2 + 0.02)
 app.add(logo)
+
+/* ---------- staff: the Cash Cat actually working the office ----------
+ * Standee-style image planes. Each is the real cashcatllc.help cat edited
+ * into a filing-office role, cut to transparent, so the room is staffed
+ * rather than decorated with a logo.
+ */
+function staff(propKey, w, h, pos, rotY) {
+  const prop = props[propKey]
+  if (!prop) return
+  const n = app.create('image')
+  n.src = prop.url
+  n.width = w
+  n.height = h
+  n.color = 'transparent'
+  n.lit = false
+  n.doubleside = true
+  n.pivot = 'bottom-center'
+  n.position.set(pos[0], pos[1], pos[2])
+  if (rotY) n.rotation.y = rotY
+  app.add(n)
+  return n
+}
+
+// clerk stamping paperwork, behind the reception desk
+staff('npcStamp',   1.5, 1.9, [-1.2, FLOOR_Y, -4.1], 0)
+// clerk hauling folders, over by the filing cabinets
+staff('npcFolders', 1.4, 1.9, [-W / 2 + 2.3, FLOOR_Y, -1.0], Math.PI / 2.6)
+// clerk reading a file, near the swap terminal side
+staff('npcCabinet', 1.4, 1.9, [4.6, FLOOR_Y, -1.6], -Math.PI / 5)
 
 /* ---------- contract-address plaque ---------- */
 const plaque = app.create('ui')
@@ -122,8 +154,8 @@ plaque.position.set(0, 1.55, -D / 2 + T / 2 + 0.02)
 app.add(plaque)
 
 const eyebrow = app.create('uitext')
-eyebrow.value = 'ARTICLE I  ·  CONTRACT ON RECORD'
-eyebrow.fontSize = 34
+eyebrow.value = 'ARTICLE I  ·  CONTRACT ON RECORD  ·  ROBINHOOD CHAIN'
+eyebrow.fontSize = 30
 eyebrow.color = GREEN
 eyebrow.fontWeight = 700
 eyebrow.textAlign = 'center'
@@ -204,7 +236,7 @@ tTitle.textAlign = 'center'
 term.add(tTitle)
 
 const tSub = app.create('uitext')
-tSub.value = 'Buy $CASHCATSLLC\n1% of every buy is\npaid back to holders'
+tSub.value = 'Buy $CASHCATSLLC\n\n1% of every buy is bought\nback and airdropped to\n$CASHCAT holders'
 tSub.fontSize = 30
 tSub.color = '#e8f2ec'
 tSub.lineHeight = 1.4
@@ -301,7 +333,7 @@ rVal.margin = 18
 rw.add(rVal)
 
 const rSub = app.create('uitext')
-rSub.value = '$CASHCATSLLC held for holders'
+rSub.value = '$CASHCATSLLC held for the\n$CASHCAT holder airdrop'
 rSub.fontSize = 26
 rSub.color = '#8fa39a'
 rSub.textAlign = 'center'

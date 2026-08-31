@@ -27,6 +27,9 @@ export class ClientNetwork extends System {
   init({ wsUrl, name, avatar }) {
     const authToken = storage.get('authToken')
     let url = `${wsUrl}?authToken=${authToken}`
+    // holder gate pass, minted at /gate. absent when the gate is switched off.
+    const pass = storage.get('cashcatsPass')
+    if (pass) url += `&pass=${encodeURIComponent(pass)}`
     if (name) url += `&name=${encodeURIComponent(name)}`
     if (avatar) url += `&avatar=${encodeURIComponent(avatar)}`
     this.ws = new WebSocket(url)

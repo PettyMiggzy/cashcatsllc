@@ -1,0 +1,18 @@
+# The site is index.html plus assets, swap, pfp, memes, woc and the api
+# functions. Everything below is source that runs elsewhere and would just
+# ride along on every deployment.
+
+# The 3D world. It runs on its own server; only /woc, the home screen for it,
+# belongs here. 45MB of game source, models and textures otherwise.
+hq-3d/
+
+# The earlier 2D build, kept for reference.
+hq/
+
+# Solidity sources and one-off scripts. Neither is served.
+contracts/
+scripts/
+
+# Local notes and data snapshots.
+*.notes.md
+.notes/

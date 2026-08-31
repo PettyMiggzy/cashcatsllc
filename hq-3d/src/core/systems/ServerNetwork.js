@@ -7,6 +7,7 @@ import { createJWT, readJWT } from '../utils-server'
 import { cloneDeep, isNumber } from 'lodash-es'
 import * as THREE from '../extras/three'
 import { Ranks } from '../extras/ranks'
+import { GATE_ENABLED, readPass } from '../../server/holderGate'
 
 const SAVE_INTERVAL = parseInt(process.env.SAVE_INTERVAL || '60') // seconds
 const PING_RATE = 10 // seconds
@@ -217,6 +218,19 @@ export class ServerNetwork extends System {
         return
       }
 
+      // holder gate: checked here, before a player entity exists at all.
+      // doing this any later would mean the world had already admitted them.
+      let gate = null
+      if (GATE_ENABLED) {
+        gate = readPass(params.pass)
+        if (!gate) {
+          const packet = writePacket('kick', 'holder_gate')
+          ws.send(packet)
+          ws.close()
+          return
+        }
+      }
+
       // check connection params
       let authToken = params.authToken
       let name = params.name
@@ -276,6 +290,10 @@ export class ServerNetwork extends System {
         },
         true
       )
+      // tier rides on the socket, not on the entity: it is the server's
+      // business and no client ever needs to be trusted with it
+      socket.tier = gate?.tier || (GATE_ENABLED ? 'none' : 'vip')
+      socket.address = gate?.address || null
 
       // send snapshot
       socket.send('snapshot', {
