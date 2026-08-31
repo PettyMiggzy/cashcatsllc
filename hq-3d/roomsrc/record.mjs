@@ -56,21 +56,21 @@ const ROUTES = {
   // slower than it looks, and the first cut of this route stopped four
   // metres short of the action and filmed nothing happening.
   //
-  // 3.2s of it, measured: the player covers 1.42m per second on each axis
-  // walking diagonally, so that is 4.5m across and 4.5m up the plaza, which
-  // stops in front of Pop Cat with the statue still in shot. Five seconds
-  // walked straight past the whole row into the side of the Filing Office.
+  // Five seconds of it, measured at 1.42m per second on each axis, which
+  // ends at Apple Cat — the orange one. Pop Cat is nearer, but it is cream
+  // in a green vest like Cash Cat, and from behind the swap is invisible: a
+  // demo of changing character has to change something you can see.
   //
-  // Then hold 'e' well past the 0.4s trigger, wait for the swap to land, and
-  // swing the camera round to the front so the new cat is actually seen
-  // before it walks off.
+  // Then hold 'e' well past the 0.4s trigger, and only afterwards swing the
+  // camera round — the walk in ends up facing a wall, so the reveal has to
+  // come after the swap, not before it.
   demo: [
     { t: 1.0, keys: [], turn: 0 },
-    { t: 3.2, keys: ['w', 'd'], turn: 0 },
+    { t: 5.0, keys: ['w', 'd'], turn: 0 },
     { t: 0.8, keys: [], turn: 0 },
     { t: 0.9, keys: ['e'], turn: 0 },
-    { t: 1.5, keys: [], turn: 60 },
-    { t: 2.6, keys: ['w'], turn: 0 },
+    { t: 1.8, keys: [], turn: 62 },
+    { t: 2.5, keys: ['w'], turn: 0 },
   ],
 }
 const route = ROUTES[routeName]
