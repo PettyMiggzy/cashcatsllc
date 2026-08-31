@@ -86,6 +86,7 @@ if [ ! -f .env ]; then
   echo "$ADMIN" > /root/cashcats-admin-code && chmod 600 /root/cashcats-admin-code
   NEW_ENV=1
 fi
+
 sed -i "s|^PORT=.*|PORT=$PORT|" .env
 # the domain can change between runs; the secrets must not
 sed -i "s|^PUBLIC_WS_URL=.*|PUBLIC_WS_URL=wss://$DOMAIN/ws|"      .env
@@ -95,6 +96,28 @@ sed -i "s|^PUBLIC_API_URL=.*|PUBLIC_API_URL=https://$DOMAIN/api|" .env
 # visitor's own machine — and blocked as mixed content besides. The world
 # connects, then loads nothing.
 sed -i "s|^ASSETS_BASE_URL=.*|ASSETS_BASE_URL=https://$DOMAIN/assets|" .env
+
+# Keep a readable note of everything you need to get back in, inside the
+# checkout where you will look for it, at a path .gitignore covers.
+mkdir -p "$DIR/hq-3d/deploy/secrets"
+cat > "$DIR/hq-3d/deploy/secrets/world.txt" <<NOTE
+World of CashCats
+  url          https://$DOMAIN
+  port         $PORT (nginx proxies to it)
+  admin code   $(grep -E '^ADMIN_CODE=' "$DIR/hq-3d/.env" | cut -d= -f2-)
+               use it in world chat:  /admin <code>
+
+  env          $DIR/hq-3d/.env          (all secrets live here)
+  admin code   /root/cashcats-admin-code
+  cert         /etc/letsencrypt/live/$DOMAIN/
+  service      systemctl status cashcats
+  logs         journalctl -u cashcats -f
+  rebuild      sudo bash $DIR/hq-3d/deploy/setup.sh $DOMAIN
+
+Written by deploy/setup.sh. Ignored by git — do not move it somewhere that
+is not, and do not paste the code into chat.
+NOTE
+chmod 600 "$DIR/hq-3d/deploy/secrets/world.txt"
 grep -q '^GATE_ENABLED=' .env && sed -i "s|^GATE_ENABLED=.*|GATE_ENABLED=0|" .env \
                               || echo "GATE_ENABLED=0" >> .env
 
@@ -183,6 +206,7 @@ echo " https://$DOMAIN"
 [ "$NEW_ENV" = "1" ] && echo " use it in world chat:  /admin <code>"
 echo
 echo " port:    $PORT (nginx proxies to it)"
+echo " secrets: $DIR/hq-3d/deploy/secrets/world.txt"
 echo " logs:    journalctl -u cashcats -f"
 echo " restart: systemctl restart cashcats"
 echo " update:  sudo bash $DIR/hq-3d/deploy/setup.sh $DOMAIN"

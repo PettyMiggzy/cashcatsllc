@@ -16,3 +16,7 @@ __pycache__/
 # The intermediates are not: they are ten times the size and regenerable.
 roomsrc/cast_vrm/*
 !roomsrc/cast_vrm/*.vrm
+
+# Deploy secrets, written on the server by deploy/setup.sh. Ignored before
+# anything writes here, so the admin code cannot reach a public repo.
+deploy/secrets/
