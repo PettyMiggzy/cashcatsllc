@@ -23,7 +23,7 @@ EMAIL="${EMAIL:-admin@${DOMAIN#*.}}"
 
 echo "==> packages"
 apt-get update -qq
-apt-get install -y -qq git curl python3 nginx certbot python3-certbot-nginx xz-utils
+apt-get install -y -qq git curl python3 nginx certbot python3-certbot-nginx xz-utils iproute2
 
 echo "==> node $NODE"
 if [ "$(/opt/node/bin/node -v 2>/dev/null || true)" != "v$NODE" ]; then
@@ -31,10 +31,13 @@ if [ "$(/opt/node/bin/node -v 2>/dev/null || true)" != "v$NODE" ]; then
   curl -fsSL "https://nodejs.org/dist/v$NODE/node-v$NODE-linux-x64.tar.xz" \
     | tar -xJ -C /opt/node --strip-components=1
 fi
-ln -sf /opt/node/bin/node /usr/local/bin/node
-ln -sf /opt/node/bin/npm  /usr/local/bin/npm
-ln -sf /opt/node/bin/npx  /usr/local/bin/npx
-node -v
+# Kept in /opt and deliberately NOT symlinked into /usr/local/bin. This box
+# may already run other services on their own node, and putting ours ahead
+# of theirs on the PATH would quietly move them onto a different runtime
+# the next time anything restarts.
+NODE_BIN=/opt/node/bin
+export PATH="$NODE_BIN:$PATH"
+"$NODE_BIN/node" -v
 
 echo "==> code"
 if [ -d "$DIR/.git" ]; then
@@ -46,7 +49,17 @@ fi
 cd "$DIR/hq-3d"
 
 echo "==> deps"
-npm install --no-audit --no-fund
+"$NODE_BIN/npm" install --no-audit --no-fund
+
+echo "==> port"
+# 3000 is a popular port and this box runs a lot. Take the next free one
+# rather than colliding with something already serving on it.
+PORT="${PORT:-3000}"
+while ss -ltn 2>/dev/null | grep -q ":$PORT "; do
+  echo "    $PORT is taken, trying $((PORT+1))"
+  PORT=$((PORT+1))
+done
+echo "    using $PORT"
 
 echo "==> config"
 NEW_ENV=0
@@ -61,6 +74,7 @@ if [ ! -f .env ]; then
   echo "$ADMIN" > /root/cashcats-admin-code && chmod 600 /root/cashcats-admin-code
   NEW_ENV=1
 fi
+sed -i "s|^PORT=.*|PORT=$PORT|" .env
 # the domain can change between runs; the secrets must not
 sed -i "s|^PUBLIC_WS_URL=.*|PUBLIC_WS_URL=wss://$DOMAIN/ws|"      .env
 sed -i "s|^PUBLIC_API_URL=.*|PUBLIC_API_URL=https://$DOMAIN/api|" .env
@@ -76,7 +90,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$DIR/hq-3d
-ExecStart=/usr/local/bin/npm run start
+ExecStart=$NODE_BIN/node build/index.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
@@ -88,7 +102,7 @@ systemctl daemon-reload
 systemctl enable cashcats >/dev/null 2>&1 || true
 
 echo "==> build"
-npm run build
+"$NODE_BIN/npm" run build
 
 echo "==> first boot"
 # The server creates world/, lays down the database schema and copies in the
@@ -97,7 +111,7 @@ echo "==> first boot"
 # "no such table: blueprints".
 systemctl restart cashcats
 for _ in $(seq 1 60); do
-  curl -fsS -o /dev/null http://127.0.0.1:3000 && break
+  curl -fsS -o /dev/null "http://127.0.0.1:$PORT" && break
   sleep 2
 done
 
@@ -121,7 +135,7 @@ server {
     client_max_body_size 32m;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:$PORT;
         proxy_http_version 1.1;
         # the world runs over a websocket; without these it connects and is
         # dropped a moment later
@@ -137,7 +151,8 @@ server {
 }
 NGINX
 ln -sf /etc/nginx/sites-available/cashcats /etc/nginx/sites-enabled/cashcats
-rm -f /etc/nginx/sites-enabled/default
+# The default site stays. It only answers requests matching no server_name,
+# and this box may already be serving something through it.
 nginx -t && systemctl reload nginx
 
 echo "==> https"
@@ -150,6 +165,7 @@ echo " https://$DOMAIN"
 [ "$NEW_ENV" = "1" ] && echo " admin code: $(cat /root/cashcats-admin-code)   (kept in /root/cashcats-admin-code)"
 [ "$NEW_ENV" = "1" ] && echo " use it in world chat:  /admin <code>"
 echo
+echo " port:    $PORT (nginx proxies to it)"
 echo " logs:    journalctl -u cashcats -f"
 echo " restart: systemctl restart cashcats"
 echo " update:  sudo bash $DIR/hq-3d/deploy/setup.sh $DOMAIN"
