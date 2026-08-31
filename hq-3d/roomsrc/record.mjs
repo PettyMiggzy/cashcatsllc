@@ -56,16 +56,21 @@ const ROUTES = {
   // slower than it looks, and the first cut of this route stopped four
   // metres short of the action and filmed nothing happening.
   //
+  // 3.2s of it, measured: the player covers 1.42m per second on each axis
+  // walking diagonally, so that is 4.5m across and 4.5m up the plaza, which
+  // stops in front of Pop Cat with the statue still in shot. Five seconds
+  // walked straight past the whole row into the side of the Filing Office.
+  //
   // Then hold 'e' well past the 0.4s trigger, wait for the swap to land, and
   // swing the camera round to the front so the new cat is actually seen
   // before it walks off.
   demo: [
     { t: 1.0, keys: [], turn: 0 },
-    { t: 5.0, keys: ['w', 'd'], turn: 0 },
-    { t: 0.6, keys: [], turn: 0 },
+    { t: 3.2, keys: ['w', 'd'], turn: 0 },
+    { t: 0.8, keys: [], turn: 0 },
     { t: 0.9, keys: ['e'], turn: 0 },
-    { t: 1.4, keys: [], turn: 78 },
-    { t: 2.4, keys: ['w'], turn: 0 },
+    { t: 1.5, keys: [], turn: 60 },
+    { t: 2.6, keys: ['w'], turn: 0 },
   ],
 }
 const route = ROUTES[routeName]
@@ -94,13 +99,26 @@ await page.evaluate(zoom => {
 }, zoom)
 await page.click('canvas', { position: { x: width / 2, y: height - 60 } }).catch(() => {})
 
+// Swapping the avatar reloads a mesh, and for those few frames rAF can
+// stall long enough that Playwright gives up on the pending promise and
+// collects it — six minutes of recording lost at the one moment the clip
+// exists to show. Race the frame against a timer so the wait always ends,
+// and never let a single bad frame take the whole run down with it.
 const step = async (ms, turn) => {
-  await page.evaluate(async ({ ms, turn }) => {
-    const w = window.world
-    if (turn) w.entities.player.cam.rotation.y += (turn * Math.PI) / 180
-    window.__t += ms
-    await new Promise(r => requestAnimationFrame(() => { w.tick(window.__t); r() }))
-  }, { ms, turn })
+  try {
+    await page.evaluate(async ({ ms, turn }) => {
+      const w = window.world
+      if (turn) w.entities.player.cam.rotation.y += (turn * Math.PI) / 180
+      window.__t += ms
+      await new Promise(r => {
+        const done = () => { clearTimeout(t); r() }
+        const t = setTimeout(r, 4000)
+        requestAnimationFrame(() => { try { w.tick(window.__t) } catch (e) {} done() })
+      })
+    }, { ms, turn })
+  } catch (e) {
+    console.log('  frame skipped:', e.message.split('\n')[0])
+  }
 }
 
 // let the world settle before the first frame — physics, textures, the sky
