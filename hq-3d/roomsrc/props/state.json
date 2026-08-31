@@ -1,0 +1,14 @@
+{
+ "bench": {
+  "task": "6f1436b6-1dfb-44ae-a884-73d77bfc5ebb"
+ },
+ "lamp": {
+  "task": "0d09cee6-b0b0-4fc4-aedb-1475e610c357"
+ },
+ "planter": {
+  "task": "efa5ec47-a3df-457b-ba61-4a4b3bb1bf07"
+ },
+ "fountain": {
+  "task": "9db92538-e44e-4881-82b5-6d7a80281047"
+ }
+}

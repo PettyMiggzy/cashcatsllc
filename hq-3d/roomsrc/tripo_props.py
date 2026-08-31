@@ -18,6 +18,7 @@ network resumes instead of paying twice for the same mesh.
 """
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.request
@@ -150,8 +151,16 @@ def main(which):
         if not url:
             raise SystemExit('    no model url in: ' + json.dumps(d)[:400])
         urllib.request.urlretrieve(url, glb)
+        raw = os.path.getsize(glb) / 1e6
+
+        # Thin it before it is ever placed. Tripo hands back a park bench at
+        # 333,136 triangles with three 2048px textures — twenty of those is
+        # 200MB of downloads and six and a half million triangles of street
+        # furniture, and the world gets slower for every prop you add.
+        subprocess.check_call([sys.executable, os.path.join(ROOT, 'thin_props.py'), key])
         made += 1
-        print('    -> %s (%.1f MB)' % (os.path.basename(glb), os.path.getsize(glb) / 1e6))
+        print('    -> %s (%.1f MB raw, %.2f MB shipped)'
+              % (os.path.basename(glb), raw, os.path.getsize(glb) / 1e6))
 
     print('\ndone. %d new prop%s in %s' % (made, '' if made == 1 else 's', OUT))
 
