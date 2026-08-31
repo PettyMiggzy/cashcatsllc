@@ -145,6 +145,10 @@ def main(which):
         if not st.get('rig_task'):
             r = call(V3 + '/animations/rig', {
                 'input': st['model_task'],
+                # Required. Left unset the API picks a version it then rejects
+                # ("invalid model 'v2.5-20250123'"). v1.0 is the humanoid rigger;
+                # v2.5-20260210 is the one for quadrupeds and other creatures.
+                'model': 'v1.0-20240301',
                 'rig_type': 'biped',       # humanoid: the stock clips are humanoid
                 'spec': 'mixamo',          # bone names glb2vrm.py already maps
                 'out_format': 'glb',

@@ -10,3 +10,6 @@ build/
 # python bytecode from the roomsrc install scripts
 __pycache__/
 *.pyc
+
+# per-run tripo pipeline state — task ids, not source
+roomsrc/cast_vrm/
