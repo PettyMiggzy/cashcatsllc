@@ -20,6 +20,33 @@ is still the rollback point if anything below needs undoing.
  [-22,0,0]        [0,0,0]        [21,0,0]
 ```
 
+## Play it
+
+Everything needed is in the repo — the cast ships as avatars, `world/` is
+built from the install scripts. Node **22.11.0 exactly**; anything else and
+PhysX will not load.
+
+```
+nvm use && npm install
+cp .env.example .env
+
+python3 roomsrc/install.py            # The Filing Office
+python3 roomsrc/install_workshop.py   # The Workshop
+python3 roomsrc/install_homestead.py  # The Homestead
+python3 roomsrc/install_vault.py      # The Vault
+python3 roomsrc/install_campus.py     # plaza, statues, gate, spawn
+python3 roomsrc/install_brand.py      # title, share image, default avatar
+
+npm run dev                           # http://localhost:3000
+```
+
+You spawn on the plaza facing a row of statues, one per cat. Walk up to any
+of them and press **E** to play as that cat. W/A/S/D to move, space to jump,
+mouse to look, scroll to pull the camera back.
+
+`ADMIN_CODE` is blank in `.env.example`, which makes **everyone who joins an
+admin**. Fine locally; it must be set before any link goes public.
+
 ## Why this over the 2D SkyOffice build
 
 `hq/` (2D, SkyOffice-based) has real working progress — phases 01–03 are
