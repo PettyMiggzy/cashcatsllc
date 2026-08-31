@@ -54,12 +54,24 @@ echo "==> deps"
 echo "==> port"
 # 3000 is a popular port and this box runs a lot. Take the next free one
 # rather than colliding with something already serving on it.
-PORT="${PORT:-3000}"
-while ss -ltn 2>/dev/null | grep -q ":$PORT "; do
-  echo "    $PORT is taken, trying $((PORT+1))"
-  PORT=$((PORT+1))
-done
-echo "    using $PORT"
+# Keep the port we already chose. Without this the check sees our own running
+# service holding the port and treats it as a conflict, so every re-run walks
+# one higher: 3000, 3001, 3002.
+PORT="${PORT:-}"
+if [ -z "$PORT" ] && [ -f "$DIR/hq-3d/.env" ]; then
+  PORT=$(grep -E '^PORT=' "$DIR/hq-3d/.env" 2>/dev/null | cut -d= -f2)
+fi
+if [ -n "$PORT" ]; then
+  echo "    keeping $PORT"
+else
+  PORT=3000
+  systemctl stop cashcats 2>/dev/null || true    # do not count ourselves
+  while ss -ltn 2>/dev/null | grep -q ":$PORT "; do
+    echo "    $PORT is taken, trying $((PORT+1))"
+    PORT=$((PORT+1))
+  done
+  echo "    using $PORT"
+fi
 
 echo "==> config"
 NEW_ENV=0
