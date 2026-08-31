@@ -90,6 +90,11 @@ sed -i "s|^PORT=.*|PORT=$PORT|" .env
 # the domain can change between runs; the secrets must not
 sed -i "s|^PUBLIC_WS_URL=.*|PUBLIC_WS_URL=wss://$DOMAIN/ws|"      .env
 sed -i "s|^PUBLIC_API_URL=.*|PUBLIC_API_URL=https://$DOMAIN/api|" .env
+# Assets are handed to the browser as absolute urls. Left at the stock
+# localhost value every avatar, model and room script is fetched from the
+# visitor's own machine — and blocked as mixed content besides. The world
+# connects, then loads nothing.
+sed -i "s|^ASSETS_BASE_URL=.*|ASSETS_BASE_URL=https://$DOMAIN/assets|" .env
 grep -q '^GATE_ENABLED=' .env && sed -i "s|^GATE_ENABLED=.*|GATE_ENABLED=0|" .env \
                               || echo "GATE_ENABLED=0" >> .env
 
