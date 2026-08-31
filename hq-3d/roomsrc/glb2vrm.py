@@ -99,6 +99,10 @@ def main():
     ap.add_argument('--name', default='CashCat')
     ap.add_argument('--author', default='CashCats LLC')
     ap.add_argument('--license', default='CC0')
+    ap.add_argument('--height', type=float, default=1.7, metavar='M',
+                    help='scale the avatar to this height in metres (0 to leave '
+                         'as-is). Generators have no sense of scale — a cat came '
+                         'back 0.74m and read as a lump on the floor.')
     ap.add_argument('--faces', choices=['+z', '-z'], default='+z', metavar='DIR',
                     help='which way the source model faces. VRM 0.0 wants -z, and '
                          'most rigged exports are +z, so the default adds a 180 '
@@ -141,11 +145,34 @@ def main():
             print('   ', nodes[i].get('name'))
         sys.exit('cannot build a humanoid without those — rename them or extend ALIASES')
 
+    # Measure the model from the POSITION accessors, which carry min/max.
+    lo = [1e9] * 3
+    hi = [-1e9] * 3
+    for mesh in gltf.get('meshes', []):
+        for prim in mesh.get('primitives', []):
+            ac = gltf['accessors'][prim['attributes']['POSITION']]
+            if 'min' not in ac:
+                continue
+            for i in range(3):
+                lo[i] = min(lo[i], ac['min'][i])
+                hi[i] = max(hi[i], ac['max'][i])
+    span = hi[1] - lo[1] if hi[1] > lo[1] else 0.0
+
+    scale = 1.0
+    if a.height and span > 0:
+        scale = a.height / span
+        print('model is %.2fm tall -> scaling x%.3f to %.2fm' % (span, scale, a.height))
+
     # VRM 0.0 models face -z. Rather than rewrite every vertex, parent the
-    # existing scene under one rotated root.
-    if a.faces == '+z':
-        root = {'name': 'VRMRoot', 'rotation': [0.0, 1.0, 0.0, 0.0],
+    # existing scene under one root that carries both the turn and the scale.
+    need_root = a.faces == '+z' or abs(scale - 1.0) > 1e-6
+    if need_root:
+        root = {'name': 'VRMRoot',
                 'children': list(gltf['scenes'][gltf.get('scene', 0)]['nodes'])}
+        if a.faces == '+z':
+            root['rotation'] = [0.0, 1.0, 0.0, 0.0]
+        if abs(scale - 1.0) > 1e-6:
+            root['scale'] = [scale, scale, scale]
         nodes.append(root)
         gltf['scenes'][gltf.get('scene', 0)]['nodes'] = [len(nodes) - 1]
 

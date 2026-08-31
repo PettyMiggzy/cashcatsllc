@@ -41,12 +41,17 @@ STATE = os.path.join(OUT, 'state.json')
 V2 = 'https://api.tripo3d.ai/v2/openapi'
 V3 = 'https://openapi.tripo3d.ai/v3'
 
+# The reference images have to be cat PEOPLE standing upright, not photos of
+# cats. Fed a photo of a cat sitting on all fours, Tripo faithfully builds a
+# quadruped — and rig_type=biped then forces a humanoid skeleton onto it, which
+# came out as a 0.74m lump on the floor. The biped_* references are A-pose,
+# front-on, full figure, which is what character generators expect.
 CATS = {
-    'cash':    ('../../assets/cashcat.png', 'Cash Cat'),
-    'long':    ('cast/cat_long.png',        'Long Cat'),
-    'serious': ('cast/cat_serious.png',     'Serious Cat'),
-    'apple':   ('cast/cat_apple.png',       'Apple Cat'),
-    'pop':     ('cast/cat_pop.png',         'Pop Cat'),
+    'cash':    ('cast/biped_cash.png',    'Cash Cat'),
+    'long':    ('cast/biped_long.png',    'Long Cat'),
+    'serious': ('cast/biped_serious.png', 'Serious Cat'),
+    'apple':   ('cast/biped_apple.png',   'Apple Cat'),
+    'pop':     ('cast/biped_pop.png',     'Pop Cat'),
 }
 
 KEY = os.environ.get('TRIPO_KEY')
@@ -157,7 +162,8 @@ def main(which):
             save_state(state); print('    rig task', st['rig_task'])
         d = wait(V3 + '/tasks/' + st['rig_task'], 'rig')
 
-        url = (d.get('output') or {}).get('model') or d.get('model_url') or (d.get('result') or {}).get('model')
+        out = d.get('output') or d.get('result') or {}
+        url = out.get('model_url') or out.get('model') or d.get('model_url')
         if not url:
             raise SystemExit('    no model url in: ' + json.dumps(d)[:400])
         glb = os.path.join(OUT, 'cat_%s_rigged.glb' % key)
