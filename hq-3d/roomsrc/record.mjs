@@ -48,6 +48,22 @@ const ROUTES = {
     { t: 1.0, keys: [], turn: 0 },
   ],
   spin: [{ t: 8.0, keys: [], turn: 45 }],
+
+  // Spawn is on the plaza at z=17 facing the statue row at z=11.4, so 'w'
+  // walks straight at it. Drift right with 'd' to arrive in front of Pop Cat
+  // rather than in the gap between the two middle plinths, close enough for
+  // its action to offer itself, then hold 'e' long enough to beat the 0.4s
+  // trigger. Everything after that is the new cat walking.
+  demo: [
+    { t: 1.2, keys: [], turn: 0 },
+    { t: 1.9, keys: ['w', 'd'], turn: 0 },
+    { t: 0.9, keys: [], turn: 0 },
+    { t: 0.9, keys: ['e'], turn: 0 },
+    { t: 1.0, keys: [], turn: 0 },
+    { t: 1.8, keys: ['s'], turn: 0 },
+    { t: 1.6, keys: ['a'], turn: 34 },
+    { t: 2.2, keys: [], turn: 22 },
+  ],
 }
 const route = ROUTES[routeName]
 if (!route) {
@@ -88,7 +104,7 @@ const step = async (ms, turn) => {
 for (let i = 0; i < 30; i++) await step(1000 / fps, 0)
 
 const total = route.reduce((n, leg) => n + Math.round(leg.t * fps), 0)
-console.log('recording %d frames at %dfps (%.1fs) into %s', total, fps, total / fps, dir)
+console.log(`recording ${total} frames at ${fps}fps (${(total / fps).toFixed(1)}s) into ${dir}`)
 
 let n = 0
 let held = []
@@ -103,8 +119,7 @@ for (const leg of route) {
     await page.screenshot({ path: path.join(dir, String(n).padStart(5, '0') + '.png') })
     if (++n % 20 === 0) {
       const per = (Date.now() - t0) / n / 1000
-      console.log('  %d/%d  (%.1fs/frame, ~%dm left)', n, total, per,
-                  Math.round(((total - n) * per) / 60))
+      console.log(`  ${n}/${total}  (${per.toFixed(1)}s/frame, ~${Math.round(((total - n) * per) / 60)}m left)`)
     }
   }
 }
@@ -124,4 +139,4 @@ if (enc.status !== 0) {
   process.exit(1)
 }
 fs.rmSync(dir, { recursive: true, force: true })
-console.log('wrote %s (%.1f MB)', out, fs.statSync(out).size / 1e6)
+console.log(`wrote ${out} (${(fs.statSync(out).size / 1e6).toFixed(1)} MB)`)

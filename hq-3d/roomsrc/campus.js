@@ -147,11 +147,11 @@ text(board,'proposed rules, running live — not mockups.',24,INK,400,2)
 // meant you could always see the spheres; a metaball surface blends the
 // parts into one continuous body the way an animal actually is.
 const CAST = [
-  { node:'cat_serious', label:'SERIOUS CAT', x:-17.0, s:1.05 },
-  { node:'cat_long',    label:'LONG CAT',    x:-10.0, s:0.95 },
-  { node:'cat_cash',    label:'CASH CAT',    x: -3.6, s:1.15 },
-  { node:'cat_pop',     label:'POP CAT',     x:  3.6, s:1.00 },
-  { node:'cat_apple',   label:'APPLE CAT',   x: 10.0, s:1.00 },
+  { node:'cat_serious', label:'SERIOUS CAT', x:-17.0, s:1.05, av:'avSerious' },
+  { node:'cat_long',    label:'LONG CAT',    x:-10.0, s:0.95, av:'avLong'    },
+  { node:'cat_cash',    label:'CASH CAT',    x: -3.6, s:1.15, av:'avCash'    },
+  { node:'cat_pop',     label:'POP CAT',     x:  3.6, s:1.00, av:'avPop'     },
+  { node:'cat_apple',   label:'APPLE CAT',   x: 10.0, s:1.00, av:'avApple'   },
 ]
 for (const c of CAST) {
   const z = 11.4
@@ -170,6 +170,25 @@ for (const c of CAST) {
   const plaque = panel(360,88,0.0046,[c.x,Y+0.20,z+1.01],0,'#0e1f18',GOLD)
   plaque.alignItems='center'
   text(plaque,c.label,42,GOLD_L,700)
+
+  // Pick your cat at the statue of it. A wardrobe in a back room would be
+  // one more building to walk to; the row of statues is already the thing
+  // people stop at, and standing in front of the one you want is its own
+  // explanation. The avatars are generated and gitignored, so a statue with
+  // no model behind it simply keeps quiet rather than offering a dead button.
+  const url = props[c.av] && props[c.av].url
+  if (url) {
+    const a = app.create('action')
+    a.label = 'Play as ' + c.label
+    a.distance = 3.2
+    a.duration = 0.4
+    a.position.set(c.x, Y+1.0, z-1.3)
+    a.onTrigger = () => {
+      const p = world.getPlayer()
+      if (p) p.setSessionAvatar(url)
+    }
+    app.add(a)
+  }
 }
 
 /* ---------------- the gate to The Vault ---------------- */
