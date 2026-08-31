@@ -202,7 +202,7 @@ function panel(w,h,size,pos,rotY,bg,border){
   const u=app.create('ui')
   u.space='world'; u.width=w; u.height=h; u.size=size
   u.backgroundColor=bg; u.borderColor=border; u.borderWidth=6; u.borderRadius=12
-  u.padding=26; u.flexDirection='column'; u.lit=false; u.doubleside=true
+  u.padding=26; u.flexDirection='column'; u.lit=false; u.doubleside=false
   u.position.set(pos[0],pos[1],pos[2]); if(rotY) u.rotation.y=rotY
   app.add(u); return u
 }

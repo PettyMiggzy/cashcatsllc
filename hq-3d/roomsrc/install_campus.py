@@ -6,6 +6,20 @@ HQ   = os.path.dirname(ROOT)
 DB     = os.path.join(HQ, 'world', 'db.sqlite')
 ASSETS = os.path.join(HQ, 'world', 'assets')
 
+def check_js(path):
+    """
+    Refuse to install a script that does not parse.
+
+    A room whose script throws on load is simply not there, and nothing says
+    so — the world comes up with a hole in it. Both syntax errors caught in
+    this build would have shipped silently.
+    """
+    import subprocess
+    r = subprocess.run(['node', '--check', path], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit('%s does not parse:\n%s' % (os.path.basename(path), r.stderr.strip()[:400]))
+
+
 def put(path, ext):
     d = open(path, 'rb').read()
     h = hashlib.sha256(d).hexdigest()
@@ -18,8 +32,13 @@ now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
 con = sqlite3.connect(DB)
 
+check_js(os.path.join(ROOT, 'campus.js'))
 script = put(os.path.join(ROOT, 'campus.js'), 'js')
-model  = put(os.path.join(ROOT, 'cats.glb'), 'glb')
+# empty.glb, not cats.glb: the plinths carry real character models now, so
+# the old sculpted blobs are not referenced by the script — but a loaded
+# model still renders. Left in place they sat at the origin, inside the
+# Filing Office, and cost every player a 4.7MB download to see them there.
+model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-campus'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — Campus', 'image': None, 'author': None,

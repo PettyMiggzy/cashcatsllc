@@ -5,6 +5,20 @@ import texprops
 ROOT=os.path.dirname(os.path.abspath(__file__)); HQ=os.path.dirname(ROOT)
 DB=os.path.join(HQ,'world','db.sqlite'); ASSETS=os.path.join(HQ,'world','assets')
 
+def check_js(path):
+    """
+    Refuse to install a script that does not parse.
+
+    A room whose script throws on load is simply not there, and nothing says
+    so — the world comes up with a hole where a building should be. Both
+    syntax errors in this build would have shipped silently.
+    """
+    import subprocess
+    r = subprocess.run(['node', '--check', path], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit('%s does not parse:\n%s' % (os.path.basename(path), r.stderr.strip()[:400]))
+
+
 def put(path, ext):
     d=open(path,'rb').read(); h=hashlib.sha256(d).hexdigest()
     dst=os.path.join(ASSETS,f'{h}.{ext}')
@@ -13,6 +27,7 @@ def put(path, ext):
 
 now=datetime.datetime.utcnow().isoformat()+'Z'
 con=sqlite3.connect(DB)
+check_js(os.path.join(ROOT, 'workshop.js'))
 script=put(os.path.join(ROOT,'workshop.js'),'js')
 model =put(os.path.join(ROOT,'cats.glb'),'glb')
 gold  =put(os.path.join(ROOT,'gold_cat.png'),'png')

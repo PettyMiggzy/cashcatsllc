@@ -82,6 +82,17 @@ for (let i = -2; i <= 2; i++) {
        [0, H - 0.2, i * (D / 5)], { emissive: '#fff0c0' })
 }
 
+/* The sandbox has no Intl, so toLocaleString returns the digits unseparated
+ * — the rewards wall was reading 1234567 where it meant 1,234,567. */
+function commas(n){
+  const d = String(n), out = []
+  for (let i = 0; i < d.length; i++) {
+    if (i > 0 && (d.length - i) % 3 === 0) out.push(',')
+    out.push(d[i])
+  }
+  return out.join('')
+}
+
 /* ---------- reception desk ---------- */
 prim('box', [5, 1.05, 1.2], WOOD, [0, 0.52, -3.2])
 prim('box', [5.2, 0.1, 1.4], GOLD, [0, 1.08, -3.2])
@@ -149,7 +160,7 @@ plaque.flexDirection = 'column'
 plaque.justifyContent = 'center'
 plaque.alignItems = 'center'
 plaque.lit = false
-plaque.doubleside = true
+plaque.doubleside = false
 plaque.position.set(0, 1.55, -D / 2 + T / 2 + 0.02)
 app.add(plaque)
 
@@ -192,7 +203,7 @@ sign.padding = 20
 sign.justifyContent = 'center'
 sign.alignItems = 'center'
 sign.lit = false
-sign.doubleside = true
+sign.doubleside = false
 sign.position.set(0, 3.3, D / 2 - T / 2 - 0.02)
 sign.rotation.y = Math.PI
 app.add(sign)
@@ -222,7 +233,7 @@ term.flexDirection = 'column'
 term.justifyContent = 'center'
 term.alignItems = 'center'
 term.lit = false
-term.doubleside = true
+term.doubleside = false
 term.position.set(5.0, 1.75, -5.0)
 term.rotation.y = -0.5
 app.add(term)
@@ -267,7 +278,7 @@ memo.borderRadius = 8
 memo.padding = 26
 memo.flexDirection = 'column'
 memo.lit = false
-memo.doubleside = true
+memo.doubleside = false
 memo.position.set(-5.4, 2.2, -D / 2 + T / 2 + 0.02)
 app.add(memo)
 
@@ -310,7 +321,7 @@ rw.flexDirection = 'column'
 rw.justifyContent = 'center'
 rw.alignItems = 'center'
 rw.lit = false
-rw.doubleside = true
+rw.doubleside = false
 rw.position.set(W / 2 - T / 2 - 0.02, 2.2, 0)
 rw.rotation.y = -Math.PI / 2
 app.add(rw)
@@ -358,7 +369,7 @@ async function refreshRewards() {
     const j = await res.json()
     if (!j.result || j.result === '0x') return
     const whole = BigInt(j.result) / (10n ** 18n)
-    rVal.value = Number(whole).toLocaleString('en-US')
+    rVal.value = commas(whole)
   } catch (err) {
     rVal.value = '—'
   }

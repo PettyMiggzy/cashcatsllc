@@ -7,6 +7,19 @@ HQ   = os.path.dirname(ROOT)
 DB   = os.path.join(HQ, 'world', 'db.sqlite')
 ASSETS = os.path.join(HQ, 'world', 'assets')
 
+def check_js(path):
+    """
+    Refuse to install a script that does not parse.
+
+    A room whose script throws on load is simply not there, and nothing says
+    so — the world comes up with a hole where a building should be.
+    """
+    import subprocess
+    r = subprocess.run(['node', '--check', path], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit('%s does not parse:\n%s' % (os.path.basename(path), r.stderr.strip()[:400]))
+
+
 def put_asset(path, ext):
     data = open(path,'rb').read()
     h = hashlib.sha256(data).hexdigest()
@@ -20,6 +33,7 @@ import texprops
 con = sqlite3.connect(DB)
 
 # 1. the room script
+check_js(os.path.join(ROOT, 'filing_office.js'))
 script_url,_ = put_asset(os.path.join(ROOT,'filing_office.js'), 'js')
 model_url,_  = put_asset(os.path.join(ROOT,'empty.glb'), 'glb')
 

@@ -56,7 +56,7 @@ function panel(w,h,size,pos,rotY,bg,border){
   const u=app.create('ui')
   u.space='world'; u.width=w; u.height=h; u.size=size
   u.backgroundColor=bg; u.borderColor=border; u.borderWidth=6; u.borderRadius=12
-  u.padding=24; u.flexDirection='column'; u.lit=false; u.doubleside=true
+  u.padding=24; u.flexDirection='column'; u.lit=false; u.doubleside=false
   u.position.set(pos[0],pos[1],pos[2]); if(rotY) u.rotation.y=rotY
   app.add(u); return u
 }
@@ -184,7 +184,6 @@ for (const c of CAST) {
   // people stop at, and standing in front of the one you want is its own
   // explanation. The avatars are generated and gitignored, so a statue with
   // no model behind it simply keeps quiet rather than offering a dead button.
-  const url = props[c.av] && props[c.av].url
   if (url) {
     const a = app.create('action')
     a.label = 'Play as ' + c.label
