@@ -30,6 +30,10 @@ def put(path, ext):
 
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['safe', 'chest', 'coinPile', 'pedestal', 'lantern']
 con = sqlite3.connect(DB)
 
 check_js(os.path.join(ROOT, 'vault.js'))
@@ -40,8 +44,8 @@ gold   = put(os.path.join(ROOT, 'gold_cat.png'), 'png')
 BP = 'cashcats-vault'
 bp = {'id': BP, 'version': 1, 'name': 'The Vault', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
-      'props': dict(texprops.props(), **texprops.gear(), **{'gold': {'type': 'image', 'name': 'gold_cat.png', 'url': gold}}),
-      'preload': True, 'public': False, 'locked': False, 'frozen': False,
+      'props': dict(texprops.props(), **texprops.gear(GEAR), **{'gold': {'type': 'image', 'name': 'gold_cat.png', 'url': gold}}),
+      'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
             (BP, json.dumps(bp), now, now))

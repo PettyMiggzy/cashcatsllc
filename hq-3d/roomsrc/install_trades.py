@@ -24,6 +24,10 @@ def put(path, ext):
 
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['fishPerch', 'fishCarp', 'fishTrout', 'fishBass', 'fishEel', 'fishTuna', 'fishGold', 'rodWood', 'rodSilver', 'rodGold', 'pickaxe', 'basket', 'oreChunk', 'barrel']
 con = sqlite3.connect(DB)
 
 check_js(os.path.join(ROOT, 'trades.js'))
@@ -36,7 +40,7 @@ BP = 'cashcats-trades'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — the Trades',
       'image': None, 'author': None, 'url': None, 'desc': None,
       'model': model, 'script': script,
-      'props': dict(texprops.props(), **texprops.models(), **texprops.gear()),
+      'props': dict(texprops.props(), **texprops.models(), **texprops.gear(GEAR)),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

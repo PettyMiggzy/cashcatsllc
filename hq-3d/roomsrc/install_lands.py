@@ -24,6 +24,10 @@ def put(path, ext):
 
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['fountain', 'bench', 'planter', 'planterRound', 'lamp', 'bin', 'bollard', 'signpost', 'well', 'trough', 'haystack', 'toolRack', 'fence', 'sack', 'crate', 'barrel', 'lantern', 'chest', 'basket', 'toolbox', 'anvil']
 con = sqlite3.connect(DB)
 
 check_js(os.path.join(ROOT, 'lands.js'))
@@ -36,7 +40,7 @@ BP = 'cashcats-lands'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — the Lands',
       'image': None, 'author': None, 'url': None, 'desc': None,
       'model': model, 'script': script,
-      'props': dict(texprops.props(), **texprops.models(), **texprops.gear()),
+      'props': dict(texprops.props(), **texprops.models(), **texprops.gear(GEAR)),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

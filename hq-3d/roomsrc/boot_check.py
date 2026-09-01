@@ -1,6 +1,10 @@
 """
 Boot the world headless and fail if any room's script crashed.
 
+Run it with the world server STOPPED, and run the installers with it stopped
+too: they rewrite world/db.sqlite, which the running server holds open, and a
+concurrent write to it takes the live server down mid-session.
+
 `node --check` proves a script parses. It does not prove the script runs, and
 the two failures that actually shipped in this build were both runtime:
 

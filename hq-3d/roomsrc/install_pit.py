@@ -45,7 +45,7 @@ BP = 'cashcats-pit'
 bp = {'id': BP, 'version': 1, 'name': 'The Pit', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
       'props': texprops.props(['paving', 'marbleFloor', 'wood']),
-      'preload': True, 'public': False, 'locked': False, 'frozen': False,
+      'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
             (BP, json.dumps(bp), now, now))

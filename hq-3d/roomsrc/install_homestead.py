@@ -30,6 +30,10 @@ def put(path, ext):
 
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['desk', 'chair', 'shelf', 'cabinet', 'sack', 'barrel', 'crate', 'planter', 'lantern']
 con = sqlite3.connect(DB)
 
 check_js(os.path.join(ROOT, 'homestead.js'))
@@ -38,8 +42,8 @@ model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-homestead'
 bp = {'id': BP, 'version': 1, 'name': 'The Homestead', 'image': None, 'author': None,
-      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.gear()),
-      'preload': True, 'public': False, 'locked': False, 'frozen': False,
+      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.gear(GEAR)),
+      'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
             (BP, json.dumps(bp), now, now))

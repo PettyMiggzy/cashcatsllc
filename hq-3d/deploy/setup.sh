@@ -172,6 +172,13 @@ python3 roomsrc/embed_tex.py 2>&1 | tail -3 || echo "    could not correct pack 
 echo "==> world"
 # The scripts are the source of truth for every room; the database is
 # disposable. Re-running refreshes each room in place.
+#
+# Stop the service first. The installers rewrite world/db.sqlite, which the
+# running server holds open — writing it underneath a live server takes that
+# server down mid-session, which is a rough way for a player to find out you
+# are deploying. It is coming down for the restart at the end of this block
+# anyway; this just does it in the right order.
+systemctl stop cashcats 2>/dev/null || true
 for s in install install_workshop install_homestead install_vault install_pit \
          install_lands install_trades install_campus install_brand; do
   python3 "roomsrc/$s.py" >/dev/null && echo "    $s"
@@ -187,8 +194,8 @@ if ! BOOT_CHECK_PORT=3199 python3 roomsrc/boot_check.py; then
   exit 1
 fi
 
-# blueprints are cached at boot, so the rooms just written need a restart
-systemctl restart cashcats
+# blueprints are cached at boot, so the rooms just written need a start
+systemctl start cashcats
 sleep 4
 systemctl --no-pager --lines=0 status cashcats | head -3 || true
 

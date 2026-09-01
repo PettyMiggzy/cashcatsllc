@@ -2,6 +2,10 @@ import hashlib, json, os, sqlite3, datetime
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['workbench', 'toolbox', 'anvil', 'toolRack', 'shelf', 'crate', 'barrel', 'lantern']
 ROOT=os.path.dirname(os.path.abspath(__file__)); HQ=os.path.dirname(ROOT)
 DB=os.path.join(HQ,'world','db.sqlite'); ASSETS=os.path.join(HQ,'world','assets')
 
@@ -35,8 +39,8 @@ gold  =put(os.path.join(ROOT,'gold_cat.png'),'png')
 BP='cashcats-workshop'
 bp={'id':BP,'version':1,'name':'The Workshop','image':None,'author':None,'url':None,'desc':None,
     'model':model,'script':script,
-    'props':dict(texprops.props(), **texprops.cast(), **texprops.gear(), **{'gold':{'type':'image','name':'gold_cat.png','url':gold}}),
-    'preload':True,'public':False,'locked':False,'frozen':False,'unique':False,
+    'props':dict(texprops.props(), **texprops.cast(), **texprops.gear(GEAR), **{'gold':{'type':'image','name':'gold_cat.png','url':gold}}),
+    'preload':False,'public':False,'locked':False,'frozen':False,'unique':False,
     'scene':False,'disabled':False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
             (BP,json.dumps(bp),now,now))

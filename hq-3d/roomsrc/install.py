@@ -30,6 +30,10 @@ def put_asset(path, ext):
 
 now = datetime.datetime.utcnow().isoformat()+'Z'
 import texprops
+
+# only the props this room actually places — a room that carries all 41
+# makes every one of them part of its download for no reason
+GEAR = ['cabinet', 'shelf', 'desk', 'chair', 'lantern', 'bin']
 con = sqlite3.connect(DB)
 
 # 1. the room script
@@ -52,13 +56,13 @@ blueprint = {
     'image': None, 'author': None, 'url': None, 'desc': None,
     'model': model_url,
     'script': script_url,
-    'props': dict(texprops.props(), **texprops.gear(), **{
+    'props': dict(texprops.props(), **texprops.gear(GEAR), **{
         'logo':       { 'type':'image', 'name':'cashcat.png',   'url': logo_url },
         'npcStamp':   { 'type':'image', 'name':'npc_stamp.png',   'url': npc_stamp_url },
         'npcFolders': { 'type':'image', 'name':'npc_folders.png', 'url': npc_folders_url },
         'npcCabinet': { 'type':'image', 'name':'npc_cabinet.png', 'url': npc_cabinet_url },
     }),
-    'preload': True,
+    'preload': False,
     'public': False,
     'locked': False,
     'frozen': False,

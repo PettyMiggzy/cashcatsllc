@@ -445,8 +445,10 @@ function ob(key, pos, rotY, height) { model(key, pos, rotY, height) }
  * the first thing anyone sees and it was bare paving. The fountain goes behind
  * the spawn mark, not on it. */
 ob('fountain', [0, 0, 21.2], 0, 3.0)
-prim('cylinder', [4.6, 4.6, 0.18], STONE, [0, Y + 0.04, 21.2], { rough: 0.9 })
-prim('cylinder', [4.2, 4.2, 0.10], '#2f6f86', [0, Y + 0.14, 21.2], { rough: 0.1, metal: 0.4 })
+// the apron under it, not a pond around it — the first cut was 9m across for
+// a 3m fountain and read as a grey stain on the plaza
+prim('cylinder', [2.6, 2.6, 0.16], STONE, [0, Y + 0.04, 21.2], { rough: 0.9 })
+prim('cylinder', [2.35, 2.35, 0.08], '#2f6f86', [0, Y + 0.13, 21.2], { rough: 0.1, metal: 0.4 })
 
 const RING = [[-6.4, 21.2], [6.4, 21.2], [0, 15.0], [-4.6, 25.2], [4.6, 25.2]]
 for (let i = 0; i < RING.length; i++) {
