@@ -63,7 +63,24 @@ def used_models():
     import texprops
     return set(os.path.basename(v) for v in texprops.MODELS.values())
 
-TILE = 2.4          # metres per repeat of the surface map
+TILE = 2.4          # metres per repeat of the surface map, in WORLD metres
+
+# The scale the room scripts hand model() for each kit.
+#
+# box_uv works in the model's own coordinates. A tile size in those units only
+# comes out at TILE metres in the world if it is divided by the scale the model
+# is actually placed at, and every one of these kits is placed at something
+# other than 1. fantasy-town's walls go down at 2.7, so a 2.4m stucco tile was
+# arriving 6.5m wide -- a grain three storeys tall, which on a two-storey
+# cottage is the same as having no grain at all. That is most of why the
+# surfacing pass read as "still flat" on the village.
+PLACE = {
+    'fantasy-town-kit':    2.7,    # TOWN in lands.js, on 15 of its 22 placements
+    'pirate-kit':          1.5,    # PIR
+    'modular-cave-kit':    1.0,    # authored at real scale
+    'city-kit-commercial': 15.0,   # CITY_S 10 x 1.5-2.2, the 125m skyline ring
+    'city-kit-industrial': 15.0,
+}
 SCALE = 1.6         # normal strength. 0.85 was there and you had to look for it
 
 # Which surface a model gets, by what its filename says it is. A roof wants
@@ -91,7 +108,7 @@ MARK = 'ccl_bumped'
 # nothing says so. embed_tex.sweep_stale() is the only thing that can repair
 # that, because repairing means refetching the pristine pack, so it reads this
 # number. Bump it whenever the surfacing should reach existing boxes.
-BUMP = 1
+BUMP = 2
 
 
 def read_glb(path):
@@ -157,7 +174,7 @@ def add_image(js, bin_, path):
     return len(js['textures']) - 1, bin_
 
 
-def box_uv(pos, nrm):
+def box_uv(pos, nrm, div):
     """Project onto the plane the normal points least along."""
     ax, ay, az = abs(nrm[0]), abs(nrm[1]), abs(nrm[2])
     if ay >= ax and ay >= az:      # floor or roof
@@ -166,10 +183,10 @@ def box_uv(pos, nrm):
         u, v = pos[2], pos[1]
     else:                          # facing along Z
         u, v = pos[0], pos[1]
-    return u / TILE, v / TILE
+    return u / div, v / div
 
 
-def bump(path):
+def bump(path, div=TILE):
     js, bin_ = read_glb(path)
     if not js or js.get('extras', {}).get(MARK):
         return False
@@ -190,7 +207,7 @@ def bump(path):
                 continue
             pos = read_vec3(js, bin_, at['POSITION'])
             nrm = read_vec3(js, bin_, at['NORMAL'])
-            uvs = [box_uv(p, n) for p, n in zip(pos, nrm)]
+            uvs = [box_uv(p, n, div) for p, n in zip(pos, nrm)]
             ai, bin_ = add_accessor(js, bin_, uvs)
             at['TEXCOORD_1'] = ai
             touched = True
@@ -225,6 +242,8 @@ def main():
         d = os.path.join(PACKS, kit)
         if not os.path.isdir(d):
             print('  %-24s not fetched' % kit); continue
+        # model units per world tile
+        div = TILE / PLACE.get(kit, 1.0)
         n = 0
         for f in sorted(os.listdir(d)):
             if not f.endswith('.glb') or f not in USED:
@@ -232,7 +251,7 @@ def main():
             if dry:
                 n += 1; continue
             try:
-                if bump(os.path.join(d, f)):
+                if bump(os.path.join(d, f), div):
                     n += 1
             except Exception as e:
                 print('    ! %s: %s' % (f, str(e)[:70]))
