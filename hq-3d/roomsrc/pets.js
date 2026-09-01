@@ -207,6 +207,18 @@ function text(parent, val, px, color, weight, mt) {
   if (mt) t.margin = [mt, 0, 0, 0]
   parent.add(t); return t
 }
+/*
+ * One node per line, because a newline is not a line break here.
+ *
+ * UIText paints by splitting on ' ' and re-joining, then drawing each wrapped
+ * line with one fillText — so a \n is never a break, it is a character glued
+ * inside a word, and canvas draws it as nothing. Every multi-line value in
+ * this file was rendering as one run-on smear.
+ */
+function lines(parent, arr, px, color, weight, gap) {
+  return arr.map((v, i) => text(parent, v, px, color, weight, i ? (gap || 4) : 0))
+}
+
 function comma(n) {
   const s = String(Math.floor(n)); let out = ''
   for (let i = 0; i < s.length; i++) {
@@ -335,10 +347,29 @@ const npNote = text(nameplate, '', 24, DIM, 400, 4)
 const board = panel(5.2, 4.6, 0.0062, [BX - 15, 3.0, BZ + 14], Math.PI + 0.5,
                     'rgba(14,20,17,0.92)', LIME)
 text(board, 'THE CHIBI RATING', 40, LIME, 800)
-const bdRule = text(board, '', 24, CREAM, 400, 10)
+// Built in place, in reading order — every line is its own node because the
+// engine does not break on \n (see lines()).
+lines(board, [
+  'Swing at a boss even once and you are on the list.',
+  'A miss counts. Zero damage counts.',
+  'Beat it and its chibi is yours, guaranteed, once.',
+  'Chests go to everyone in the ring either way.',
+  '',
+  'A chibi in your bag scores nothing.',
+  'Land, then a house, then a shelf, then display it.',
+], 24, CREAM, 400)
 const bdYou  = text(board, '', 26, GOLD_L, 700, 10)
-const bdList = text(board, '', 22, DIM, 400, 8)
-const bdSix  = text(board, '', 20, DIM, 400, 12)
+// the owned/displayed sheet, one node per boss, filled from the server
+const bdList = lines(board, new Array(BOSSES.length + 2).fill(''), 22, DIM, 400)
+lines(board, [
+  'One of six ratings',
+  '  Chibi ....... here',
+  '  Cosmetic .... the House Vault, at the Homestead',
+  '  Equipment ... awaiting spec',
+  '  Side-Quest .. awaiting spec',
+  '  Mini-games .. awaiting spec',
+  '  Flora ....... awaiting spec',
+], 20, DIM, 400)
 
 /*
  * The six. Ahmad: "Equipment, Cosmetic, Side-Quest, Mini-games, Chibi and
@@ -350,22 +381,6 @@ const bdSix  = text(board, '', 20, DIM, 400, 12)
  * the other five later. Nothing here invents a number for a rating that has
  * not been specified: unspecified says unspecified.
  */
-bdSix.value =
-  'One of six ratings\n' +
-  '  Chibi ....... here\n' +
-  '  Cosmetic .... the House Vault, at the Homestead\n' +
-  '  Equipment ... awaiting spec\n' +
-  '  Side-Quest .. awaiting spec\n' +
-  '  Mini-games .. awaiting spec\n' +
-  '  Flora ....... awaiting spec'
-
-bdRule.value =
-  'Swing at a boss even once and you are on the list.\n' +
-  'A miss counts. Zero damage counts.\n' +
-  'Beat it and its chibi is yours, guaranteed, once.\n' +
-  'Chests go to everyone in the ring either way.\n' +
-  '\nA chibi in your bag scores nothing.\n' +
-  'Land, then a house, then a shelf, then display it.'
 const bdShelf = text(board, '', 22, CREAM, 600, 10)
 
 /* ------------------------------------------------------------------ *
@@ -414,10 +429,19 @@ if (!isServer) {
           ? ('Shelves: ' + d.sh + '   ·   ' + d.sn + ' of ' + d.sl + ' slots filled')
           : 'No shelf yet — buy one to display anything. ' + d.c + ' chests in hand.')
     bdShelf.color = d.house && d.sh ? CREAM : GOLD_L
-    bdList.value = (d.d
-      ? ('House upkeep below 80% — Chibi Rating cut 5% (' +
-         comma(d.b) + ' → ' + comma(d.r) + '). Repair it at the Homestead.\n\n')
-      : '') + (d.l || 'No chibis yet. Go and hit something.')
+    // bdList is a fixed pool of line nodes, filled and blanked rather than
+    // rebuilt, because the server pushes this on every kill and chest.
+    const rows = []
+    if (d.d) {
+      rows.push('House upkeep below 80% — Chibi Rating cut 5%')
+      rows.push('(' + comma(d.b) + ' → ' + comma(d.r) + '). Repair it at the Homestead.')
+      rows.push('')
+    }
+    for (const r of (d.l && d.l.length ? d.l : ['No chibis yet. Go and hit something.'])) rows.push(r)
+    for (let i = 0; i < bdList.length; i++) {
+      bdList[i].value = rows[i] || ''
+      bdList[i].color = (d.d && i < 2) ? RED : DIM
+    }
     dress(d.s || [])
     shelfSub.value = !d.house
       ? 'raise a house first'
@@ -525,7 +549,7 @@ if (isServer) {
       rows.push((up ? '[on shelf] ' : '[in bag]   ') + b.name +
                 '  (' + TIER[b.tier].name + ', ' + (up ? '+' : 'worth ') + TIER[b.tier].rating + ')')
     }
-    return rows.join('\n')
+    return rows          // an array: the client draws one node per line
   }
   const sendYou = pid => {
     const p = world.getPlayer(pid); if (!p) return

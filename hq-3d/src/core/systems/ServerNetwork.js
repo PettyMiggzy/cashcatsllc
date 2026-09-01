@@ -627,15 +627,39 @@ export class ServerNetwork extends System {
     })
   }
 
+  /*
+   * These three move, shove and re-skin whoever the payload names, and the
+   * server was relaying them to any target for any sender. The receiving
+   * client applies a teleport unconditionally and then reports the new
+   * position back as its own, so one player could drag another anywhere —
+   * including out of the Vault, or into it, or repeatedly into a wall.
+   *
+   * Apps legitimately teleport the player who triggered them (the Pit's lift,
+   * the Vault door), and that is always the sender moving themselves. Anything
+   * aimed at somebody else is a builder's business.
+   */
+  #mayTarget(socket, data) {
+    return data?.networkId === socket.id || socket.player?.isBuilder()
+  }
+
   onPlayerTeleport = (socket, data) => {
+    if (!this.#mayTarget(socket, data)) {
+      return console.error('player attempted to teleport another player')
+    }
     this.sendTo(data.networkId, 'playerTeleport', data)
   }
 
   onPlayerPush = (socket, data) => {
+    if (!this.#mayTarget(socket, data)) {
+      return console.error('player attempted to push another player')
+    }
     this.sendTo(data.networkId, 'playerPush', data)
   }
 
   onPlayerSessionAvatar = (socket, data) => {
+    if (!this.#mayTarget(socket, data)) {
+      return console.error('player attempted to change another player\'s avatar')
+    }
     this.sendTo(data.networkId, 'playerSessionAvatar', data.avatar)
   }
 

@@ -63,8 +63,17 @@ model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-campus'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — Campus', 'image': None, 'author': None,
-      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.cast(), **texprops.avatars(),
-                    **texprops.models()),
+      'url': None, 'desc': None, 'model': model, 'script': script, # Only what campus.js names, because this blueprint is preload:True and
+      # therefore the thing a player waits on before they can move. It was
+      # shipping every texture, every portrait and all ~134 pack models — 27MB
+      # for a plaza that draws thirteen of them and one texture. The portraits
+      # (texprops.cast) are not referenced here at all; the five avatars are,
+      # by the CAST table's av: field.
+      'props': dict(texprops.props(['paving']),
+                    **texprops.avatars(),
+                    **texprops.models(['m_bldA', 'm_bldB', 'm_bldC', 'm_bldD', 'm_bldE',
+                                       'm_towerA', 'm_towerB', 'm_towerC',
+                                       'm_lamp', 'm_tree', 'm_treeB', 'm_pine', 'm_bush'])),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

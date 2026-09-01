@@ -511,7 +511,12 @@ if (isServer) {
     if (L.onLine && (L.bait[L.onLine] || 0) > 0) {
       bait = baitByKey(L.onLine)
       L.bait[L.onLine] -= 1
-      if (L.bait[L.onLine] <= 0) delete L.bait[L.onLine]
+      // Clear the pointer with the last one, or it keeps naming a bait you no
+      // longer own. `if (!L.onLine)` is what puts the next purchase on the
+      // line, so a stale pointer means buying a different kind silently does
+      // nothing — and since the bait branch never runs again, the flat 0.5%
+      // Gold Cash Cat roll the spec promises quietly stops happening too.
+      if (L.bait[L.onLine] <= 0) { delete L.bait[L.onLine]; L.onLine = null }
     }
     const f = rollFish(rodTier(L), bait)
     L.fish += 1
@@ -573,13 +578,28 @@ if (isServer) {
     const need = Math.max(1, seam.hits - PICKS[pickTier(L)].off)
     st.left = Math.min(st.left, need)
     st.left -= 1
+    /*
+     * Pay per swing, not on the last one.
+     *
+     * A vein's progress is one shared number for the whole server, and the
+     * whole seam.v went to whoever happened to land the killing blow. So four
+     * people chipping a vein down and a fifth walking up to tap it once meant
+     * the fifth took everything and the four got nothing at all — and ore
+     * gates the Silver Rod, so it is not a rounding matter.
+     *
+     * Splitting by contribution needs a per-vein ledger of who hit what;
+     * paying each swing its share gets the same answer for anyone who works a
+     * vein alone, gives a thief exactly one swing's worth, and needs no state.
+     */
+    grant(L, Math.round(seam.v / seam.hits))
     if (st.left > 0) {
       app.sendTo(pid, 'chip', { left: st.left, name: seam.name })
+      touch()
+      pushYou(pid, L)
     } else {
       st.backAt = now() + RESEAM
       st.left = seam.hits
       L.ore += 1
-      grant(L, seam.v)
       touch()
       app.sendTo(pid, 'ore', { name: seam.name, v: seam.v })
       pushYou(pid, L)
