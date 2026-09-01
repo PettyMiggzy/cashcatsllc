@@ -431,7 +431,10 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
  * as it rises, jittered along its length so the top line wanders, and warm
  * enough to sit beside the tan of the cave-kit arch.
  */
-const ROCK = '#6f5f4c', ROCK_D = '#5b4d3e', ROCK_L = '#83705a'
+// Lighter than they look on paper: the soil texture multiplies these down, and
+// the first cut came out near-black against a grey floor. Paving reads as cut
+// stone, which is what a worked face is.
+const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
 for (let i = 0; i < 16; i++) {
   const x = SX + (i - 7.5) * 3.0
   const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)      // a ragged skyline to the rock
@@ -441,7 +444,7 @@ for (let i = 0; i < 16; i++) {
     const z = SZ - 12.5 - c * 1.9 + rr(-0.4, 0.4)
     prim('box', [w, 3.5, d], c === 0 ? ROCK : (c === 1 ? ROCK_L : ROCK_D),
          [x + rr(-0.35, 0.35), c * 3.2 + 1.75, z],
-         { tex: 'soil', rough: 1.0, rotY: rr(-0.09, 0.09), physics: 'static' })
+         { tex: 'paving', rough: 1.0, rotY: rr(-0.09, 0.09), physics: 'static' })
   }
 }
 // spoil banked against the foot of the face, so rock does not meet floor at a
@@ -449,7 +452,7 @@ for (let i = 0; i < 16; i++) {
 for (let i = 0; i < 14; i++)
   prim('box', [rr(2.0, 3.6), rr(1.0, 2.2), rr(1.8, 3.0)], i % 2 ? ROCK_D : ROCK,
        [SX + rr(-22, 22), rr(0.4, 0.9), SZ - 9.5 + rr(-1.2, 1.6)],
-       { tex: 'soil', rough: 1.0, rotY: rr(0, 6.28) })
+       { tex: 'paving', rough: 1.0, rotY: rr(0, 6.28) })
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)
@@ -463,14 +466,13 @@ model('c_ladder', [SX + 5.6, 0, SZ - 8], 0, 1.4)
 /* spoil heaps, ore boulders and the carts that move them */
 // rock_* and stone_* are two different palettes in this kit — stone is nearly
 // white and under this sky it read as snow scattered round a quarry.
-// A handful of pale boulders reads as quarried stone waiting to be carted.
-// Two dozen at terrain scale read as an avalanche.
-for (let i = 0; i < 7; i++)
-  model(pick(['n_rockTallA', 'n_rockLgB']),
-        [SX + rr(-18, 18), 0, SZ + rr(-4, 8)], rr(0, 6.28), NAT * rr(0.28, 0.5))
-for (let i = 0; i < 9; i++)
-  prim('box', [rr(0.8, 1.6), rr(0.5, 1.1), rr(0.7, 1.4)], i % 2 ? ROCK : ROCK_D,
-       [SX + rr(-18, 18), 0.35, SZ + rr(-5, 8)], { tex: 'soil', rough: 1.0, rotY: rr(0, 6.28) })
+// No kit boulders at all. Even one of them glows white next to cut stone, and
+// the whole reason the face is prims is that the kit has no rock colour.
+for (let i = 0; i < 16; i++)
+  prim('box', [rr(0.8, 1.9), rr(0.5, 1.3), rr(0.7, 1.6)],
+       i % 3 === 0 ? ROCK_L : (i % 3 === 1 ? ROCK : ROCK_D),
+       [SX + rr(-19, 19), 0.35, SZ + rr(-5, 8)],
+       { tex: 'paving', rough: 1.0, rotY: rr(0, 6.28) })
 model('t_cart',     [SX - 8, 0, SZ + 3], 0.9, TOWN)
 model('t_cartHigh', [SX + 9, 0, SZ + 5], -1.3, TOWN)
 model('t_lantern',  [SX - 4, 0, SZ - 5], 0, TOWN)
