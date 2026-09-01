@@ -430,10 +430,25 @@ def sweep_stale():
 
 def main(only):
     _need_pillow()
-    if not only and sweep_stale():
-        import subprocess
-        subprocess.run([sys.executable, os.path.join(ROOT, 'fetch_packs.py')],
-                       cwd=ROOT, check=False)
+    if not only:
+        gone = sweep_stale()
+        if gone:
+            # This deletes packs before refetching them, so the refetch is not
+            # optional and its failure is not survivable — a dropped download
+            # here leaves the world with no models at all, and the installers
+            # and boot check downstream would both report success on top of
+            # that. Check the exit code AND that each pack actually came back.
+            import subprocess
+            r = subprocess.run([sys.executable, os.path.join(ROOT, 'fetch_packs.py')],
+                               cwd=ROOT, check=False)
+            missing = [p for p in gone if not os.path.isdir(os.path.join(PACKS, p))]
+            if r.returncode != 0 or missing:
+                raise SystemExit(
+                    'refetch failed after clearing stale packs: %s\n'
+                    'The packs were removed to re-apply the material pipeline and did '
+                    'not come back. Refusing to continue — installing now would '
+                    'publish a world with no models in it.'
+                    % (', '.join(missing) or 'fetch_packs exited %d' % r.returncode))
     cache = {}
     total = 0
     for pack in sorted(os.listdir(PACKS)):

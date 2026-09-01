@@ -65,6 +65,7 @@ const VIEWS = {
   // off-axis: dead centre at z=56 puts the lens directly behind the scratching
   // post, which then fills the frame and the park is a photo of a pole.
   catpark:   [ -14, 0,  46, 200, -26, 28],
+  boss:      [   0, 0, -34,   0,  -8, 16],
   boxyard:   [ -17, 0,  52, 180,  -8, 10],
   camp:      [  47, 0, -18,   0, -22, 22],
   quay:      [ -47, 0,  33, 180, -18, 22],

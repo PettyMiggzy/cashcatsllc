@@ -40,9 +40,19 @@ apt-get install -y -qq git curl python3 python3-pil nginx certbot python3-certbo
 
 echo "==> node $NODE"
 if [ "$(/opt/node/bin/node -v 2>/dev/null || true)" != "v$NODE" ]; then
-  rm -rf /opt/node && mkdir -p /opt/node
-  curl -fsSL "https://nodejs.org/dist/v$NODE/node-v$NODE-linux-x64.tar.xz" \
-    | tar -xJ -C /opt/node --strip-components=1
+  # Stage, then swap. This used to delete the working runtime and then start
+  # the download, so a dropped connection left the box with no node at all —
+  # and no node means this script cannot build, cannot install, and cannot be
+  # re-run to repair itself. Extract beside it and move only once the tarball
+  # is fully unpacked.
+  rm -rf /opt/node.new && mkdir -p /opt/node.new
+  if curl -fsSL "https://nodejs.org/dist/v$NODE/node-v$NODE-linux-x64.tar.xz" \
+      | tar -xJ -C /opt/node.new --strip-components=1; then
+    rm -rf /opt/node && mv /opt/node.new /opt/node
+  else
+    rm -rf /opt/node.new
+    echo "    node $NODE download failed — keeping the runtime already installed"
+  fi
 fi
 # Kept in /opt and deliberately NOT symlinked into /usr/local/bin. This box
 # may already run other services on their own node, and putting ours ahead
@@ -143,7 +153,11 @@ chmod 600 "$DIR/hq-3d/deploy/secrets/world.txt"
 # tier 'vip', which makes the Vault guard skip everyone. A visitor holding no
 # $CASHCATSLLC could walk into the ten-million-token room and nothing in the
 # logs would say why.
-if [ -n "$NEW_ENV" ]; then
+# "$NEW_ENV" = "1", not -n. NEW_ENV is 0 or 1, and -n "0" is TRUE — a
+# non-empty string — so this fired on every single deploy and reset
+# GATE_ENABLED to 0 each time, quietly reopening the Vault to everyone on a
+# world that had been closed. Line 297 already had it right.
+if [ "$NEW_ENV" = "1" ]; then
   grep -q '^GATE_ENABLED=' .env && sed -i "s|^GATE_ENABLED=.*|GATE_ENABLED=0|" .env \
                                 || echo "GATE_ENABLED=0" >> .env
 fi

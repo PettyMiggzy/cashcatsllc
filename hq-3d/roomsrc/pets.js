@@ -304,13 +304,26 @@ function dress(keys) {
   }
 }
 
-/* the boss stands on the middle. one group per boss in the rota, all hidden
- * until the server says which is up — swapping a model at runtime means a
- * load every spawn, and the load is what you would see. */
+/*
+ * The boss stands on the middle. One group per boss in the rota, all hidden
+ * until the server says which is up — swapping a model at runtime means a load
+ * every spawn, and the load is what you would see.
+ *
+ * BOSS_S is the display scale and it must never be 0. It was, and the whole
+ * bestiary was invisible: model() applies its scale argument to the LOADED
+ * CHILD inside the promise, while paint() toggles the GROUP, so a boss that
+ * was up composed 1 x 0 and rendered nothing. Everything else worked — the
+ * health bar, the swing, the credit list, the chests — which is exactly why
+ * it survived: the fight was fine, there was just no animal in it.
+ *
+ * Hiding is the group's job, only ever the group's. dress() a few lines down
+ * does it correctly and was the proof this was wrong.
+ */
+const BOSS_S = 5.0
 const rig = {}
 for (const b of WORLD_ROTA) {
-  const g = model(b.model, [BX, 0.2, BZ], 0, 0)
-  if (g) rig[b.key] = g
+  const g = model(b.model, [BX, 0.2, BZ], 0, BOSS_S)
+  if (g) { g.scale.set(0, 0, 0); rig[b.key] = g }
 }
 
 const nameplate = panel(7.0, 1.9, 0.006, [BX, 7.2, BZ + FIGHT_R - 3], Math.PI,

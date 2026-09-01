@@ -510,6 +510,25 @@ export class ServerNetwork extends System {
     const entity = this.world.entities.get(data.id)
     if (!entity) return console.error('onEntityModified: no entity found', data)
     /*
+     * Apps are builder property.
+     *
+     * Every sibling handler gates on isBuilder — blueprintAdded, entityAdded,
+     * entityRemoved, settingsModified, spawnModified — and this one did not.
+     * App.modify honours blueprint, position, quaternion, scale, pinned and
+     * state straight off the wire, the change is rebroadcast to everyone and
+     * then written to the entities table, so it survives a restart. Every app
+     * id ships in the join snapshot, so any player had the ids to hand: the
+     * Vault, the arena, the whole world was movable, rescalable and
+     * repointable by anyone who connected.
+     *
+     * Everything that legitimately sends this for an app — ClientBuilder, the
+     * sidebar, App.onUploaded — is already a builder-only path, so nothing
+     * real loses a capability here.
+     */
+    if (entity.isApp && !socket.player?.isBuilder()) {
+      return console.error('player attempted to modify an app without builder permission')
+    }
+    /*
      * A client may not modify itself into an admin.
      *
      * This handler applied whatever the socket sent straight through to

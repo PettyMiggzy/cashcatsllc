@@ -127,6 +127,11 @@ if (world.assetsDir) {
       // all assets are hashed & immutable so we can use aggressive caching
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable') // 1 year
       res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString()) // older browsers
+      // Never let a browser guess the type of something a stranger uploaded.
+      // These are served from the world's own origin, which is where the auth
+      // token and the Vault pass live, so a file sniffed as HTML is XSS with
+      // the credentials already in reach.
+      res.setHeader('X-Content-Type-Options', 'nosniff')
     },
   })
 }
@@ -260,13 +265,20 @@ console.log(`[gate] holder gate ${GATE_ENABLED ? 'ENABLED' : 'DISABLED — the V
 
 console.log(`server listening on port ${port}`)
 
-// Graceful shutdown
+// Graceful shutdown.
+//
+// storage.flush() before the exit, not after: writes are throttled with a
+// trailing edge, so without this the last second of everything anyone earned
+// sits in a pending timer that process.exit throws away. A deploy restarts
+// this four times.
 process.on('SIGINT', async () => {
   await fastify.close()
+  storage.flush()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
   await fastify.close()
+  storage.flush()
   process.exit(0)
 })

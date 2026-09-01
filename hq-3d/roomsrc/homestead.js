@@ -353,6 +353,12 @@ const aBuild = action('',[-4.6,BY,5.6],()=>{
   if(s.timber < HOUSE_COST){ lRepH.value = 'Raise a house: '+HOUSE_COST+' timber (not enough)'; return }
   s.timber -= HOUSE_COST
   s.house = true
+  // Tell the server the house exists. Without this the Chibi Rating is
+  // structurally zero for everyone: pets.js gates displaying a chibi on
+  // hasHouse(), which reads ccl.house.v1, and nothing wrote that key until a
+  // harvest or an upkeep payment — neither of which you can reach before you
+  // have built. Raise a house, and the shelf still says you have not.
+  publish()
   render()
 })
 

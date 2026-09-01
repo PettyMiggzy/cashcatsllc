@@ -37,8 +37,27 @@ def _open(url, timeout=90):
 
 
 def _save(url, dst):
-    with _open(url, 300) as r, open(dst, 'wb') as f:
-        f.write(r.read())
+    """
+    Download beside the target, then move it into place.
+
+    `open(dst, 'wb')` truncates before a single byte arrives, so a transfer
+    that drops — and this is a 6MB HDRI over a residential link — left the
+    committed sky as a zero-length file. setup.sh's fallback says "the
+    committed one is used", which was only true because nothing had gone
+    wrong yet: the failure path had already destroyed the thing it falls back
+    to. Writing to .part and renaming makes that message honest.
+    """
+    tmp = dst + '.part'
+    try:
+        with _open(url, 300) as r, open(tmp, 'wb') as f:
+            f.write(r.read())
+        os.replace(tmp, dst)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 # Warm, low sun, clean horizon — it suits the brand's gold and reads well
 # behind the cream buildings without fighting them.
