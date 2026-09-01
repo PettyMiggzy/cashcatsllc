@@ -192,18 +192,21 @@ MODELS = {
     'n_blocks':    'nature-kit/tree_blocks.glb',
 
     # The Seam — mining (nature-kit cliffs, x3.4; cave kit is already metres).
-    # _stone, not _rock. The rock_* and cliff_*_rock models carry an unassigned
-    # `_defaultMat` at pure white for the rock body itself — an authoring gap in
-    # the kit — so a quarry built from them is a quarry made of snow. The stone_*
-    # set has a real colour on it.
-    'n_cliff':       'nature-kit/cliff_block_stone.glb',
-    'n_cliffHalf':   'nature-kit/cliff_blockHalf_stone.glb',
-    'n_cliffSlope':  'nature-kit/cliff_blockSlope_stone.glb',
-    'n_cliffCave':   'nature-kit/cliff_cave_stone.glb',
-    'n_cliffCnr':    'nature-kit/cliff_corner_stone.glb',
-    'n_rockTallA':   'nature-kit/stone_tallA.glb',
-    'n_rockTallD':   'nature-kit/stone_tallD.glb',
-    'n_rockLgB':     'nature-kit/stone_largeB.glb',
+    #
+    # _rock, not _stone. I swapped these to the stone set when the cliffs looked
+    # white, then found the real cause — the render predated the sRGB colour
+    # fix — reverted the code that places them, and left this mapping pointing
+    # at the wrong models for two more rounds. cliff_*_rock is a warm brown
+    # 'dirt' with 'grass' along the top, which is what a quarry lip looks like;
+    # _stone is #b7e2e7, a pale blue, which is what kept coming back white.
+    'n_cliff':       'nature-kit/cliff_block_rock.glb',
+    'n_cliffHalf':   'nature-kit/cliff_blockHalf_rock.glb',
+    'n_cliffSlope':  'nature-kit/cliff_blockSlope_rock.glb',
+    'n_cliffCave':   'nature-kit/cliff_cave_rock.glb',
+    'n_cliffCnr':    'nature-kit/cliff_corner_rock.glb',
+    'n_rockTallA':   'nature-kit/rock_tallA.glb',
+    'n_rockTallD':   'nature-kit/rock_tallD.glb',
+    'n_rockLgB':     'nature-kit/rock_largeB.glb',
     'n_stoneLgA':  'nature-kit/stone_largeA.glb',
     'n_stoneTall': 'nature-kit/stone_tallC.glb',
     'c_wall':      'modular-cave-kit/template-wall.glb',

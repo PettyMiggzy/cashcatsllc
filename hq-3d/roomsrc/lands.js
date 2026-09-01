@@ -35,6 +35,7 @@ const Y = 0.02
 const GOLD='#a9812a', GOLD_L='#e8c25a', CREAM='#e8f2ec', INK='#16150f'
 const DIM='#8fa39a', PAPER='#f4f0e3', GREEN='#1a7f4b'
 const SOIL='#5c4630', SAND='#d9c89a', WATER='#3f9dc4', WATER_D='#2b6f8f'
+const LIME='#2ecc71'
 const STONE='#cfc9b8', STONE_D='#a8a291', GRASS='#4f8f4a'
 
 /* ------------------------------------------------------------------ *
@@ -525,6 +526,214 @@ model('t_cartHigh', [SX + 9, 0, SZ + 5], -1.3, TOWN)
 model('t_lantern',  [SX - 4, 0, SZ - 5], 0, TOWN)
 model('t_lantern',  [SX + 4, 0, SZ - 5], 0, TOWN)
 for (let i = 0; i < 6; i++) model('n_pineB', [SX + rr(-21, 21), 0, SZ + rr(9, 15)], rr(0, 6.28), NAT * rr(0.9, 1.3))
+
+/* ------------------------------------------------------------------ *
+ * THE SEAM — the camp that works it                                   *
+ * ------------------------------------------------------------------ */
+/*
+ * A rock face with a door in it is a set, not a workplace. What makes a quarry
+ * read is the mess around it: the huts the crew live in, the track the ore
+ * leaves on, spoil where spoil ends up, and tools left where someone put them
+ * down. All of it sits back from the face so the working ground stays clear.
+ */
+const CAMP_Z = SZ + 6
+
+/* the crew's huts, backs to the wind, facing the face */
+cottage(SX - 17, CAMP_Z + 3, 2, 2, -Math.PI / 2, true, 1)
+cottage(SX - 17, CAMP_Z + 10, 2, 2, -Math.PI / 2, true, 1)
+cottage(SX + 17, CAMP_Z + 6, 2, 3, Math.PI / 2, true, 1)
+
+/* the tramway out: sleepers, rails, and carts standing on it */
+for (let i = 0; i < 22; i++) {
+  const z = SZ - 8 + i * 1.5
+  prim('box', [4.6, 0.14, 0.34], '#5a4a3a', [SX, 0.07, z], { tex: 'wood', rough: 0.95 })
+}
+prim('box', [0.22, 0.16, 33], '#6b6357', [SX - 1.5, 0.2, SZ + 8], { metal: 0.6, rough: 0.45 })
+prim('box', [0.22, 0.16, 33], '#6b6357', [SX + 1.5, 0.2, SZ + 8], { metal: 0.6, rough: 0.45 })
+model('t_cart',     [SX, 0.25, SZ + 2],  0, TOWN)
+model('t_cartHigh', [SX, 0.25, SZ + 13], 0, TOWN)
+
+/* the sorting floor — ore out of the carts, graded, stacked */
+for (let i = 0; i < 5; i++) {
+  const x = SX + 6 + (i % 3) * 2.6, z = CAMP_Z + (i % 2) * 2.4
+  ob('crate', [x, 0, z], rr(0, 6.28), 1.0)
+}
+for (let i = 0; i < 7; i++)
+  prim('box', [rr(1.4, 2.4), rr(0.6, 1.2), rr(1.2, 2.0)], i % 2 ? ROCK_D : ROCK,
+       [SX - 9 + rr(-3, 3), 0.4, CAMP_Z + rr(-2, 5)], { tex: 'paving', rough: 1, rotY: rr(0, 6.28) })
+ob('anvil',   [SX + 12, 0, CAMP_Z + 1], -0.8, 0.9)
+ob('toolbox', [SX + 10.5, 0, CAMP_Z + 2.4], 0.4, 0.6)
+ob('barrel',  [SX - 13, 0, CAMP_Z + 1], 0.2, 1.05)
+ob('barrel',  [SX - 12, 0, CAMP_Z + 2.4], 1.1, 1.05)
+ob('bench',   [SX - 6, 0, CAMP_Z + 8], 0.0, 0.95)
+ob('bench',   [SX + 6, 0, CAMP_Z + 8], 0.0, 0.95)
+for (let i = 0; i < 4; i++) model('t_lantern', [SX - 12 + i * 8, 0, CAMP_Z + 5], 0, TOWN)
+model('n_campfire', [SX, 0, CAMP_Z + 9], 0, NAT * 0.9)
+prim('cone', [0.26, 0.62], '#ff7a2a', [SX, 0.34, CAMP_Z + 9], { emissive: '#ff9a3a', rough: 0.4 })
+
+/* ------------------------------------------------------------------ *
+ * THE DOCKS — a harbour front, not three jetties on open water        *
+ * ------------------------------------------------------------------ */
+/*
+ * The jetties worked and the water behind them was empty in every direction.
+ * A working waterfront has a back to it: a warehouse the catch goes into, a
+ * quay wall, a watchtower, and enough clutter on the boards that the place
+ * looks used between one player and the next.
+ */
+const QUAY_Z = SHORE_Z - 3
+
+/* the quay wall along the shore, so land meets water at an edge */
+for (let i = 0; i < 16; i++)
+  model('t_block', [DX - 26 + i * 3.6, 0, QUAY_Z + 1.6], 0, 2.4)
+
+/* the warehouse behind it */
+cottage(DX - 15, QUAY_Z - 6, 4, 3, Math.PI, true, 2)
+cottage(DX + 14, QUAY_Z - 5, 3, 2, Math.PI, true, 1)
+
+/* the watchtower at the head of the quay */
+model('p_towerBase', [DX + 23, 0, QUAY_Z - 1], -0.3, PIR)
+model('p_tower',     [DX + 23, 4.0, QUAY_Z - 1], -0.3, PIR)
+model('p_towerRoof', [DX + 23, 8.6, QUAY_Z - 1], -0.3, PIR)
+model('p_flag',      [DX + 23, 11.5, QUAY_Z - 1], -0.3, PIR * 0.8)
+
+/* clutter on the boards */
+for (let i = 0; i < 14; i++)
+  ob(pick(['crate', 'barrel', 'sack']), [DX + rr(-24, 24), 0, QUAY_Z + rr(-1, 3)], rr(0, 6.28), rr(0.85, 1.1))
+for (let i = 0; i < 6; i++)
+  model('p_crateBtl', [DX + rr(-20, 20), 0, QUAY_Z + rr(-2, 2)], rr(0, 6.28), PIR * SMALL)
+for (let i = 0; i < 8; i++) model('t_lantern', [DX - 21 + i * 6, 0, QUAY_Z + 2.6], 0, TOWN)
+ob('bench', [DX - 8, 0, QUAY_Z - 1.5], 0, 0.95)
+ob('bench', [DX + 8, 0, QUAY_Z - 1.5], 0, 0.95)
+
+/* ------------------------------------------------------------------ *
+ * the country between                                                 *
+ * ------------------------------------------------------------------ */
+/*
+ * Everything above is an island. Between them was mown meadow to the horizon,
+ * which is what made the world feel like four sets rather than one place.
+ * Hedgerows follow the roads out, copses break the middle distance, and dry
+ * stone runs along the field boundaries — cheap geometry doing the one job of
+ * making the space between destinations look like somewhere.
+ */
+function hedgerow(x1, z1, x2, z2, gap) {
+  const dx = x2 - x1, dz = z2 - z1
+  const len = Math.sqrt(dx * dx + dz * dz)
+  const n = Math.floor(len / (gap || 3.2))
+  const ang = Math.atan2(dx, dz)
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    model(i % 7 === 3 ? 'n_bushL' : 'n_fenceHigh',
+          [x1 + dx * t, 0, z1 + dz * t], ang + Math.PI / 2, NAT * rr(0.85, 1.05))
+  }
+}
+hedgerow(-34,   2, -62, -14)      // out to the Fields
+hedgerow(-30,  10, -58,  -6)
+hedgerow( 34,   2,  62, -14)      // out to the Seam
+hedgerow( 30,  10,  58,  -6)
+hedgerow(-34,  28, -60,  40)      // down to the Docks
+hedgerow( 34,  28,  60,  40)      // across to the Grove
+hedgerow(-70, -46, -70,  10, 4.0) // the western boundary
+hedgerow( 70, -46,  70,  10, 4.0)
+
+/* copses in the middle distance */
+const COPSE = [[-30, -40], [22, -42], [-64, 22], [64, 20], [-16, 62], [18, 66], [-56, -8], [56, -6]]
+for (let c = 0; c < COPSE.length; c++) {
+  const [cx, cz] = COPSE[c]
+  for (let i = 0; i < 9; i++) {
+    const a = i * 0.7 + c, r = rr(1.5, 6.5)
+    model(pick(['n_oak', 'n_fat', 'n_pineA', 'n_pineB']),
+          [cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r], rr(0, 6.28), NAT * rr(0.9, 1.4))
+  }
+  for (let i = 0; i < 4; i++)
+    model(pick(['n_bushL', 'n_stump', 'n_log']),
+          [cx + rr(-6, 6), 0, cz + rr(-6, 6)], rr(0, 6.28), NAT * rr(0.7, 1.1))
+}
+
+/* boulders and rough ground scattered wide, so the meadow is not a lawn */
+for (let i = 0; i < 44; i++) {
+  const a = (i / 44) * 6.2832, r = rr(38, 92)
+  model(pick(['n_rockLgB', 'n_stoneLgA', 'n_bushS', 'n_grassLeaf', 'n_rockTallA']),
+        [Math.sin(a) * r, 0, Math.cos(a) * r], rr(0, 6.28), NAT * rr(0.5, 1.0))
+}
+
+/* ------------------------------------------------------------------ *
+ * THE CAT PARK                                                        *
+ * ------------------------------------------------------------------ */
+/*
+ * Everything else in this world is a trade. This is the one ground that is not
+ * work, and the brief was to be creative with it, so it is built out of what
+ * cats actually do rather than what a park usually has.
+ *
+ *   THE BOX YARD    a yard of boxes. You sit in one. That is the whole
+ *                   activity and it is the most cat thing there is.
+ *   THE SUNBEAMS    warm patches on the flagstones. You nap in them. They move
+ *                   during the day, because that is the joke and also what
+ *                   sunbeams do.
+ *   THE HIGH SHELF  a ledge with pots on it, at the top of a climb. You knock
+ *                   them off. They come back.
+ *   THE POST        a scratching post the size of a monument.
+ *
+ * It sits just past the Vault, so it is the first thing you see if you spawn
+ * and turn round rather than walking into the office.
+ */
+const PX = 0, PZ = 56
+
+prim('box', [46, 0.22, 38], '#ffffff', [PX, Y - 0.11, PZ], { tex: 'paving', rough: 1.0 })
+for (let i = 0; i < 5; i++) prim('box', [46, 0.04, 0.3], STONE_D, [PX, Y + 0.01, PZ - 16 + i * 8])
+
+/* the gate in from the Vault side */
+for (const sx of [-1, 1]) {
+  model('t_block', [PX + sx * 5.5, 0, PZ - 18.5], 0, 2.0)
+  model('t_pillarS', [PX + sx * 5.5, 2.0, PZ - 18.5], 0, 4.0)
+}
+const gate = panel(4.2, 1.0, 0.005, [PX, 6.6, PZ - 18.6], Math.PI, 'rgba(14,26,20,0.92)', LIME)
+text(gate, 'THE CAT PARK', 54, LIME, 800)
+
+/* THE POST — a scratching post, monumentally */
+prim('cylinder', [1.5, 1.5, 0.5], STONE, [PX, 0.25, PZ + 2], { rough: 0.9, physics: 'static' })
+prim('cylinder', [1.05, 1.05, 7.5], '#8a6f4c', [PX, 4.0, PZ + 2], { tex: 'wood', rough: 1.0, physics: 'static' })
+prim('cylinder', [1.35, 1.35, 0.4], '#6b543a', [PX, 7.9, PZ + 2], { tex: 'wood', rough: 1.0 })
+for (let i = 0; i < 5; i++)
+  prim('box', [0.12, 1.4, 0.08], '#6b543a', [PX + Math.cos(i * 1.3) * 1.06, 2.5 + i * 0.9, PZ + 2 + Math.sin(i * 1.3) * 1.06],
+       { rotZ: 0.25, rough: 1 })
+
+/* THE BOX YARD — boxes to sit in, at the west end */
+const BOXES = []
+for (let i = 0; i < 9; i++) {
+  const bx = PX - 17 + (i % 3) * 3.6, bz = PZ - 8 + Math.floor(i / 3) * 3.6
+  BOXES.push([bx, bz])
+  ob('crate', [bx, 0, bz], (i % 4) * 0.4, 1.35)
+}
+model('t_bannerGrn', [PX - 20, 0, PZ - 10], 0, TOWN)
+
+/* THE HIGH SHELF — a climb, and a ledge with things on it to knock off */
+const SHX = PX + 15
+prim('box', [7, 0.5, 7], STONE, [SHX, 0.25, PZ - 2], { tex: 'paving', rough: .9, physics: 'static' })
+for (let i = 0; i < 4; i++) {
+  const y = 1.6 + i * 1.9
+  const w = 5.4 - i * 0.7
+  prim('box', [w, 0.4, w], '#8a6f4c', [SHX + (i % 2 ? 0.9 : -0.9), y, PZ - 2 + (i % 2 ? -0.9 : 0.9)],
+       { tex: 'wood', rough: 1.0, physics: 'static' })
+}
+prim('box', [6.5, 0.35, 1.4], '#6b543a', [SHX, 9.4, PZ - 2], { tex: 'wood', rough: 1.0, physics: 'static' })
+model('c_ladder', [SHX - 3.6, 0, PZ - 2], 0, 2.4)
+
+/* benches, planters and a fountain, because it is still a park */
+ob('fountain', [PX, 0, PZ - 11], 0, 2.6)
+prim('cylinder', [2.3, 2.3, 0.16], STONE, [PX, Y + 0.04, PZ - 11], { rough: 0.9 })
+const PB = [[-7, -11], [7, -11], [-7, 8], [7, 8], [0, 13]]
+for (let i = 0; i < PB.length; i++) ob('bench', [PX + PB[i][0], 0, PZ + PB[i][1]], i < 2 ? 0 : Math.PI, 0.95)
+for (let i = 0; i < 6; i++) ob(i % 2 ? 'planterRound' : 'planter', [PX - 15 + i * 6, 0, PZ + 14], i * 0.7, i % 2 ? 2.2 : 1.1)
+for (let i = 0; i < 5; i++) ob('lamp', [PX - 16 + i * 8, 0, PZ + 11], 0, 4.4)
+for (let i = 0; i < 14; i++)
+  model(pick(['n_oak', 'n_fat', 'n_pineA']), [PX + rr(-22, 22), 0, PZ + rr(-18, 18)], rr(0, 6.28), NAT * rr(0.9, 1.2))
+for (let i = 0; i < 16; i++)
+  model(pick(['n_bushL', 'n_bushS', 'n_flowerY', 'n_flowerP', 'n_grassLeaf']),
+        [PX + rr(-21, 21), 0, PZ + rr(-17, 17)], rr(0, 6.28), NAT * rr(0.7, 1.1))
+
+/* a road from the plaza round the Vault to the park gate */
+road(-12, 26, -12, 44, 5)
+road(-12, 44, PX - 2, 52, 5)
 
 /* ------------------------------------------------------------------ *
  * the dedication                                                      *
