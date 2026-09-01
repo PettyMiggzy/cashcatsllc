@@ -380,7 +380,10 @@ if (!isServer) {
   const spotUI = [], spotAct = []
   for (let i = 0; i < SPOTS.length; i++) {
     const s = SPOTS[i]
-    const u = panel(2.4, 0.9, 0.005, [s.x, s.y + 2.5, s.z - 1.2], Math.PI,
+    // You walk up the jetty in +Z, so a sign at z-1.2 is one you pass and then
+    // have at your back for the whole cast. Put it past the action, over the
+    // water, where standing on the spot means looking straight at it.
+    const u = panel(2.4, 0.9, 0.005, [s.x, s.y + 2.4, s.z + 1.8], Math.PI,
                     'rgba(10,26,34,0.88)', BLUE)
     text(u, s.name, 40, BLUE, 800)
     const st = text(u, 'Press E to cast', 26, CREAM, 400, 8)
