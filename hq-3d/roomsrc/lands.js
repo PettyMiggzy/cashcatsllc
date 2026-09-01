@@ -254,6 +254,23 @@ plot(FX -  2, FZ + 11, 3, 2, 'n_cornD')
 plot(FX + 11, FZ + 15, 2, 2, 'n_pumpkin')
 plot(FX - 16, FZ - 2,  2, 2, 'n_carrot')
 
+/* The board at the field gate. The Homestead building at [-22,0,0] is the deed
+ * office and these are the plots it sells; without something saying so, the
+ * office is a menu in a shed and the fields are scenery, and neither explains
+ * the other. Prices match PLOTS in homestead.js. */
+const fb = panel(4.4, 3.0, 0.0052, [FX - 1, 2.7, FZ + 20.4], Math.PI,
+                 'rgba(14,20,14,0.93)', '#7ac14a')
+text(fb, 'THE FIELDS', 46, '#7ac14a', 800)
+text(fb, 'Deeds and plots at the Homestead,', 22, CREAM, 400, 10)
+text(fb, 'back down the road on the plaza.', 22, CREAM, 400, 2)
+text(fb, 'Smallholding    2 beds      40,000', 21, DIM, 400, 14)
+text(fb, 'Farmstead       4 beds     120,000', 21, DIM, 400, 3)
+text(fb, 'Estate          6 beds     320,000', 21, DIM, 400, 3)
+text(fb, 'Beds set the harvest. Buildings wear', 20, CREAM, 400, 12)
+text(fb, 'out the same way gear does.', 20, CREAM, 400, 2)
+text(fb, 'Land burns $CASHCATSLLC. Nothing here pays any back.', 19, '#c9a94e', 700, 10)
+model('n_sign', [FX - 4.2, 0, FZ + 20.0], Math.PI, NAT * 1.1)
+
 /* the market row — where produce actually goes */
 const MKT = [['t_stallGrn', -6], ['t_stallRed', 0], ['t_stall', 6], ['t_stallGrn', 12]]
 for (let i = 0; i < MKT.length; i++) {

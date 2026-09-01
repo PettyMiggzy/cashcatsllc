@@ -48,10 +48,20 @@ const actions = () => page.evaluate(() => {
     d: Math.hypot(n.worldPos.x - p.x, n.worldPos.z - p.z),
   })).sort((a, b) => a.d - b.d).slice(0, 6)
 })
+// Fire the NEAREST action with this label, not the first one found. There are
+// three jetties and three actions all labelled 'Cast'; firing the first one
+// casts at a jetty you are not standing on, the server's reach check rejects
+// it, and the test sits there waiting for a bite that is never coming.
 const fire = label => page.evaluate(label => {
-  const n = (window.world.actions?.nodes || []).find(n => n._label === label)
-  if (!n) return false
-  n._onTrigger()
+  const p = window.world.rig.position
+  let best = null, bd = Infinity
+  for (const n of window.world.actions?.nodes || []) {
+    if (n._label !== label) continue
+    const d = Math.hypot(n.worldPos.x - p.x, n.worldPos.z - p.z)
+    if (d < bd) { bd = d; best = n }
+  }
+  if (!best) return false
+  best._onTrigger()
   return true
 }, label)
 
