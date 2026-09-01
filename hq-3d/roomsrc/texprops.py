@@ -94,3 +94,52 @@ def avatars():
             continue
         out[key] = {'type': 'avatar', 'name': fname, 'url': put(path, 'vrm')}
     return out
+
+
+# Models from the fetched CC0 packs (roomsrc/packs, see fetch_packs.py).
+# Keyed m_<name> so a script can say props.m_towerA.url without knowing which
+# pack it came from or what the file is called.
+MODELS = {
+    # the city that surrounds the campus
+    'm_bldA':   'city-kit-commercial/building-a.glb',
+    'm_bldB':   'city-kit-commercial/building-c.glb',
+    'm_bldC':   'city-kit-commercial/building-f.glb',
+    'm_bldD':   'city-kit-commercial/building-j.glb',
+    'm_bldE':   'city-kit-commercial/building-n.glb',
+    'm_towerA': 'city-kit-commercial/building-skyscraper-a.glb',
+    'm_towerB': 'city-kit-commercial/building-skyscraper-c.glb',
+    'm_towerC': 'city-kit-commercial/building-skyscraper-e.glb',
+    'm_lamp':   'city-kit-roads/light-square-double.glb',
+    'm_bin':    'city-kit-roads/dumpster.glb',
+    # planting
+    'm_tree':   'nature-kit/tree_default.glb',
+    'm_treeB':  'nature-kit/tree_detailed.glb',
+    'm_pine':   'nature-kit/tree_cone.glb',
+    'm_bush':   'nature-kit/plant_bushLarge.glb',
+    'm_rock':   'nature-kit/rock_largeA.glb',
+    'm_grass':  'nature-kit/grass_large.glb',
+    # the fishing spot
+    'm_dock':   'pirate-kit/tower-base.glb',
+    'm_boat':   'pirate-kit/boat-row-small.glb',
+    'm_palm':   'pirate-kit/palm-detailed-straight.glb',
+    'm_barrel': 'pirate-kit/barrel.glb',
+}
+
+
+def models(names=None):
+    """
+    Pack models as props. Missing files are skipped rather than fatal — the
+    packs are fetched, not committed, so a fresh clone has the script and not
+    yet the assets, and a plaza with no trees beats an install that refuses
+    to run. Run fetch_packs.py to fill them in.
+    """
+    out = {}
+    for key, rel in MODELS.items():
+        if names and key not in names:
+            continue
+        path = os.path.join(ROOT, 'packs', rel)
+        if not os.path.exists(path):
+            continue
+        out[key] = {'type': 'model', 'name': os.path.basename(rel),
+                    'url': put(path, 'glb')}
+    return out

@@ -42,7 +42,8 @@ model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-campus'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — Campus', 'image': None, 'author': None,
-      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.cast(), **texprops.avatars()),
+      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.cast(), **texprops.avatars(),
+                    **texprops.models()),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

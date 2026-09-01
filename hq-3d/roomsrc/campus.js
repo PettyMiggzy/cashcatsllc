@@ -228,3 +228,74 @@ prim('box',[7.4,0.14,0.24],GOLD_D,[0,Y+2.6,GZ])
 
 /* the path beyond, so the gate reads as leading somewhere */
 prim('box',[6,0.3,2.0],'#ffffff',[0,Y-0.15,25.6],{tex:'paving',rough:0.9})
+
+/* ------------------------------------------------------------------ *
+ * The city around the campus.
+ *
+ * Everything here used to be prim('box') — walls, planters, lamps — which
+ * is why it read as a grey car park with signs in it. These are modelled
+ * CC0 assets (Kenney, public domain, fetched by roomsrc/fetch_packs.py) and
+ * they cost almost nothing: a whole building is a few hundred triangles.
+ *
+ * app.load resolves asynchronously, so placement is fire-and-forget. A model
+ * that fails to load leaves a gap rather than throwing and taking the plaza
+ * with it — the packs are fetched, not committed, so a fresh clone can be
+ * missing them entirely and should still get a working world.
+ *
+ * Kenney's city kit is a 1-unit grid: a building is about 0.9 across and 1.3
+ * tall, so x10 puts it at a believable nine metres wide and thirteen high.
+ * ------------------------------------------------------------------ */
+const CITY_S = 10          // city kit is unit-scale
+const TREE_S = 3.4
+
+function model(key, pos, rotY, scale) {
+  const prop = props[key]
+  if (!prop || !prop.url) return
+  app.load('model', prop.url)
+    .then(node => {
+      node.position.set(pos[0], pos[1], pos[2])
+      if (rotY) node.rotation.y = rotY
+      const k = scale || 1
+      node.scale.set(k, k, k)
+      app.add(node)
+    })
+    .catch(() => {})   // a missing pack should cost a prop, not the room
+}
+
+/* a skyline behind the campus buildings, so the world has a horizon that is
+ * not just green ground meeting sky */
+const TOWERS = ['m_towerA', 'm_towerB', 'm_towerC']
+const BLOCKS = ['m_bldA', 'm_bldB', 'm_bldC', 'm_bldD', 'm_bldE']
+const SKYLINE = [
+  // [x, z, facing] — a loose ring, denser behind the Filing Office
+  [-46, -26], [-34, -30], [-22, -28], [-10, -32], [  2, -30], [ 14, -33],
+  [ 26, -29], [ 38, -31], [ 50, -27], [ 62, -30],
+  [-52,  -8], [-56,   6], [-52,  20], [-58,  34],
+  [ 66,  -8], [ 70,   8], [ 66,  22], [ 72,  36],
+  [-40,  48], [-26,  52], [-12,  50], [  4,  54], [ 20,  51], [ 36,  53], [ 52,  49],
+]
+for (let i = 0; i < SKYLINE.length; i++) {
+  const [x, z] = SKYLINE[i]
+  const tall = i % 3 === 0
+  const key = tall ? TOWERS[i % TOWERS.length] : BLOCKS[i % BLOCKS.length]
+  const s = CITY_S * (tall ? 1.25 : 0.9 + (i % 4) * 0.12)
+  model(key, [x, Y, z], (i % 4) * Math.PI / 2, s)
+}
+
+/* planting along the plaza, and lamps that are lamps rather than boxes */
+const TREES = [
+  [-14.5, 20.5], [ 14.5, 20.5], [-14.5, 13.0], [ 14.5, 13.0],
+  [-20.0, 24.0], [ 20.0, 24.0], [-8.0, 27.5], [  8.0, 27.5],
+  [-24.0, 8.0], [ 24.0, 8.0],
+]
+for (let i = 0; i < TREES.length; i++) {
+  const [x, z] = TREES[i]
+  model(i % 3 === 0 ? 'm_pine' : (i % 3 === 1 ? 'm_tree' : 'm_treeB'),
+        [x, Y, z], i * 1.1, TREE_S * (0.85 + (i % 3) * 0.14))
+  model('m_bush', [x + 1.6, Y, z + 1.1], i * 0.7, 2.2)
+}
+
+const LAMPS = [[-10.5, 18.5], [10.5, 18.5], [-10.5, 24.5], [10.5, 24.5]]
+for (let i = 0; i < LAMPS.length; i++) {
+  model('m_lamp', [LAMPS[i][0], Y, LAMPS[i][1]], i < 2 ? 0 : Math.PI, 7)
+}
