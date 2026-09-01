@@ -218,11 +218,23 @@ if (isServer) {
   const blank = () => ({ name:'?', fish:0, catches:{}, forage:0, kinds:{}, ore:0,
                          best:0, filed:0, coin:0, bait:0, gold:0, rods:1 })
   const grant = (L, n) => { L.filed += n; L.coin += n }
+  /*
+   * Fetch a ledger, and bring an old one up to the current shape.
+   *
+   * The stored ledger predates CashCoin, bait and owned rods. Without this
+   * backfill an existing player's first catch does `undefined + 4`, writes NaN
+   * into their balance, and every number they own is NaN from then on — and it
+   * persists, so it survives a restart. A save format that changes needs a
+   * migration even when the change looks additive.
+   */
   const ledgerFor = p => {
     const id = p.userId || p.id
     if (!book[id]) book[id] = blank()
-    book[id].name = p.name || '?'
-    return book[id]
+    const L = book[id], base = blank()
+    for (const k in base) if (L[k] === undefined || L[k] === null) L[k] = base[k]
+    if (typeof L.coin !== 'number' || L.coin !== L.coin) L.coin = L.filed || 0
+    L.name = p.name || '?'
+    return L
   }
   const save = () => { world.set(KEY, book); saveAt = now() + 4000 }
   const touch = () => { if (now() > saveAt) save() }
