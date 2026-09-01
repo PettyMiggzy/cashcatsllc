@@ -180,7 +180,7 @@ echo "==> world"
 # anyway; this just does it in the right order.
 systemctl stop cashcats 2>/dev/null || true
 for s in install install_workshop install_homestead install_vault install_pit \
-         install_lands install_trades install_campus install_brand; do
+         install_sky install_lands install_trades install_campus install_brand; do
   python3 "roomsrc/$s.py" >/dev/null && echo "    $s"
 done
 

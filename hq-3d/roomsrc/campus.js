@@ -38,20 +38,12 @@ function prim(type,size,color,pos,opts={}){
 }
 
 /* ---------------- the sky ----------------
- * bg is the panorama you see; hdr is what actually lights every room, since
- * hyperfy has no light nodes and everything is lit from scene.environment.
- * A cold default sky is why the interiors read washed out.
+ * It used to be set here. It now lives in roomsrc/sky.js, which owns the
+ * lighting rig for the whole world and nothing else — because in this engine
+ * the HDRI is not a backdrop, it is the only light source there is, and the
+ * dev is adding weather to it. Two files setting the same sky is two files
+ * fighting over how every room is lit.
  */
-const sky = app.create('sky')
-if (props.skyBg)  sky.bg  = props.skyBg.url
-if (props.skyHdr) sky.hdr = props.skyHdr.url
-sky.sunDirection = new Vector3(-0.4, -0.8, -0.5)
-sky.sunIntensity = 1.6
-sky.sunColor = '#fff0d0'
-sky.fogNear = 60
-sky.fogFar = 380
-sky.fogColor = '#cfd8d0'
-app.add(sky)
 function panel(w,h,size,pos,rotY,bg,border){
   const u=app.create('ui')
   u.space='world'; u.width=w; u.height=h; u.size=size
