@@ -24,7 +24,17 @@ const browser = await chromium.launch({
 })
 const page = await browser.newPage({ viewport: { width: 800, height: 450 } })
 const errs = []
-page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 160)) })
+// A dropped socket is not a failing game. Four runs in this build reported
+// FAIL because the server was restarted underneath them, and a test that
+// cannot tell "broken" from "unplugged" will eventually make the opposite
+// mistake and call a real failure a blip.
+let disconnected = false
+page.on('console', m => {
+  const t = m.text()
+  if (/WebSocket is already in (CLOSING|CLOSED)|disconnected|ERR_CONNECTION_(RESET|REFUSED)/i.test(t)) disconnected = true
+  if (m.type() === 'error') errs.push(t.slice(0, 160))
+})
+page.on('websocket', ws => ws.on('close', () => { disconnected = true }))
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 })
 await page.waitForFunction(() => window.world?.entities?.player?.avatar, null, { timeout: 240000 })
@@ -134,6 +144,15 @@ if (after.g <= before.g) fails.push('no forage was filed')
 if (after.o <= before.o && !mLabels.length) fails.push('no mine actions existed')
 if (errs.length) console.log('\npage errors:\n  ' + [...new Set(errs)].slice(0, 8).join('\n  '))
 
+const alive = await page.evaluate(() => !!window.world?.network?.socket &&
+  window.world.network.socket.readyState === 1).catch(() => false)
 await browser.close()
+
+if (disconnected || !alive) {
+  console.log('\nINCONCLUSIVE: the client lost its connection during the run.')
+  console.log('  Nothing was proved either way. Re-run with the server left alone —')
+  console.log('  installing a room rewrites world/db.sqlite underneath a live server.')
+  process.exit(2)
+}
 if (fails.length) { console.log('\nFAIL: ' + fails.join('; ')); process.exit(1) }
 console.log('\nOK: all three trades filed to the ledger')
