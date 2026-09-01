@@ -155,6 +155,13 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
+echo "==> assets"
+# The CC0 packs and the sky HDRI are fetched, not committed — 30MB of someone
+# else's work that one command reproduces. Without this a deployed world
+# installs with no skyline, no trees and no lamps, and nothing says why.
+python3 roomsrc/fetch_packs.py 2>&1 | tail -12 || echo "    packs unavailable — the world still installs, just barer"
+python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — the committed one is used"
+
 echo "==> world"
 # The scripts are the source of truth for every room; the database is
 # disposable. Re-running refreshes each room in place.

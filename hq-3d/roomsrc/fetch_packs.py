@@ -55,7 +55,13 @@ def zip_url(slug):
     return m.group(1) if m else None
 
 
-def fetch(slug):
+def fetch(slug, force=False):
+    dest_check = os.path.join(OUT, slug)
+    if not force and os.path.isdir(dest_check) and any(
+            f.endswith(('.glb', '.gltf')) for f in os.listdir(dest_check)):
+        n = len([f for f in os.listdir(dest_check) if f.endswith(('.glb', '.gltf'))])
+        print('  %-22s %3d models  already here' % (slug, n))
+        return n
     url = zip_url(slug)
     if not url:
         print('  %-22s no download link on the page' % slug)
@@ -87,12 +93,12 @@ def fetch(slug):
     return kept
 
 
-def main(which):
+def main(which, force=False):
     os.makedirs(OUT, exist_ok=True)
     total = 0
     for slug in which:
         try:
-            total += fetch(slug)
+            total += fetch(slug, force)
         except Exception as e:
             print('  %-22s failed: %s' % (slug, str(e)[:70]))
     print('\n%d models in %s' % (total, OUT))
@@ -105,4 +111,4 @@ if __name__ == '__main__':
         for k, v in PACKS.items():
             print('  %-22s %s' % (k, v))
         raise SystemExit(0)
-    main([a for a in args if a in PACKS] or list(PACKS))
+    main([a for a in args if a in PACKS] or list(PACKS), '--force' in args)
