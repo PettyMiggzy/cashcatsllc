@@ -83,6 +83,16 @@ def surf_for(fname):
     return DEFAULT_SURF
 MARK = 'ccl_bumped'
 
+# The version of the surfacing that produced a file, stamped into it.
+#
+# Same trap embed_tex fell into: a bare "done" mark is a one-way door. Change
+# TILE, SCALE, or which surface a model gets, and every box that ran the old
+# version keeps the old result forever while a fresh one gets the new — and
+# nothing says so. embed_tex.sweep_stale() is the only thing that can repair
+# that, because repairing means refetching the pristine pack, so it reads this
+# number. Bump it whenever the surfacing should reach existing boxes.
+BUMP = 1
+
 
 def read_glb(path):
     d = open(path, 'rb').read()
@@ -200,6 +210,7 @@ def bump(path):
         pbr['metallicFactor'] = 0.0
 
     js.setdefault('extras', {})[MARK] = True
+    js['extras']['ccl_bump_v'] = BUMP
     write_glb(path, js, bin_)
     return True
 

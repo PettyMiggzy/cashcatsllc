@@ -201,7 +201,7 @@ echo "==> assets"
 # The CC0 packs and the sky HDRI are fetched, not committed — 30MB of someone
 # else's work that one command reproduces. Without this a deployed world
 # installs with no skyline, no trees and no lamps, and nothing says why.
-python3 roomsrc/fetch_packs.py 2>&1 | tail -12 || echo "    packs unavailable — the world still installs, just barer"
+python3 roomsrc/fetch_packs.py 2>&1 | tail -14 || echo "    packs unavailable — the world still installs, just barer"
 python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — the committed one is used"
 # Kenney's kits point at a shared Textures/colormap.png by relative path, which
 # stops existing the moment a model is content-addressed into the asset store —
@@ -214,7 +214,7 @@ python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — 
 # corrected and six shipped raw — teal trees, unembedded colormaps, and a
 # green boot check on top of it. If the materials are wrong the world is
 # wrong, so stop here rather than publish it.
-if ! python3 roomsrc/embed_tex.py 2>&1 | tail -3; then
+if ! python3 roomsrc/embed_tex.py 2>&1 | tail -16; then
   echo "    embed_tex failed — refusing to publish a world with raw materials"
   exit 1
 fi
@@ -224,7 +224,7 @@ fi
 # box — embed_tex was already in this list, bump_kit was not, and without it
 # every building deploys flat: no normal map, no roof tiles, no stucco. The
 # maps themselves are committed in roomsrc/tex, so this needs no network.
-python3 roomsrc/bump_kit.py 2>&1 | tail -3 || echo "    could not surface the kit models"
+python3 roomsrc/bump_kit.py 2>&1 | tail -12 || echo "    could not surface the kit models"
 
 echo "==> world"
 # The scripts are the source of truth for every room; the database is

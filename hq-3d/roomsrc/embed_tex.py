@@ -79,12 +79,51 @@ PIPELINE = 3
 STAMP = 'ccl_pipeline'
 
 
-def stale(js):
-    """True if this file was corrected by an older pipeline than the current one."""
+def stale_reason(js):
+    """Why a file needs refetching, or None. stale() is this as a boolean."""
     ex = js.get('extras') or {}
-    if not ex.get(SRGB_FIXED):
-        return False                     # never processed; not stale, just new
-    return int(ex.get(STAMP, 0)) < PIPELINE
+    bumped = bool(ex.get('ccl_bumped'))
+    fixed = bool(ex.get(SRGB_FIXED))
+    if not fixed and not bumped:
+        return None
+    if bumped and not fixed:
+        return 'surfaced but never colour-corrected'
+    if fixed and int(ex.get(STAMP, 0)) < PIPELINE:
+        return 'colour pipeline %d, current is %d' % (int(ex.get(STAMP, 0)), PIPELINE)
+    if bumped and int(ex.get('ccl_bump_v', 0)) < _bump_version():
+        return 'surfacing v%d, current is v%d' % (int(ex.get('ccl_bump_v', 0)), _bump_version())
+    return None
+
+
+def stale(js):
+    """
+    True if this file needs throwing away and fetching again.
+
+    Two reasons, and the second one cost a confused half hour reading a deploy
+    log. The colour pass being older than the current pipeline is the obvious
+    one. The other is the surfacing: bump_kit stamps its own version, and a
+    model surfaced by an older bump_kit is frozen exactly the same way, because
+    bump_kit skips anything already marked and cannot undo what it did.
+
+    Note what is deliberately NOT stale: a file with neither stamp. That is a
+    pristine pack, which is the thing we would refetch it to become.
+
+    A file that is bumped but never colour-corrected IS stale, because that
+    combination should not exist — it means a previous deploy surfaced a pack
+    and then died before correcting it, which is precisely what happened when
+    Pillow was missing.
+    """
+    return stale_reason(js) is not None
+
+
+def _bump_version():
+    """bump_kit's current version, read from the module rather than duplicated."""
+    try:
+        sys.path.insert(0, ROOT)
+        import bump_kit
+        return int(getattr(bump_kit, 'BUMP', 0))
+    except Exception:
+        return 0
 
 
 # A naturalistic palette for the untextured kits.
@@ -126,8 +165,22 @@ PALETTE = {
 }
 
 
-def repaint(js):
-    """Put PALETTE on any factor-only material it names. sRGB in, sRGB out."""
+def to_linear(c):
+    """One sRGB channel, 0..1, into the linear slot glTF actually defines."""
+    return round(c ** 2.2, 6)
+
+
+def repaint(js, linear):
+    """
+    Put PALETTE on any factor-only material it names.
+
+    PALETTE is authored in sRGB, but on a model the conversion pass has already
+    run over, the stored factors are linear. So the target is squared here and
+    the comparison happens in whatever space the file is actually in. Comparing
+    an sRGB target against a linear stored value never matches, which had every
+    palette model reporting a change and being rewritten on every single run --
+    415 GLBs a deploy, all of them ending up byte-identical.
+    """
     changed = False
     for m in js.get('materials', []):
         hexc = PALETTE.get(m.get('name'))
@@ -136,8 +189,13 @@ def repaint(js):
         pbr = m.get('pbrMetallicRoughness')
         if not pbr or pbr.get('baseColorTexture') or not pbr.get('baseColorFactor'):
             continue
-        rgb = [int(hexc[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
-        want = [round(c, 6) for c in rgb] + list(pbr['baseColorFactor'][3:])
+        rgb = [round(int(hexc[i:i + 2], 16) / 255.0, 6) for i in (1, 3, 5)]
+        if linear:
+            # rounded, then squared, then rounded -- exactly the two steps the
+            # sRGB path below takes, so an already-correct file compares equal
+            # instead of being rewritten to the same bytes.
+            rgb = [to_linear(c) for c in rgb]
+        want = rgb + list(pbr['baseColorFactor'][3:])
         if pbr['baseColorFactor'] != want:
             pbr['baseColorFactor'] = want
             changed = True
@@ -172,15 +230,8 @@ def fix_materials(js):
     # the same values have to be squared here instead, or a re-run would put
     # raw sRGB into a linear slot and the greens would come back fluorescent.
     linear = bool(js.get('extras', {}).get(SRGB_FIXED))
-    if repaint(js):
+    if repaint(js, linear):
         changed = True
-        if linear:
-            for m in js.get('materials', []):
-                if m.get('name') in PALETTE:
-                    pbr = m.get('pbrMetallicRoughness', {})
-                    f = pbr.get('baseColorFactor')
-                    if f:
-                        pbr['baseColorFactor'] = [round(c ** 2.2, 6) for c in f[:3]] + list(f[3:])
     if not linear:
         for m in js.get('materials', []):
             pbr = m.get('pbrMetallicRoughness')
@@ -203,9 +254,15 @@ def fix_materials(js):
         # them is a quarry made of snow. The cliff pieces are fine — they use a
         # proper brown 'dirt' with 'grass' on top — so only the literal
         # untinted default is touched.
-        if m.get('name') == '_defaultMat' and pbr.get('baseColorFactor', [0])[:3] == [1.0, 1.0, 1.0]:
-            pbr['baseColorFactor'] = [0.29, 0.24, 0.19, 1.0]
-            changed = True
+        # Stored linear, because by the time this function returns the file is
+        # always flagged converted -- writing the sRGB triple here left the
+        # boulders displaying at #918070, a pale grey, rather than the brown.
+        if m.get('name') == '_defaultMat':
+            f = pbr.get('baseColorFactor', [0.0, 0.0, 0.0, 1.0])
+            want = [to_linear(c) for c in DEFAULT_ROCK] + list(f[3:])
+            if f[:3] == [1.0, 1.0, 1.0] or (f[:3] != want[:3] and f[:3] == DEFAULT_ROCK):
+                pbr['baseColorFactor'] = want
+                changed = True
         if pbr.get('metallicFactor', 1) > 0.05:
             pbr['metallicFactor'] = 0.0
             changed = True
@@ -227,6 +284,9 @@ def fix_materials(js):
 # the lot is safe; the town and pirate kits share the cast but also carry blue
 # windows, green shutters and painted hulls that a blanket retint would wreck.
 ATLAS = {'modular-cave-kit': '#8a8279'}
+
+# The colour an unassigned nature-kit slot is given, in sRGB.
+DEFAULT_ROCK = [0.29, 0.24, 0.19]
 
 
 # The shared Kenney palette, moved off neon.
@@ -415,17 +475,26 @@ def sweep_stale():
         d = os.path.join(PACKS, pack)
         if not os.path.isdir(d):
             continue
+        # Scan until something is stale, rather than sampling the first file.
+        #
+        # A pack is not uniform: bump_kit only surfaces the models the world
+        # actually places, so a kit holds bumped and unbumped files side by
+        # side. Checking one file therefore says nothing about the rest — and
+        # since the first name alphabetically is usually not one the world
+        # uses, this quietly declared fantasy-town-kit and modular-cave-kit
+        # clean while their used models were still carrying an old surfacing.
         for f in sorted(os.listdir(d)):
             if not f.endswith('.glb'):
                 continue
             js, _ = read_glb(os.path.join(d, f))
-            if js and stale(js):
+            why = stale_reason(js) if js else None
+            if why:
                 shutil.rmtree(d)
-                gone.append(pack)
-            break                        # one file settles it for the pack
-    for pack in gone:
-        print('  %-24s stamped older than pipeline %d — removed, refetching' % (pack, PIPELINE))
-    return gone
+                gone.append((pack, why))
+                break
+    for pack, why in gone:
+        print('  %-24s %s — removed, refetching' % (pack, why))
+    return [p for p, _ in gone]
 
 
 def main(only):
