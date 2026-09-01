@@ -2,7 +2,12 @@
 #
 # Stand up World of CashCats on a fresh Ubuntu box.
 #
-#   sudo bash setup.sh woc.cashcatllc.help
+#   cd /opt/cashcats && sudo git pull && sudo bash deploy/setup.sh woc.cashcatsllc.help
+#
+# Pull first, deliberately. This script updates the checkout itself, but bash
+# has already read the copy it is running — so a run started from a stale
+# setup.sh deploys new code with the old script's idea of which installers to
+# run. That is precisely how a room could have gone missing.
 #
 # Point the domain's A record at this server BEFORE running: certbot proves
 # ownership over port 80 and cannot do that while DNS points elsewhere.
