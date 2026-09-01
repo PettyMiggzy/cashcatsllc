@@ -54,9 +54,20 @@ def put(path, ext):
     return 'asset://%s.%s' % (h, ext)
 
 
+# The sky is 5.9MB of HDRI and only sky.js lights anything with it. props()
+# used to hand it to every room, so every blueprint in the world carried it —
+# and the Filing Office was still carrying the *previous* sky as well, 4.35MB
+# of an HDRI nothing has used since the pure-sky one was replaced. Assets are
+# content-hashed so a client fetches a repeat once, but a stale one it fetches
+# for nothing at all.
+SKY = ('skyBg', 'skyHdr')
+
+
 def props(names=None):
     out = {}
     for key, (fname, kind) in TEXTURES.items():
+        if names is None and key in SKY:
+            continue
         if names and key not in names:
             continue
         ext = fname.rsplit('.', 1)[1]
@@ -348,6 +359,25 @@ def gear(names=None):
 # engine take one albedo texture and nothing else, so anything built out of
 # them is flat by construction — and flat is what reads as cartoon. Detail has
 # to arrive as a model or it does not arrive.
+def hq_used(*scripts):
+    """
+    The hq models a script actually places, by reading it.
+
+    37 models were shipping and 17 were placed — the rest was 12MB of facade,
+    fort, pier and furniture that had been fetched for a look and left in. A
+    hand-maintained list would drift again the first time something was moved,
+    so this greps the source instead: the world's own code is the list.
+    """
+    import re
+    keys = set()
+    for sc in scripts:
+        try:
+            keys |= set(re.findall(r'hq_[A-Za-z0-9_]+', open(sc).read()))
+        except OSError:
+            pass
+    return keys
+
+
 def hq(names=None):
     """
     The high-detail set. A missing directory is skipped rather than fatal —

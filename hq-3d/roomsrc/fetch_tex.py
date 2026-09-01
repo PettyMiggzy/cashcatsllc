@@ -105,7 +105,11 @@ def bake(src, n, out, target=None):
     for x in range(0, SHEET, block.width):
         for y in range(0, SHEET, block.height):
             sheet.paste(block, (x, y))
-    sheet.save(out, quality=88, optimize=True)
+    # 72, not 88. These are noisy ground cover and the artefacts hide in the
+    # noise — measured on the gravel sheet, 88 and 80 both land near 1.7MB and
+    # 72 halves it to 925KB at the same 2048 resolution. Dropping resolution
+    # instead would have cost real sharpness underfoot for less.
+    sheet.save(out, quality=72, optimize=True)
 
 
 def make_water(out, px=1024, tiles=6):
