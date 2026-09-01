@@ -194,10 +194,27 @@ echo "==> world"
 # are deploying. It is coming down for the restart at the end of this block
 # anyway; this just does it in the right order.
 systemctl stop cashcats 2>/dev/null || true
-for s in install install_workshop install_homestead install_vault install_pit \
-         install_sky install_lands install_trades install_campus install_brand; do
-  python3 "roomsrc/$s.py" >/dev/null && echo "    $s"
+# Every installer in roomsrc, found rather than listed.
+#
+# This was a hand-written list and it went stale the moment a room was added:
+# install_pets.py — the Chibi Rating, the boss field, the shelf — was written,
+# committed and simply not in it, so a deploy would have published a world
+# with that whole room missing and said nothing. The boot check would not have
+# caught it either; it only looks at rooms that got installed.
+#
+# install.py first because it lays down the base world, install_brand.py last
+# because it writes the settings over the top. Everything between is in
+# whatever order the filesystem gives, which is fine — the rooms are
+# independent, and a new one now ships by existing.
+run_installer() { python3 "roomsrc/$1.py" >/dev/null && echo "    $1"; }
+
+run_installer install
+for f in roomsrc/install_*.py; do
+  s="$(basename "$f" .py)"
+  [ "$s" = "install_brand" ] && continue
+  run_installer "$s"
 done
+run_installer install_brand
 
 # node --check proves a script parses; it does not prove it runs, and both
 # faults that actually shipped in this build were runtime — a room installed
