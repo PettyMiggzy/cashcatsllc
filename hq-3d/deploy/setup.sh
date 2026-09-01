@@ -2,7 +2,11 @@
 #
 # Stand up World of CashCats on a fresh Ubuntu box.
 #
-#   cd /opt/cashcats && sudo git pull && sudo bash deploy/setup.sh woc.cashcatsllc.help
+#   cd /opt/cashcats && sudo git pull && sudo bash hq-3d/deploy/setup.sh woc.cashcatsllc.help
+#
+# The path is hq-3d/deploy/setup.sh, not deploy/setup.sh. /opt/cashcats is the
+# repo root and this script lives one level down in hq-3d — I wrote the short
+# version once and it sent someone to a file that is not there.
 #
 # Pull first, deliberately. This script updates the checkout itself, but bash
 # has already read the copy it is running — so a run started from a stale
@@ -188,6 +192,13 @@ python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — 
 # are in there drop metallicFactor from the export default of 1, which is what
 # was making every tree and rock come out dark and faintly wet.
 python3 roomsrc/embed_tex.py 2>&1 | tail -3 || echo "    could not correct pack materials"
+
+# And then give them a surface. The packs are gitignored and re-fetched here
+# every deploy, so anything done to them locally has to be done again on the
+# box — embed_tex was already in this list, bump_kit was not, and without it
+# every building deploys flat: no normal map, no roof tiles, no stucco. The
+# maps themselves are committed in roomsrc/tex, so this needs no network.
+python3 roomsrc/bump_kit.py 2>&1 | tail -3 || echo "    could not surface the kit models"
 
 echo "==> world"
 # The scripts are the source of truth for every room; the database is

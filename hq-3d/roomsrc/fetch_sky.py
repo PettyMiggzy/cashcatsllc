@@ -42,7 +42,19 @@ def _save(url, dst):
 
 # Warm, low sun, clean horizon — it suits the brand's gold and reads well
 # behind the cream buildings without fighting them.
-DEFAULT = 'belfast_sunset_puresky'
+# kloofendal_43d_clear, and the choice matters more than a filename.
+#
+# belfast_sunset_puresky is a PURE SKY — no ground in the capture — so it lights
+# the world from the whole hemisphere with nothing occluding from below and
+# nothing bouncing back. That is flat by construction: no contact shadow, no
+# lit-and-shaded sides, every albedo washed a stop toward white. Since Hyperfy
+# has no light nodes, the HDRI is not one input among several, it is the entire
+# rig, so this was the exposure of the whole world.
+#
+# It also had to change HERE and not just in tex/. setup.sh runs this on every
+# deploy, so leaving the old default would have re-downloaded the pure sky over
+# the committed one and quietly undone the fix on the way to production.
+DEFAULT = 'kloofendal_43d_clear'
 RES = '2k'      # 4k is 17MB and every player downloads it; 2k lights the same
 
 
