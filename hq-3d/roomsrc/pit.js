@@ -525,11 +525,129 @@ for(const sx of [-1, 1]){
   model('n_statRing',[x,0,z+3.0],0,2.2)
 }
 
-/* braziers either side of the walk */
+/* ------------------------------------------------------------------ *
+ * THE GUARD                                                           *
+ * ------------------------------------------------------------------ *
+ * Two cats in legionary kit, flanking the walk in front of the braziers.
+ *
+ * There is no Roman armour in any pack here and no budget to go and find one,
+ * so it is built: a galea with a transverse crest, a bronze cuirass, a red
+ * scutum with a boss on it, and a pilum. Four shapes and a colour scheme do
+ * more for "Roman" than a detailed model of anything else would, because the
+ * silhouette is the part anyone actually reads at ten metres — helmet crest,
+ * tall shield, upright spear.
+ *
+ * The armour is prims hung around a VRM at fixed offsets rather than skinned
+ * to it. That works precisely because these two never move: a guard stands
+ * still, so nothing can drift out of alignment. It would fall apart instantly
+ * on anything that walks, and if these ever need to patrol the kit has to
+ * become a model.
+ */
+const CREST = '#a03028', BRONZE = '#b08442', BRONZE_D = '#8a6530'
+
+/*
+ * A guard, sized off the cat rather than off my guess at one.
+ *
+ * The first cut hung the armour at hard-coded heights — helmet at 1.60,
+ * cuirass at 1.14 — picked by eye from nothing. It came out as a floating
+ * sandwich board with a traffic cone above its head, because I had never
+ * measured the avatar and the numbers were fiction.
+ *
+ * The Avatar node knows its own height, but only once the VRM has loaded, so
+ * this waits: every piece is a fraction of the real height and nothing is
+ * placed until there is a real height to take a fraction of. Slower to write
+ * and it cannot be wrong, which on a thing standing at the front door of the
+ * arena is the trade worth making.
+ */
+const guards = []
+function guard(sx, cat){
+  const x = sx * 2.9, z = APR + 4.6
+  const url = props[cat] && props[cat].url
+  if(!url) return
+  const av = app.create('avatar')
+  av.src = url
+  av.position.set(OX + x, 0, OZ + z)
+  av.rotation.y = Math.PI            // avatars face -Z; turn them up the walk
+  av.scale.set(1.15, 1.15, 1.15)
+  app.add(av)
+  guards.push({ av, x, z, sx, done: false })
+}
+guard(-1,'avSerious')
+guard( 1,'avLong')
+
+function dressGuard(g, H){
+  const { x, z, sx } = g
+  // fractions of a real height: crown at the top, chest a bit over half
+  const crown = H * 0.94, chest = H * 0.62, waist = H * 0.46
+  // galea: a band round the crown with a transverse crest across it, which is
+  // the silhouette that says Roman from any distance you can see them at
+  prim('cylinder',[H*0.115,H*0.115,H*0.13],BRONZE,[x,crown,z],{metal:.7,rough:.35})
+  prim('box',[H*0.04,H*0.10,H*0.27],CREST,[x,crown+H*0.11,z],{rough:.85})
+  // a shoulder yoke rather than a breastplate. A slab on the chest reads as a
+  // board hung round the neck; a band across the shoulders reads as armour.
+  prim('box',[H*0.34,H*0.07,H*0.20],BRONZE,[x,chest+H*0.09,z],{metal:.65,rough:.4})
+  prim('cylinder',[H*0.155,H*0.155,H*0.20],BRONZE_D,[x,chest,z],{metal:.6,rough:.45})
+  // the strip skirt
+  for(let i=0;i<5;i++)
+    prim('box',[H*0.045,H*0.15,H*0.04],'#6b543a',[x-H*0.10+i*H*0.05,waist-H*0.07,z+H*0.08],{rough:.9})
+  // scutum, held off the outward side, tall enough to be a body shield
+  const shx = x + sx*H*0.30
+  prim('box',[H*0.05,H*0.62,H*0.42],CREST,[shx,chest-H*0.05,z+H*0.06],{rough:.8})
+  prim('cylinder',[H*0.07,H*0.07,H*0.04],BRONZE,[shx+sx*H*0.03,chest-H*0.05,z+H*0.06],
+       {rotZ:Math.PI/2,metal:.8,rough:.3})
+  // pilum: butt on the ground, tip a clear head above the crown
+  const spx = x - sx*H*0.26
+  const len = H*1.35
+  prim('cylinder',[H*0.018,H*0.018,len],'#6b543a',[spx,len/2,z],{rough:.9})
+  prim('cone',[H*0.035,H*0.13],BRONZE,[spx,len+H*0.06,z],{metal:.8,rough:.3})
+}
+
+if(!isServer){
+  // one-shot: as each VRM reports a height, dress it and forget it
+  app.on('update', () => {
+    let left = 0
+    for(const g of guards){
+      if(g.done) continue
+      const H = g.av.height
+      if(!H){ left++; continue }
+      dressGuard(g, H)
+      g.done = true
+    }
+    if(!left) return
+  })
+}
+
+/*
+ * Braziers either side of the walk.
+ *
+ * These were a dark cylinder with a 1.1-metre solid orange cone on top, and
+ * from anywhere on the approach they read as traffic cones — they were the
+ * loudest thing at the entrance and I spent a while blaming the guards for
+ * them. A flame is not a cone: it is small, several, uneven, and brightest at
+ * the bottom. So the cone goes, and what replaces it is a bronze bowl on a
+ * tripod with coals in it and four little tongues of different heights.
+ *
+ * Nothing here is animated. It does not need to be — what made the old one
+ * wrong was its shape, not its stillness.
+ */
 for(const sx of [-1,1]){
-  const x = sx*3.4
-  prim('cylinder',[0.5,0.7,1.4],'#4a4034',[x,0.7,APR+2.5],{rough:.9})
-  prim('cone',[0.55,1.1],'#ff7a2a',[x,1.9,APR+2.5],{emissive:'#ff9a3a',rough:.4})
+  const x = sx*3.4, z = APR+2.5
+  // tripod
+  for(let k=0;k<3;k++){
+    const a = k*2.094
+    prim('cylinder',[0.045,0.045,0.95],'#3a332b',
+         [x+Math.cos(a)*0.22,0.48,z-Math.sin(a)*0.22],{rotZ:Math.cos(a)*0.16,rotX:Math.sin(a)*0.16,metal:.5,rough:.6})
+  }
+  // the bowl: a shallow dish, not a bucket
+  prim('cylinder',[0.46,0.46,0.10],'#7a5c2e',[x,0.98,z],{metal:.7,rough:.4})
+  prim('cylinder',[0.40,0.40,0.16],'#5e4522',[x,1.06,z],{metal:.7,rough:.45})
+  // coals, low and hot
+  prim('cylinder',[0.34,0.34,0.09],'#8c2a10',[x,1.16,z],{emissive:'#c4441a',rough:.9})
+  // four tongues, uneven — a flame is several things of different heights
+  const F = [[0.00,0.00,0.13,0.52,'#ffb03a'],[0.15,0.08,0.09,0.34,'#ff7a2a'],
+             [-0.13,0.10,0.08,0.30,'#ff9a3a'],[0.04,-0.14,0.07,0.22,'#ffd166']]
+  for(const [dx,dz,r,h,c] of F)
+    prim('cone',[r,h],c,[x+dx,1.22+h/2,z+dz],{emissive:c,rough:.4})
 }
 
 /* ------------------------------------------------------------------ */

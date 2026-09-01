@@ -242,15 +242,39 @@ const CROP_S = 1.35
  * one on the +X / +Z / -X / -Z side. Perimeter cells get walls on their
  * outward faces; a roof gable caps each cell.
  */
-function cottage(cx, cz, w, d, rot, wood, storeys) {
+function cottage(cx, cz, w, d, rot, wood, storeys, open) {
   const S = TOWN
   storeys = storeys || 1
   const wallK  = wood ? 't_wallWood'  : 't_wall'
   const doorK  = wood ? 't_wallWoodD' : 't_wallDoor'
   const winK   = wood ? 't_wallWoodW' : 't_wallWin'
   const cos = Math.cos(rot), sin = Math.sin(rot)
+  /*
+   * `open` makes the building one you can walk into.
+   *
+   * A closed cottage gets a single invisible box over its whole footprint,
+   * which is cheap and right for scenery. That box is also exactly what makes
+   * a door decorative: the kit already places a door piece, and you still
+   * bounce off the building. So an open one gets a collider per wall piece
+   * instead, skipping the door cell, plus a floor to stand on.
+   *
+   * Per-piece colliders are the expensive option and only worth it where
+   * somebody is meant to go inside, which is why it is a flag and not the
+   * default — a village of forty enterable houses is forty times the bodies
+   * for thirty-nine interiors nobody visits.
+   */
+  const doorAt = { lx: null, lz: null }
   const place = (lx, lz, k, r, y) => {
-    model(k, [cx + lx * cos + lz * sin, y || 0, cz - lx * sin + lz * cos], rot + r, S)
+    const wx = cx + lx * cos + lz * sin, wz = cz - lx * sin + lz * cos
+    model(k, [wx, y || 0, wz], rot + r, S)
+    if (!open || y) return
+    if (k === doorK) { doorAt.lx = lx; doorAt.lz = lz; return }   // leave the way in clear
+    // the wall sits on the +X edge of its cell, so the body goes half a cell
+    // out along that heading. local +X maps to (cos, -sin) in world.
+    const th = rot + r
+    prim('box', [0.4, storeys * S, S], '#ffffff',
+         [wx + Math.cos(th) * S / 2, storeys * S / 2, wz - Math.sin(th) * S / 2],
+         { rotY: th, physics: 'static', opacity: 0 })
   }
   let doorDone = false
   for (let s = 0; s < storeys; s++) {
@@ -276,6 +300,12 @@ function cottage(cx, cz, w, d, rot, wood, storeys) {
     }
   }
   model('t_chimney', [cx + (w * S * 0.28) * cos, ry + S * 0.45, cz - (w * S * 0.28) * sin], rot, S)
+  if (open) {
+    // a floor, or you stand on the terrain and see daylight under the walls
+    prim('box', [w * S, 0.2, d * S], '#8a6f4c',
+         [cx, 0.08, cz], { rotY: rot, tex: 'wood', rough: 0.95, physics: 'static' })
+    return
+  }
   // the box that actually stops you walking through the wall
   prim('box', [w * S, storeys * S, d * S], '#ffffff',
        [cx, storeys * S / 2, cz], { rotY: rot, physics: 'static', opacity: 0 })
@@ -286,6 +316,10 @@ prim('box', [ST_W, 0.22, 46], '#c8c1ae', [FX, Y + 0.02, FZ], { tex: 'paving', ro
 prim('box', [ST_W + 1.6, 0.06, 46], STONE_D, [FX, Y - 0.02, FZ])
 prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y + 0.02, FZ + 15], { tex: 'paving', rough: 1.0 })
 // worked ground around the village, so the farm stands in soil rather than on lawn
+// 62x44 left the village standing on a green sheet the moment you looked at
+// it from outside. Wider, and the outer band is grass rather than worked dirt
+// so the farm reads as the middle of something rather than a rectangle.
+ground(FX, FZ - 2, 96, 76, Y - 0.05, 'grass', WHITE, { cell: 12 })
 ground(FX, FZ - 4, 62, 44, Y - 0.04, 'field', WHITE)
 for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
   prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 22 + i * 4])
@@ -297,16 +331,173 @@ for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
  * Depths and storeys vary along the row — a street where every house is the
  * same is a corridor.
  */
-const WEST = [[-16, 2, 2, 1], [-9, 2, 3, 2], [-1, 2, 2, 1], [7, 3, 2, 1], [15, 2, 3, 2]]
-const EAST = [[-18, 2, 3, 2], [-10, 3, 2, 1], [-2, 2, 2, 1], [6, 2, 3, 2], [14, 2, 2, 1]]
-for (let i = 0; i < WEST.length; i++) {
-  const [dz, w, d, st] = WEST[i]
-  cottage(FX - ST_W / 2 - 1 - (w * TOWN) / 2, FZ + dz, w, d, 0, i % 2 === 1, st)
+/*
+ * The village.
+ *
+ * It used to be two straight rows of five facing each other down one street,
+ * which is not a village, it is a corridor with doors. A village happens where
+ * roads meet: a main street, a lane crossing it, a green with the public
+ * buildings round it, and houses that sit at whatever angle their plot gave
+ * them rather than all square to the same line.
+ *
+ * So: a lane east-west, a green off to the west with the Hall on it, houses in
+ * clusters at varied setbacks and angles, and the plots for sale along the
+ * north edge where the village is still growing.
+ *
+ * Each row is [dx, dz, w, d, storeys, rot, wood]. Positions are hand-placed
+ * rather than generated — a village is the one thing a loop is bad at, because
+ * what makes it read is the irregularity and a loop has none.
+ */
+const LANE_Z = FZ - 9
+const GRN_X = FX - 17, GRN_Z = FZ + 5
+
+// the lane, and the green it opens onto
+prim('box', [40, 0.22, 6.0], '#c8c1ae', [FX - 4, Y + 0.02, LANE_Z], { tex: 'paving', rough: 1.0 })
+prim('box', [42, 0.06, 7.4], STONE_D, [FX - 4, Y - 0.02, LANE_Z])
+// A round green, not a rectangle. ground() lays a grid of boxes, which is
+// right for a field and wrong here: a hard-edged rectangle of lawn dropped
+// into worked dirt reads as a texture swap rather than a place, and the seam
+// is the first thing the eye finds. One disc, and planting round the rim to
+// break the line where it meets the lane.
+prim('cylinder', [10.5, 10.5, 0.2], WHITE, [GRN_X, Y - 0.03, GRN_Z], { tex: 'grass', rough: 1.0 })
+for (let i = 0; i < 16; i++) {
+  const a = i / 16 * Math.PI * 2
+  model(pick(['n_bushL', 'n_bushS', 'n_grassLeaf', 'n_flowerY', 'n_flowerP']),
+        [GRN_X + Math.cos(a) * rr(9.6, 11.2), 0, GRN_Z + Math.sin(a) * rr(9.6, 11.2)],
+        rr(0, 6.28), NAT * rr(0.6, 0.9))
 }
-for (let i = 0; i < EAST.length; i++) {
-  const [dz, w, d, st] = EAST[i]
-  cottage(FX + ST_W / 2 + 1 + (w * TOWN) / 2, FZ + dz, w, d, Math.PI, i % 2 === 0, st)
+prim('box', [6.0, 0.22, 22], '#c8c1ae', [GRN_X + 8, Y + 0.02, GRN_Z - 2], { tex: 'paving', rough: 1.0 })
+
+const HOUSES = [
+  // fronting the main street, west side — setbacks vary so the frontage is
+  // not a drawn line
+  [-11.0, -20, 2, 2, 1,  0.00, 1],
+  [-12.4, -14, 2, 3, 2,  0.12, 0],
+  [-10.6,   1, 3, 2, 1, -0.10, 1],
+  [-11.8,   8, 2, 2, 1,  0.00, 0],
+  [-12.6,  16, 2, 3, 2,  0.14, 1],
+  // east side
+  [ 11.2, -19, 2, 3, 2,  Math.PI,        0],
+  [ 10.4, -13, 3, 2, 1,  Math.PI - 0.12, 1],
+  [ 11.6,  -2, 2, 2, 1,  Math.PI,        0],
+  [ 10.8,   6, 2, 3, 2,  Math.PI + 0.10, 1],
+  [ 12.0,  15, 2, 2, 1,  Math.PI,        0],
+  // turning the corner onto the lane — these face the lane, not the street
+  [ -6.0, -15.5, 2, 2, 1, -Math.PI / 2, 0],
+  [  3.5, -15.5, 3, 2, 1, -Math.PI / 2, 1],
+  [ 15.5, -15.0, 2, 2, 1, -Math.PI / 2, 0],
+  [ -6.5,  -3.0, 2, 2, 1,  Math.PI / 2, 1],
+  [  5.0,  -3.2, 2, 3, 2,  Math.PI / 2, 0],
+  // round the green, three sides of it, backs to the fields
+  [-24.0,  -2.0, 2, 2, 1,  Math.PI / 2, 1],
+  [-24.5,   3.0, 3, 2, 1,  Math.PI / 2, 0],
+  [-23.5,   9.0, 2, 2, 1,  Math.PI / 2, 1],
+  [-13.0,  13.5, 2, 2, 1,  Math.PI,     0],
+  [-21.0,  13.0, 2, 3, 2,  Math.PI,     1],
+]
+for (const [dx, dz, w, d, st, rot, wood] of HOUSES) {
+  cottage(FX + dx, FZ + dz, w, d, rot, !!wood, st)
 }
+
+/*
+ * The three you can walk into.
+ *
+ * "Many open works that u seamless may can enter" — every building enterable
+ * is forty interiors nobody visits and forty times the collision bodies, so
+ * these are the three a player has a reason to enter: the Hall on the green,
+ * the Inn on the corner where the lane meets the street, and the Land Office
+ * where the plots are sold. They are built by the same function as every other
+ * house with one flag set, so they match their neighbours exactly rather than
+ * announcing themselves as the special ones.
+ */
+cottage(GRN_X - 1, GRN_Z + 6.5, 3, 3, Math.PI, false, 2, true)   // the Hall
+cottage(FX - 12.0, LANE_Z - 6.5, 3, 3, 0, true, 2, true)          // the Inn
+cottage(FX + 12.5, LANE_Z - 6.0, 2, 3, Math.PI, false, 1, true)   // the Land Office
+
+const hallSign = panel(3.4, 0.8, 0.005, [GRN_X - 1, 3.1, GRN_Z + 2.2], Math.PI, 'rgba(14,26,20,0.92)', GOLD_L)
+text(hallSign, 'THE VILLAGE HALL', 34, GOLD_L, 800)
+const innSign = panel(2.8, 0.8, 0.005, [FX - 7.4, 3.1, LANE_Z - 6.5], -Math.PI / 2, 'rgba(14,26,20,0.92)', GOLD_L)
+text(innSign, 'THE INN', 34, GOLD_L, 800)
+const loSign = panel(3.6, 0.8, 0.005, [FX + 8.2, 2.9, LANE_Z - 6.0], Math.PI / 2, 'rgba(14,26,20,0.92)', LIME)
+text(loSign, 'PLOTS — TO BUY OR RENT', 26, LIME, 800)
+
+/*
+ * The plots, along the north edge where the village is still growing.
+ *
+ * Ahmad's land system sells plots at the Homestead, so these are the same
+ * thing standing where a player can see it: a marked, numbered, fenced piece
+ * of ground with a board on it. Nothing is sold here — the board points at the
+ * Land Office — but a village where you can see the empty plots is a village
+ * that looks like it is going somewhere, which one where land is an abstraction
+ * in a menu does not.
+ */
+const PLOTW = 9
+for (let i = 0; i < 5; i++) {
+  const px = FX - 20 + i * (PLOTW + 1.6), pz = FZ - 25.5
+  ground(px, pz, PLOTW, 8, Y - 0.035, 'field', WHITE, { cell: 9 })
+  for (let k = 0; k < 4; k++) {
+    model('t_fence', [px - PLOTW / 2 + k * (PLOTW / 3.4), 0, pz - 4], 0, TOWN * 0.9)
+    model('t_fence', [px - PLOTW / 2 + k * (PLOTW / 3.4), 0, pz + 4], 0, TOWN * 0.9)
+  }
+  const b = panel(2.6, 1.5, 0.005, [px, 1.9, pz + 4.3], 0, 'rgba(14,26,20,0.92)', LIME)
+  text(b, 'PLOT ' + (i + 1), 34, LIME, 800)
+  text(b, i % 2 ? 'TO RENT' : 'FOR SALE', 26, CREAM, 600, 4)
+  text(b, 'ask at the Land Office', 18, DIM, 400, 4)
+}
+
+/*
+ * VILLAGERS
+ *
+ * "Should see cats working the farm, fixing there houses etc you know like
+ * needs npc doing stuff."
+ *
+ * There are no work animations in this build — the emote set is jump, fall,
+ * float, flip and talk, and none of them is hoeing. So the work is told by
+ * staging rather than animation: a cat at the foot of a ladder with a plank
+ * pile beside it is fixing a roof, and a cat between two crop beds holding a
+ * basket is picking. What the talk emote buys is that they are not statues;
+ * a figure that shifts its weight reads as alive at any distance where you
+ * cannot see what its hands are doing, which outdoors is all of them.
+ *
+ * They are scenery, deliberately: no pathing, no schedule, no dialogue. A
+ * villager who walks needs somewhere to walk to and something to do when they
+ * arrive, and half of that is worse than none.
+ */
+const TALK = 'asset://emote-talk.glb'
+function villager(x, z, rotY, cat, emote) {
+  const prop = props[cat]
+  if (!prop || !prop.url) return
+  const av = app.create('avatar')
+  av.src = prop.url
+  av.position.set(x, 0, z)
+  av.rotation.y = rotY
+  av.scale.set(1.05, 1.05, 1.05)
+  if (emote !== false) av.emote = TALK
+  app.add(av)
+  return av
+}
+
+// two on the green, in conversation, because that is what a green is for
+villager(GRN_X - 2.2, GRN_Z - 1.0,  0.7, 'avLong')
+villager(GRN_X - 0.6, GRN_Z - 1.6, -2.4, 'avApple')
+
+// fixing a roof: ladder up the gable, a cat at its foot, timber stacked
+model('c_ladder', [FX - 9.0, 0, FZ + 9.4], Math.PI / 2, 2.6)
+villager(FX - 10.2, FZ + 10.4, -1.2, 'avSerious')
+for (let i = 0; i < 4; i++)
+  prim('box', [2.4, 0.16, 0.34], '#8a6f4c', [FX - 11.6, 0.09 + i * 0.17, FZ + 11.4],
+       { rotY: 0.2, tex: 'wood', rough: 0.95 })
+ob('toolbox', [FX - 11.0, 0, FZ + 10.2], 0.6, 0.55)
+
+// working the crop beds
+villager(FX - 21.5, FZ - 13.0,  1.4, 'avPop')
+ob('basket', [FX - 20.7, 0, FZ - 13.4], 0.3, 0.6)
+villager(FX + 21.0, FZ - 3.4, -1.5, 'avCash')
+ob('sack',   [FX + 21.8, 0, FZ - 3.8], 0.9, 0.8)
+
+// minding a market stall, and one walking the lane
+villager(FX - 2.5, FZ + 17.4, Math.PI, 'avLong')
+villager(FX + 2.0, LANE_Z + 1.2, -Math.PI / 2, 'avApple')
 
 /* lamps and hedging down the street, so the frontage reads as kept */
 for (let i = 0; i < 6; i++) {
@@ -382,7 +573,19 @@ ob('haystack', [FX - 19, 0, FZ + 5.0], 0.7, 2.3)
 ob('haystack', [FX - 17, 0, FZ + 3.2], 1.9, 1.8)
 ob('toolRack', [FX + 16, 0, FZ + 3.0], -Math.PI / 2, 2.0)
 ob('fence',    [FX + 15, 0, FZ + 6.0], 0.0, 1.2)
-for (let i = 0; i < 9; i++) model('n_fenceHigh', [FX - 26 + i * NAT, 0, FZ + 8], 0, NAT)
+/*
+ * The paddock rail. Nine panels at 3.4 is thirty metres of fence, and it ran
+ * straight across the main street at chest height — at that scale the top
+ * rails merge into one unbroken beam, so from above the village looked like
+ * it had a plank laid across it. It is a paddock boundary, so it stops at the
+ * street and picks up on the other side, which is what a fence does when it
+ * meets a road.
+ */
+for (let i = 0; i < 9; i++) {
+  const fx = FX - 26 + i * NAT
+  if (Math.abs(fx - FX) < ST_W / 2 + NAT * 0.6) continue     // leave the street open
+  model('n_fenceHigh', [fx, 0, FZ + 8], 0, NAT)
+}
 
 /* trees and rough ground around the edges so the village sits in something */
 for (let i = 0; i < 18; i++) {
@@ -486,9 +689,11 @@ prim('cylinder', [11, 11, 0.24], WHITE, [GX, Y + 0.02, GZ], { tex: 'forest', rou
 // leaf litter out past the clearing, so the wood has a floor and not a lawn
 ground(GX, GZ, 46, 46, Y - 0.04, 'forest', WHITE, { cell: 12 })
 
-for (let i = 0; i < 70; i++) {
-  // ring the clearing: dense at the rim, none in the middle
-  const a = rr(0, 6.2832), r = rr(13, 25)
+for (let i = 0; i < 46; i++) {
+  // Ring the clearing: dense at the rim, none in the middle. Seventy closed
+  // the ring into a wall you could not see out of, and the Grove is a wood
+  // with a clearing in it rather than a hedge maze.
+  const a = rr(0, 6.2832), r = rr(15, 25)
   model(pick(['n_oak', 'n_fat', 'n_pineA', 'n_pineB', 'n_blocks']),
         [GX + Math.cos(a) * r, 0, GZ + Math.sin(a) * r], rr(0, 6.28), NAT * rr(0.9, 1.5))
 }
@@ -695,8 +900,8 @@ hedgerow( 70, -46,  70,  10, 4.0)
 const COPSE = [[-30, -40], [22, -42], [-64, 22], [64, 20], [-16, 62], [18, 66], [-56, -8], [56, -6]]
 for (let c = 0; c < COPSE.length; c++) {
   const [cx, cz] = COPSE[c]
-  for (let i = 0; i < 9; i++) {
-    const a = i * 0.7 + c, r = rr(1.5, 6.5)
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.26 + c, r = rr(1.5, 6.5)
     model(pick(['n_oak', 'n_fat', 'n_pineA', 'n_pineB']),
           [cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r], rr(0, 6.28), NAT * rr(0.9, 1.4))
   }
@@ -794,8 +999,15 @@ const PB = [[-7, -11], [7, -11], [-7, 8], [7, 8], [0, 13]]
 for (let i = 0; i < PB.length; i++) ob('bench', [PX + PB[i][0], 0, PZ + PB[i][1]], i < 2 ? 0 : Math.PI, 0.95)
 for (let i = 0; i < 6; i++) ob(i % 2 ? 'planterRound' : 'planter', [PX - 15 + i * 6, 0, PZ + 14], i * 0.7, i % 2 ? 2.2 : 1.1)
 for (let i = 0; i < 5; i++) ob('lamp', [PX - 16 + i * 8, 0, PZ + 11], 0, 4.4)
-for (let i = 0; i < 14; i++)
-  model(pick(['n_oak', 'n_fat', 'n_pineA']), [PX + rr(-22, 22), 0, PZ + rr(-18, 18)], rr(0, 6.28), NAT * rr(0.9, 1.2))
+// Eight, not fourteen, and pushed to the edges. Fourteen scattered across a
+// 44x36 lawn is a wood with benches in it — a park is mostly open ground you
+// can see across, with trees round the sides.
+for (let i = 0; i < 8; i++) {
+  const a = i / 8 * Math.PI * 2 + 0.4
+  model(pick(['n_oak', 'n_fat', 'n_pineA']),
+        [PX + Math.cos(a) * rr(17, 22), 0, PZ + Math.sin(a) * rr(14, 18)],
+        rr(0, 6.28), NAT * rr(0.9, 1.2))
+}
 for (let i = 0; i < 16; i++)
   model(pick(['n_bushL', 'n_bushS', 'n_flowerY', 'n_flowerP', 'n_grassLeaf']),
         [PX + rr(-21, 21), 0, PZ + rr(-17, 17)], rr(0, 6.28), NAT * rr(0.7, 1.1))

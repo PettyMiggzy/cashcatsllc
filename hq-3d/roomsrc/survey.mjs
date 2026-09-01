@@ -40,6 +40,12 @@ const VIEWS = {
   fields:    [ -47, 0, -26,   0, -32, 30],
   fieldsIn:  [ -47, 0, -26,   0,  -6,  9],
   cottages:  [ -62, 0, -30, 270,  -8, 12],
+  // the village from above, high enough to read the layout rather than a wall
+  village:   [ -47, 0,  14,   0, -35, 55],
+  topdown:   [ -47,28, -18,   0, -88,  2],
+  green:     [ -64, 0, -21,   0, -14, 16],
+  guard:     [  48, 0,  20,   0,  -4,  6],
+  guardIn:   [45.1, 0,  19,   0,   2,  2.5],
   market:    [ -47, 0, -10,   0,  -6, 10],
   mill:      [ -42, 0, -24,  90,  -4,  8],
   docks:     [ -47, 0,  50, 180, -30, 30],

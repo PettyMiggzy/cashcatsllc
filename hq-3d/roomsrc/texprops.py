@@ -176,6 +176,8 @@ MODELS = {
     't_cart':      'fantasy-town-kit/cart.glb',
     't_cartHigh':  'fantasy-town-kit/cart-high.glb',
     't_hedge':     'fantasy-town-kit/hedge.glb',
+    't_fence':     'fantasy-town-kit/fence.glb',
+    't_fenceGate': 'fantasy-town-kit/fence-gate.glb',
     't_lantern':   'fantasy-town-kit/lantern.glb',
     't_pillarW':   'fantasy-town-kit/pillar-wood.glb',
     't_bannerGrn': 'fantasy-town-kit/banner-green.glb',

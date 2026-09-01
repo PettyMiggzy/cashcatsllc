@@ -33,6 +33,23 @@
  * are load-bearing. swing() rolls a real miss chance precisely so the rule
  * has something to be true about.
  *
+ * OWNING IS NOT SCORING
+ *
+ *   And then you can display them at the housing system. In other words, you
+ *   need to buy land first and build a house. Buy a shelf, which is required
+ *   to display the chibification of the boss, which then gives a Chibi Rating
+ *   that will boost the overall stats of the CashCats. Chibi Ratings have no
+ *   level cap. You can grind the whole day.
+ *
+ * So the chain is land -> house -> shelf -> display -> rating. A chibi in your
+ * bag is worth nothing at all; a chibi on a shelf is worth its tier. That is a
+ * real design decision and not a formality — it means the rating is bounded by
+ * how much shelf you have bought rather than by how many bosses you have hit,
+ * and it gives the housing system something to be for.
+ *
+ * No level cap is explicit, so nothing here clamps the total. Shelves are the
+ * only limit and you can keep buying them.
+ *
  * THE GUARANTEE
  *
  * Beating a boss gives you that boss's own chibi, once. It is not a roll and
@@ -138,6 +155,18 @@ const BY_KEY = {}
 for (const b of BOSSES) BY_KEY[b.key] = b
 const WORLD_ROTA = BOSSES.filter(b => b.tier === WORLD)
 
+/*
+ * Shelves. Ahmad did not name a currency, and the one thing this app must not
+ * do is write the trades ledger — trades.js holds ccl.ledger.v1 in memory and
+ * saves it on its own clock, so a second app writing that key would silently
+ * lose whichever wrote first. Chests are the currency this app already owns
+ * end to end: they come off bosses, they are the reward the spec explicitly
+ * makes equal for everyone, and spending them here needs no cross-app write.
+ * Flagged as a choice rather than a quote.
+ */
+const SHELF_SLOTS = 4       // chibis per shelf
+const SHELF_COST  = 6       // chests for the first, then +4 each (see shelfCost)
+
 const FIGHT_R   = 22        // stand inside this and you are in the fight
 const SWING_CD  = 900       // ms between swings, per player
 const DOWN_MS   = 90 * 1000 // how long a World Boss stays dead
@@ -214,6 +243,67 @@ for (let i = 0; i < 24; i++) {
 }
 prim('cylinder', [4.2, 4.2, 0.14], '#4a4436', [BX, 0.16, BZ], { rough: 0.9 })
 
+/* ------------------------------------------------------------------ *
+ * THE SHELF — inside the Homestead, because that is where it belongs   *
+ * ------------------------------------------------------------------ *
+ * "You can display them at the housing system." So the shelf stands in the
+ * house rather than out here, even though this app owns it.
+ *
+ * It is placed by pets.js and not by homestead.js on purpose. The state —
+ * which chibis you own and which are up — lives in this app's store, and
+ * trades.js has already taught this build what happens when two apps write
+ * one storage key: whichever saves second wins and the other's work is gone.
+ * An app can put nodes anywhere in the world, so the cheap correct answer is
+ * to render the shelf where the player expects it and keep the one owner.
+ *
+ * The Homestead sits at x=-22 and is 15 by 12, so this is its right-hand wall.
+ */
+const HX = -14.9, HZ = 3.0, HY = 1.15
+for (let i = 0; i < 3; i++) {
+  prim('box', [0.5, 0.1, 3.4], '#6b543a', [HX, HY + i * 0.75, HZ],
+       { rotY: -Math.PI / 2, rough: 0.9 })
+}
+prim('box', [0.16, 2.5, 0.16], '#5a4632', [HX, HY + 0.75, HZ - 1.6], { rough: 0.9 })
+prim('box', [0.16, 2.5, 0.16], '#5a4632', [HX, HY + 0.75, HZ + 1.6], { rough: 0.9 })
+
+/* a pool of slots, hidden until the server says what is on them. Twelve is
+ * three shelves' worth; buying past that displays fine and just runs out of
+ * places to draw, which is a better failure than a crash. */
+const SLOTS = []
+for (let i = 0; i < 12; i++) {
+  const row = Math.floor(i / 4), col = i % 4
+  const g = app.create('group')
+  g.position.set(HX - 0.05, HY + 0.05 + row * 0.75, HZ - 1.2 + col * 0.8)
+  g.scale.set(0, 0, 0)
+  app.add(g)
+  SLOTS.push({ g, key: null, node: null })
+}
+const shelfSign = panel(2.6, 0.9, 0.004, [HX - 0.02, HY + 2.5, HZ], -Math.PI / 2,
+                        'rgba(14,20,17,0.90)', GOLD)
+const shelfTxt = text(shelfSign, 'THE SHELF', 30, GOLD_L, 800)
+const shelfSub = text(shelfSign, '', 20, DIM, 400, 4)
+
+/* draw whatever the server says is up */
+function dress(keys) {
+  for (let i = 0; i < SLOTS.length; i++) {
+    const slot = SLOTS[i], want = keys[i] || null
+    if (slot.key === want) continue
+    slot.key = want
+    if (slot.node) { slot.g.remove(slot.node); slot.node = null }
+    slot.g.scale.set(want ? 1 : 0, want ? 1 : 0, want ? 1 : 0)
+    if (!want) continue
+    const b = BY_KEY[want]
+    const prop = b && props[b.model]
+    if (!prop || !prop.url) continue
+    world.load('model', prop.url).then(n => {
+      if (slot.key !== want) return          // changed while loading
+      n.scale.set(0.34, 0.34, 0.34)
+      slot.g.add(n)
+      slot.node = n
+    }).catch(() => {})
+  }
+}
+
 /* the boss stands on the middle. one group per boss in the rota, all hidden
  * until the server says which is up — swapping a model at runtime means a
  * load every spawn, and the load is what you would see. */
@@ -260,7 +350,10 @@ bdRule.value =
   'Swing at a boss even once and you are on the list.\n' +
   'A miss counts. Zero damage counts.\n' +
   'Beat it and its chibi is yours, guaranteed, once.\n' +
-  'Chests go to everyone in the ring either way.'
+  'Chests go to everyone in the ring either way.\n' +
+  '\nA chibi in your bag scores nothing.\n' +
+  'Land, then a house, then a shelf, then display it.'
+const bdShelf = text(board, '', 22, CREAM, 600, 10)
 
 /* ------------------------------------------------------------------ *
  * client — draw what the server says                                  *
@@ -302,10 +395,21 @@ if (!isServer) {
     // say the debuff out loud, with the number it cost, or nobody connects a
     // quietly smaller rating to a house they stopped repairing weeks ago
     bdYou.color = d.d ? RED : GOLD_L
+    bdShelf.value = !d.house
+      ? 'No house yet — nothing can be displayed. Buy land at the Homestead.'
+      : (d.sh
+          ? ('Shelves: ' + d.sh + '   ·   ' + d.sn + ' of ' + d.sl + ' slots filled')
+          : 'No shelf yet — buy one to display anything. ' + d.c + ' chests in hand.')
+    bdShelf.color = d.house && d.sh ? CREAM : GOLD_L
     bdList.value = (d.d
       ? ('House upkeep below 80% — Chibi Rating cut 5% (' +
          comma(d.b) + ' → ' + comma(d.r) + '). Repair it at the Homestead.\n\n')
       : '') + (d.l || 'No chibis yet. Go and hit something.')
+    dress(d.s || [])
+    shelfSub.value = !d.house
+      ? 'raise a house first'
+      : (d.sh ? (d.sn + ' of ' + d.sl + ' slots  ·  rating ' + comma(d.r))
+              : 'no shelf yet')
   })
   app.on('you!', d => {
     // the one line that matters, said plainly
@@ -323,7 +427,8 @@ if (isServer) {
   let book = world.get(KEY) || {}     // userId -> record
   let saveAt = 0
 
-  const blank = () => ({ name:'?', chibis:{}, kills:{}, chests:0, rating:0, base:0, debuff:0 })
+  const blank = () => ({ name:'?', chibis:{}, kills:{}, chests:0, rating:0, base:0, debuff:0,
+                         shelves:0, shown:{} })
   const recFor = p => {
     const id = p.userId || p.id
     if (!book[id]) book[id] = blank()
@@ -343,6 +448,18 @@ if (isServer) {
    * debuff. Only an owned house that has been let go below the line counts.
    */
   const HOUSE_KEY = 'ccl.house.v1'
+  // land -> house -> shelf. No house, no shelves, no rating.
+  const hasHouse = uid => {
+    const h = (world.get(HOUSE_KEY) || {})[uid]
+    return !!(h && h.house)
+  }
+  const shelfCost = n => SHELF_COST + n * 4
+  const slots = R => (R.shelves || 0) * SHELF_SLOTS
+  const shownCount = R => {
+    let n = 0
+    for (const k in R.shown) if (R.shown[k]) n++
+    return n
+  }
   const UPKEEP_LINE = 80      // maintenance % below which the debuff bites
   const UPKEEP_DEBUFF = 0.05  // 5%
   const upkeepPenalty = uid => {
@@ -360,9 +477,10 @@ if (isServer) {
   // should read.
   const rate = (R, uid) => {
     let n = 0
-    for (const k in R.chibis) {
+    // displayed, not owned. A chibi in the bag scores nothing.
+    for (const k in R.shown) {
       const b = BY_KEY[k]
-      if (b && R.chibis[k] > 0) n += TIER[b.tier].rating
+      if (b && R.shown[k] && (R.chibis[k] || 0) > 0) n += TIER[b.tier].rating
     }
     R.base = n
     R.debuff = uid ? upkeepPenalty(uid) : 0
@@ -389,7 +507,10 @@ if (isServer) {
     const rows = []
     for (const b of BOSSES) {
       const n = R.chibis[b.key] || 0
-      if (n > 0) rows.push('✓ ' + b.name + '  (' + TIER[b.tier].name + ', +' + TIER[b.tier].rating + ')')
+      if (!n) continue
+      const up = !!R.shown[b.key]
+      rows.push((up ? '[on shelf] ' : '[in bag]   ') + b.name +
+                '  (' + TIER[b.tier].name + ', ' + (up ? '+' : 'worth ') + TIER[b.tier].rating + ')')
     }
     return rows.join('\n')
   }
@@ -402,6 +523,8 @@ if (isServer) {
       r: R.rating, b: R.base, d: R.debuff,
       n: Object.keys(R.chibis).filter(k => R.chibis[k] > 0).length,
       t: BOSSES.length, c: R.chests, l: sheet(R),
+      sh: R.shelves || 0, sl: slots(R), sn: shownCount(R), house: hasHouse(uid),
+      s: BOSSES.filter(x => R.shown[x.key]).map(x => x.key),
     })
   }
 
@@ -414,6 +537,59 @@ if (isServer) {
   const lastSwing = {}
 
   app.on('boss?', (d, pid) => { push(); sendYou(pid) })
+
+  app.on('shelf', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const R = recFor(p)
+    if (!hasHouse(uid)) return tell(pid, 'Buy land and raise a house first — shelves go in a house.')
+    const c = shelfCost(R.shelves || 0)
+    if (R.chests < c) return tell(pid, 'A shelf costs ' + c + ' chests. You have ' + R.chests + '.')
+    R.chests -= c
+    R.shelves = (R.shelves || 0) + 1
+    save(); sendYou(pid)
+    tell(pid, 'Shelf raised — ' + slots(R) + ' display slots.')
+  })
+
+  /*
+   * Display the next chibi, or clear the shelf.
+   *
+   * Two actions rather than a pick-one-of-eight menu. There is no list widget
+   * in this engine worth building for it, and eight action nodes standing in
+   * a row inside somebody's house is worse than either. "Next" takes the most
+   * valuable thing you own that is not already up, which is what anyone would
+   * have chosen anyway, and "clear" exists so the choice is reversible.
+   */
+  app.on('show', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const R = recFor(p)
+    if (!hasHouse(uid)) return tell(pid, 'Nowhere to display it — buy land and raise a house first.')
+    if (!R.shelves) return tell(pid, 'Buy a shelf before displaying anything.')
+    if (shownCount(R) >= slots(R))
+      return tell(pid, 'Every slot is full (' + slots(R) + '). Buy another shelf.')
+
+    let best = null
+    for (const b of BOSSES) {
+      if (!((R.chibis[b.key] || 0) > 0) || R.shown[b.key]) continue
+      if (!best || TIER[b.tier].rating > TIER[best.tier].rating) best = b
+    }
+    if (!best) return tell(pid, 'Nothing left in the bag to put up.')
+    R.shown[best.key] = 1
+    rate(R, uid)
+    save(); sendYou(pid)
+    tell(pid, best.name + ' is on the shelf. Chibi Rating ' + comma(R.rating) + '.')
+  })
+
+  app.on('clear', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const R = recFor(p)
+    R.shown = {}
+    rate(R, uid)
+    save(); sendYou(pid)
+    tell(pid, 'Shelf cleared. Chibi Rating ' + comma(R.rating) + '.')
+  })
 
   app.on('swing', (d, pid) => {
     if (!cur || cur.down) return
@@ -545,3 +721,22 @@ a.duration = 0.1
 a.position.set(BX, 1.6, BZ)
 a.onTrigger = () => app.send('swing', {})
 app.add(a)
+
+/*
+ * The shelf counter, by the board rather than in the ring — you do not stop
+ * mid-fight to rearrange your ornaments. Buying is here; what actually goes
+ * on the shelves is chosen at the Homestead, where the shelves are.
+ */
+function act(label, pos, dist, fn) {
+  const n = app.create('action')
+  n.label = label; n.distance = dist; n.duration = 0.3
+  n.position.set(pos[0], pos[1], pos[2])
+  n.onTrigger = fn
+  app.add(n); return n
+}
+
+/* at the shelf, in the house — buying and displaying both happen where the
+ * shelf is, which is the whole point of the housing system owning this */
+act('Buy a shelf',        [HX - 0.9, 1.3, HZ - 1.9], 3.5, () => app.send('shelf', {}))
+act('Display next chibi', [HX - 0.9, 1.3, HZ],       3.5, () => app.send('show', {}))
+act('Clear the shelf',    [HX - 0.9, 1.3, HZ + 1.9], 3.5, () => app.send('clear', {}))

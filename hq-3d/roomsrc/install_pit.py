@@ -68,7 +68,7 @@ bp = {'id': BP, 'version': 1, 'name': 'The Pit', 'image': None, 'author': None,
       # the Roman approach needs columns and the Cash Cat statue model
       'props': dict(texprops.props(['paving', 'marbleFloor', 'wood', 'gravel']),
                     **texprops.models(['t_pillarS', 't_block', 't_overhang', 'n_statBlock', 'n_statRing']),
-                    **texprops.avatars(['avCash'])),
+                    **texprops.avatars(['avCash', 'avSerious', 'avLong'])),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
