@@ -27,6 +27,20 @@ h1{font-size:clamp(30px,6vw,50px);margin:14px 0 6px;text-align:center;font-weigh
 .rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:26px auto}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:26px 0}
+.tile.lead{grid-column:1/-1;background:linear-gradient(135deg,#16302a,#101f1a)}
+.tile.lead .v{font-size:44px}
+.bar{height:9px;border-radius:5px;background:rgba(216,208,184,.12);margin-top:12px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold),var(--gold-l))}
+.flow{background:var(--night2);border:1px solid rgba(216,208,184,.14);border-radius:10px;padding:22px 24px;margin-top:14px}
+.flow .fr{display:flex;align-items:center;gap:14px;margin:14px 0}
+.flow .fl{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--ink3);width:74px;flex:none}
+.flow .ft{flex:1;height:26px;border-radius:6px;background:rgba(216,208,184,.10);position:relative;overflow:hidden}
+.flow .ft i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;font-style:normal}
+.flow .ft i.in{background:linear-gradient(90deg,#1a7f4b,#2ecc71)}
+.flow .ft i.out{background:linear-gradient(90deg,#8a3a2a,#c0524a)}
+.flow .fv{font-family:var(--mono);font-size:14px;width:150px;text-align:right;flex:none}
+.flow .note2{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.8}
 .tile{background:var(--night2);border:1px solid rgba(216,208,184,.14);border-radius:10px;padding:18px 20px}
 .tile .t{font-family:var(--mono);font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--gold-l);opacity:.85}
 .tile .v{font-size:28px;margin-top:8px;letter-spacing:.5px}
@@ -61,6 +75,9 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid rgba(216,208,184,.1
   <div class="rule"></div>
 
   <div class="grid" id="tiles"></div>
+
+  <h2>In and out</h2>
+  <div id="flow" class="flow"><div class="empty">reading the chain…</div></div>
 
   <h2>Paid out</h2>
   <p class="note">
@@ -115,14 +132,42 @@ var pad = function (a) { return '0x000000000000000000000000' + a.replace(/^0x/,'
 document.getElementById('addr').innerHTML =
   '<a href="' + EXPLORER + '/address/' + WALLET + '" target="_blank" rel="noopener">' + WALLET + '</a>';
 
-var call = function (method, params) {
-  return fetch(RPC, {
-    method:'POST', headers:{'content-type':'application/json'},
-    body: JSON.stringify({ jsonrpc:'2.0', id:1, method:method, params:params })
-  }).then(function (r) { return r.json(); }).then(function (j) {
-    if (j.error) throw new Error(j.error.message || 'rpc error');
+/*
+ * One call at a time, with backoff.
+ *
+ * The first version fired all nine reads at once through Promise.all and a
+ * public node answered 429 Too Many Requests — so the page showed "Could not
+ * read the chain" to every visitor. A transparency page that falls over under
+ * its own opening request is worse than no page, and nobody would know whether
+ * the wallet was empty or the page was broken.
+ */
+var queue = Promise.resolve();
+var call = function (method, params, tries) {
+  tries = tries || 0;
+  queue = queue.then(function () {
+    return new Promise(function (r) { setTimeout(r, 90); });
+  }).then(function () {
+    return fetch(RPC, {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ jsonrpc:'2.0', id:1, method:method, params:params })
+    });
+  }).then(function (r) {
+    if (r.status === 429 || r.status === 503) throw new Error('busy');
+    return r.json();
+  }).then(function (j) {
+    if (j.error) {
+      if (/429|too many|rate/i.test(j.error.message || '')) throw new Error('busy');
+      throw new Error(j.error.message || 'rpc error');
+    }
     return j.result;
+  }).catch(function (e) {
+    if (e.message === 'busy' && tries < 4) {
+      return new Promise(function (r) { setTimeout(r, 700 * (tries + 1)); })
+        .then(function () { return call(method, params, tries + 1); });
+    }
+    throw e;
   });
+  return queue;
 };
 var ethCall = function (to, data) { return call('eth_call', [{ to:to, data:data }, 'latest']); };
 
@@ -170,15 +215,64 @@ function decodeStr(hex) {
 
 function tiles(rows, native, txcount) {
   var el = document.getElementById('tiles'), h = '';
+  // scale the bars against the largest holding, so an empty wallet reads as
+  // empty rather than as three full bars of nothing
+  var top = 0;
+  rows.forEach(function (r) { var n = parseFloat(String(r.value).replace(/,/g, '')); if (n > top) top = n; });
+  var held = rows.filter(function (r) { return parseFloat(String(r.value).replace(/,/g, '')) > 0; });
+  h += '<div class="tile lead"><div class="t">Holding</div><div class="v">' +
+       (held.length ? held.map(function (r) { return r.value + ' ' + escapeHtml(r.symbol); }).join('  ·  ')
+                    : 'nothing yet') +
+       '</div><div class="n">' + (held.length ? 'across ' + held.length + ' token' + (held.length > 1 ? 's' : '')
+                                              : 'this wallet has not been funded') + '</div></div>';
   rows.forEach(function (r) {
+    var n = parseFloat(String(r.value).replace(/,/g, '')) || 0;
+    var pct = top > 0 ? Math.round(100 * n / top) : 0;
     h += '<div class="tile"><div class="t">' + r.label + '</div>' +
          '<div class="v">' + r.value + '</div>' +
-         '<div class="n">' + r.symbol + ' &middot; ' + short(r.addr) + '</div></div>';
+         '<div class="n">' + r.symbol + ' &middot; ' + short(r.addr) + '</div>' +
+         '<div class="bar"><span style="width:' + pct + '%"></span></div></div>';
   });
   h += '<div class="tile"><div class="t">Gas coin</div><div class="v">' + native + '</div>' +
        '<div class="n">needed to send anything at all</div></div>';
   h += '<div class="tile"><div class="t">Transactions sent</div><div class="v">' + txcount + '</div>' +
        '<div class="n">' + (txcount === 0 ? 'this wallet has never spent' : 'lifetime, including gas-coin sends') + '</div></div>';
+  el.innerHTML = h;
+}
+
+/* A bar each way, per token, scaled together — so "nothing has gone out" is
+ * something you can see at a glance rather than a sentence you have to read. */
+function flow(outLogs, inLogs, rows) {
+  var el = document.getElementById('flow');
+  var sum = function (logs) {
+    var by = {};
+    logs.forEach(function (l) {
+      var a = l.address.toLowerCase();
+      by[a] = (by[a] || 0n) + BigInt(l.data || '0x0');
+    });
+    return by;
+  };
+  var ins = sum(inLogs), outs = sum(outLogs);
+  var keys = Object.keys(ins).concat(Object.keys(outs)).filter(function (v, i, a) { return a.indexOf(v) === i; });
+  if (!keys.length) {
+    el.innerHTML = '<div class="empty">No token has moved in or out of this wallet yet.</div>';
+    return;
+  }
+  var h = '';
+  keys.forEach(function (k) {
+    var m = meta[k] || { symbol: short(k), decimals: 18 };
+    var i = ins[k] || 0n, o = outs[k] || 0n;
+    var top = i > o ? i : o;
+    var w = function (v) { return top > 0n ? Number((v * 1000n) / top) / 10 : 0; };
+    h += '<div style="margin-bottom:18px"><div class="fl" style="width:auto;margin-bottom:6px">' +
+         escapeHtml(m.symbol) + '</div>' +
+         '<div class="fr"><div class="fl">received</div><div class="ft"><i class="in" style="width:' + w(i) + '%"></i></div>' +
+         '<div class="fv">' + units('0x' + i.toString(16), m.decimals) + '</div></div>' +
+         '<div class="fr"><div class="fl">paid out</div><div class="ft"><i class="out" style="width:' + w(o) + '%"></i></div>' +
+         '<div class="fv">' + units('0x' + o.toString(16), m.decimals) + '</div></div></div>';
+  });
+  h += '<div class="note2">Bars are scaled per token against the larger of the two, ' +
+       'so the shape is the ratio in and out — not a comparison between tokens.</div>';
   el.innerHTML = h;
 }
 
@@ -209,24 +303,35 @@ function escapeHtml(s) {
   });
 }
 
-Promise.all(TOKENS.map(loadToken)).then(function (rows) {
-  return Promise.all([
-    rows,
-    call('eth_getBalance', [WALLET, 'latest']),
-    call('eth_getTransactionCount', [WALLET, 'latest']),
-    call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, pad(WALLET)] }]),
-    call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, null, pad(WALLET)] }]),
-    fetch('spend.json').then(function (r) { return r.json(); })
-      .catch(function () { return { payments:{} }; })
-  ]);
-}).then(function (r) {
-  tiles(r[0], units(r[1], 18), parseInt(r[2], 16));
-  rowsInto('out', r[3], r[5].payments || {}, true);
-  rowsInto('in',  r[4], {}, false);
-}).catch(function (e) {
-  document.getElementById('tiles').innerHTML =
-    '<div class="err">Could not read the chain: ' + escapeHtml(e.message) + '</div>';
-});
+var seq = function (fns) {
+  var out = [];
+  return fns.reduce(function (p, fn) {
+    return p.then(function () { return fn(); }).then(function (v) { out.push(v); });
+  }, Promise.resolve()).then(function () { return out; });
+};
+
+seq(TOKENS.map(function (t) { return function () { return loadToken(t); }; }))
+  .then(function (rows) {
+    return seq([
+      function () { return call('eth_getBalance', [WALLET, 'latest']); },
+      function () { return call('eth_getTransactionCount', [WALLET, 'latest']); },
+      function () { return call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, pad(WALLET)] }]); },
+      function () { return call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, null, pad(WALLET)] }]); },
+      function () { return fetch('spend.json').then(function (r) { return r.json(); })
+                      .catch(function () { return { payments:{} }; }); }
+    ]).then(function (r) { return [rows].concat(r); });
+  })
+  .then(function (r) {
+    tiles(r[0], units(r[1], 18), parseInt(r[2], 16));
+    flow(r[3], r[4], r[0]);
+    rowsInto('out', r[3], r[5].payments || {}, true);
+    rowsInto('in',  r[4], {}, false);
+  })
+  .catch(function (e) {
+    document.getElementById('tiles').innerHTML =
+      '<div class="err">Could not read the chain: ' + escapeHtml(e.message) +
+      '<br><span style="color:var(--ink3)">The public node may be busy. Reload in a moment.</span></div>';
+  });
 </script>
 </body>
 </html>
