@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Marketing Wallet — World of CashCats</title>
+<style>
+:root{
+  --paper:#f4f0e3; --card:#fbf8ee; --ink:#16150f; --ink2:#4a4736; --ink3:#8a8262;
+  --green:#1a7f4b; --gold:#a9812a; --gold-l:#e6c46a; --red:#c0524a;
+  --line:#d8d0b8; --line2:#c9bf9f;
+  --night:#0e1a14; --night2:#14261d;
+  --serif:"Times New Roman",Georgia,"Iowan Old Style",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--night);color:var(--paper);font-family:var(--serif);min-height:100vh}
+.wrap{max-width:960px;margin:0 auto;padding:56px 22px 80px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:4px;text-transform:uppercase;
+  color:var(--gold-l);opacity:.9;text-align:center}
+h1{font-size:clamp(30px,6vw,50px);margin:14px 0 6px;text-align:center;font-weight:400}
+.sub{text-align:center;color:#c8c2ac;font-size:16px;margin:0 0 6px}
+.addr{font-family:var(--mono);font-size:12px;text-align:center;color:var(--ink3);
+  word-break:break-all;margin-bottom:6px}
+.addr a{color:var(--gold-l);text-decoration:none;border-bottom:1px solid rgba(230,196,106,.35)}
+.rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:26px auto}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:26px 0}
+.tile{background:var(--night2);border:1px solid rgba(216,208,184,.14);border-radius:10px;padding:18px 20px}
+.tile .t{font-family:var(--mono);font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--gold-l);opacity:.85}
+.tile .v{font-size:28px;margin-top:8px;letter-spacing:.5px}
+.tile .n{font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-top:6px;word-break:break-all}
+
+h2{font-size:22px;font-weight:400;margin:38px 0 4px;border-bottom:1px solid rgba(216,208,184,.16);padding-bottom:10px}
+.note{color:#b9b3a0;font-size:14.5px;line-height:1.65;margin:12px 0}
+.note code{font-family:var(--mono);font-size:12.5px;color:var(--gold-l)}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+th{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--gold-l);text-align:left;padding:10px 8px;border-bottom:1px solid rgba(216,208,184,.18);font-weight:400}
+td{padding:12px 8px;border-bottom:1px solid rgba(216,208,184,.08);vertical-align:top}
+td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+td.mono{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+td a{color:var(--gold-l);text-decoration:none}
+.unlabelled{color:var(--red);font-family:var(--mono);font-size:12px;letter-spacing:1px}
+.empty{color:var(--ink3);font-style:italic;padding:26px 8px}
+.scroll{overflow-x:auto}
+footer{margin-top:56px;padding-top:22px;border-top:1px solid rgba(216,208,184,.14);
+  font-family:var(--mono);font-size:11px;color:var(--ink3);line-height:1.9;text-align:center}
+.err{color:var(--red);font-family:var(--mono);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">World of CashCats</div>
+  <h1>The Marketing Wallet</h1>
+  <p class="sub">What is in it, what has left it, and what each payment was for.</p>
+  <p class="addr" id="addr"></p>
+  <div class="rule"></div>
+
+  <div class="grid" id="tiles"></div>
+
+  <h2>Paid out</h2>
+  <p class="note">
+    Read live from Robinhood Chain. The chain knows the amount, the token, the
+    recipient and the block — it does not know <em>why</em>, and a page that
+    invents a reason from chain data is not telling you the truth. The reasons
+    come from <code>spend.json</code> in the repository, so relabelling a
+    payment is a commit with a name and a date on it. Anything paid out that
+    is not labelled there shows below as <span class="unlabelled">UNLABELLED</span>.
+  </p>
+  <div class="scroll"><table id="out">
+    <thead><tr><th>Block</th><th>To</th><th>What for</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody><tr><td colspan="4" class="empty">reading the chain…</td></tr></tbody>
+  </table></div>
+
+  <h2>Received</h2>
+  <div class="scroll"><table id="in">
+    <thead><tr><th>Block</th><th>From</th><th>Token</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody><tr><td colspan="4" class="empty">reading the chain…</td></tr></tbody>
+  </table></div>
+
+  <h2>What this page cannot show you</h2>
+  <p class="note">
+    Token movements emit an event and can be listed exactly. Payments of the
+    chain's own gas coin do not emit anything, so they cannot be enumerated
+    from a public node without scanning every block — they show up only as a
+    fall in the balance above. If the wallet ever pays anyone in the native
+    coin, put the transaction hash in <code>spend.json</code> and it will be
+    listed here with everything else.
+  </p>
+
+  <footer>
+    <div>$CASHCATSLLC &middot; Robinhood Chain &middot; figures read live from a public node</div>
+    <div>Built by <a href="https://robinlab.io" style="color:var(--ink3)">RobinLabs</a></div>
+  </footer>
+</div>
+
+<script>
+var RPC     = 'https://rpc.mainnet.chain.robinhood.com';
+var WALLET  = '0xeada486425674e1b8c2b34d0e61782997707ae47';
+var EXPLORER= 'https://explorer.mainnet.chain.robinhood.com';
+// Tokens worth showing a balance for. decimals are read from the chain, not
+// assumed — getting that wrong is how a page reports a million-dollar treasury.
+var TOKENS = [
+  { addr:'0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc', label:'$CASHCATSLLC' },
+  { addr:'0x2f6A90cE9Dcece3215df206B3Ac6fF7368E27acc', label:'Gold Cash Cat' },
+  { addr:'0x5fc5360d0400a0fd4f2af552add042d716f1d168', label:'USDG' }
+];
+var TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+var pad = function (a) { return '0x000000000000000000000000' + a.replace(/^0x/,'').toLowerCase(); };
+
+document.getElementById('addr').innerHTML =
+  '<a href="' + EXPLORER + '/address/' + WALLET + '" target="_blank" rel="noopener">' + WALLET + '</a>';
+
+var call = function (method, params) {
+  return fetch(RPC, {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ jsonrpc:'2.0', id:1, method:method, params:params })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j.error) throw new Error(j.error.message || 'rpc error');
+    return j.result;
+  });
+};
+var ethCall = function (to, data) { return call('eth_call', [{ to:to, data:data }, 'latest']); };
+
+// A big integer divided by 10^decimals, without floats eating the precision.
+var units = function (hex, dec) {
+  var v = BigInt(hex || '0x0'), b = BigInt(10) ** BigInt(dec);
+  var whole = (v / b).toString(), frac = (v % b).toString().padStart(dec, '0').replace(/0+$/, '');
+  whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return frac ? whole + '.' + frac.slice(0, 4) : whole;
+};
+var short = function (a) { a = a.replace(/^0x/,''); return '0x' + a.slice(0,6) + '…' + a.slice(-4); };
+var linkAddr = function (a) {
+  return '<a href="' + EXPLORER + '/address/0x' + a.replace(/^0x/,'') + '" target="_blank" rel="noopener">' + short(a) + '</a>';
+};
+
+var meta = {};   // token address (lowercase) -> {symbol, decimals}
+
+function loadToken(t) {
+  var a = t.addr;
+  return Promise.all([
+    ethCall(a, '0x313ce567'),                                    // decimals()
+    ethCall(a, '0x70a08231' + pad(WALLET).slice(2)),             // balanceOf(wallet)
+    ethCall(a, '0x95d89b41')                                     // symbol()
+  ]).then(function (r) {
+    var dec = parseInt(r[0], 16) || 0;
+    var sym = decodeStr(r[2]) || t.label;
+    meta[a.toLowerCase()] = { symbol: sym, decimals: dec };
+    return { label: t.label, symbol: sym, value: units(r[1], dec), addr: a };
+  }).catch(function () {
+    return { label: t.label, symbol: t.label, value: 'unreadable', addr: a };
+  });
+}
+
+// ABI-encoded string: offset, length, bytes
+function decodeStr(hex) {
+  try {
+    var h = (hex || '').replace(/^0x/,'');
+    if (h.length < 128) return '';
+    var off = parseInt(h.slice(0,64),16) * 2, len = parseInt(h.slice(off,off+64),16) * 2;
+    var out = '';
+    for (var i = 0; i < len; i += 2) out += String.fromCharCode(parseInt(h.slice(off+64+i, off+64+i+2),16));
+    return out.replace(/\0/g,'').trim();
+  } catch (e) { return ''; }
+}
+
+function tiles(rows, native, txcount) {
+  var el = document.getElementById('tiles'), h = '';
+  rows.forEach(function (r) {
+    h += '<div class="tile"><div class="t">' + r.label + '</div>' +
+         '<div class="v">' + r.value + '</div>' +
+         '<div class="n">' + r.symbol + ' &middot; ' + short(r.addr) + '</div></div>';
+  });
+  h += '<div class="tile"><div class="t">Gas coin</div><div class="v">' + native + '</div>' +
+       '<div class="n">needed to send anything at all</div></div>';
+  h += '<div class="tile"><div class="t">Transactions sent</div><div class="v">' + txcount + '</div>' +
+       '<div class="n">' + (txcount === 0 ? 'this wallet has never spent' : 'lifetime, including gas-coin sends') + '</div></div>';
+  el.innerHTML = h;
+}
+
+function rowsInto(id, logs, labels, outgoing) {
+  var tb = document.querySelector('#' + id + ' tbody');
+  if (!logs.length) {
+    tb.innerHTML = '<tr><td colspan="4" class="empty">' +
+      (outgoing ? 'Nothing has left this wallet yet.' : 'Nothing has arrived yet.') + '</td></tr>';
+    return;
+  }
+  logs.sort(function (a, b) { return parseInt(b.blockNumber,16) - parseInt(a.blockNumber,16); });
+  tb.innerHTML = logs.map(function (l) {
+    var m = meta[l.address.toLowerCase()] || { symbol: short(l.address), decimals: 18 };
+    var who = outgoing ? l.topics[2] : l.topics[1];
+    var lab = labels[(l.transactionHash || '').toLowerCase()];
+    var third = outgoing
+      ? (lab ? escapeHtml(lab) : '<span class="unlabelled">UNLABELLED</span>')
+      : escapeHtml(m.symbol);
+    return '<tr><td class="mono">' + parseInt(l.blockNumber,16) + '</td>' +
+           '<td class="mono">' + linkAddr('0x' + who.slice(26)) + '</td>' +
+           '<td>' + third + '</td>' +
+           '<td class="num">' + units(l.data, m.decimals) + ' ' + escapeHtml(m.symbol) + '</td></tr>';
+  }).join('');
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+
+Promise.all(TOKENS.map(loadToken)).then(function (rows) {
+  return Promise.all([
+    rows,
+    call('eth_getBalance', [WALLET, 'latest']),
+    call('eth_getTransactionCount', [WALLET, 'latest']),
+    call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, pad(WALLET)] }]),
+    call('eth_getLogs', [{ fromBlock:'0x0', toBlock:'latest', topics:[TRANSFER, null, pad(WALLET)] }]),
+    fetch('spend.json').then(function (r) { return r.json(); })
+      .catch(function () { return { payments:{} }; })
+  ]);
+}).then(function (r) {
+  tiles(r[0], units(r[1], 18), parseInt(r[2], 16));
+  rowsInto('out', r[3], r[5].payments || {}, true);
+  rowsInto('in',  r[4], {}, false);
+}).catch(function (e) {
+  document.getElementById('tiles').innerHTML =
+    '<div class="err">Could not read the chain: ' + escapeHtml(e.message) + '</div>';
+});
+</script>
+</body>
+</html>

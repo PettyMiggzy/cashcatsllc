@@ -1,0 +1,16 @@
+{
+  "_readme": [
+    "What each payment out of the marketing wallet was for.",
+    "",
+    "The chain can tell you the amount, the token, the recipient and the",
+    "block. It cannot tell you WHY, and no page that invents a reason from",
+    "chain data is telling the truth. So the reasons live here, in a file in",
+    "the repository, which means relabelling a payment is a commit with an",
+    "author and a date on it rather than a quiet edit to a database.",
+    "",
+    "Key is the transaction hash, lowercase. Anything paid out and not listed",
+    "here shows on the page as UNLABELLED, in red. That is deliberate: a",
+    "transparency page that can hide a payment by omission is a press release."
+  ],
+  "payments": {}
+}
