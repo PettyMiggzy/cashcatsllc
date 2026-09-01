@@ -31,6 +31,9 @@
 // roughly one unit to a storey, so 2.7 puts a door at head height.
 const NAT = 3.4, TOWN = 2.7, PIR = 1.5, SMALL = 0.65
 const Y = 0.02
+// This app draws on both sides — the server needs the geometry for collision,
+// the client needs it to look at. Streaming is a client-only concern.
+const isServer = world.isServer
 
 const GOLD='#a9812a', GOLD_L='#e8c25a', CREAM='#e8f2ec', INK='#16150f'
 const DIM='#8fa39a', PAPER='#f4f0e3', GREEN='#1a7f4b'
@@ -104,6 +107,53 @@ function ground(cx, cz, w, d, y, tex, color, opts) {
   }
 }
 
+/*
+ * STREAMING — why anything here is deferred at all.
+ *
+ * The blueprints are already preload:false, so nothing is force-fetched. The
+ * reason a player still downloaded sixty-five megabytes before they could
+ * move is simpler and entirely ours: every room script called world.load() the
+ * moment it mounted, for everything it would ever draw. All of it, at once,
+ * over one connection, whether or not you ever walked to that end of the map.
+ *
+ * world.load IS the fetch. Not calling it does not fetch. So a model given a
+ * `near` gets registered here instead and loaded the first time the local
+ * player comes within range — and if they never go to the Docks, the galleon
+ * never crosses the wire.
+ *
+ * Two things this deliberately does not try to be. It does not unload: once
+ * something is in, it stays, because the loader caches by url anyway and
+ * thrashing big models on a distance check is worse than the memory. And the
+ * radii are generous rather than tight — a 24-metre ship needs to exist before
+ * you can see it is missing, so this is about not fetching everything in the
+ * first second, not about squeezing the last megabyte.
+ *
+ * Server side there is no local player and nothing to draw, so it just loads
+ * immediately — the server needs the geometry for collision regardless.
+ */
+const LAZY = []
+function whenNear(cx, cz, r, fn) {
+  if (isServer) return fn()
+  LAZY.push({ cx, cz, r2: r * r, fn })
+}
+if (!isServer) {
+  let every = 0
+  app.on('update', () => {
+    if (!LAZY.length) return
+    if (++every % 15) return          // four times a second is plenty
+    const p = world.getPlayer()
+    if (!p) return
+    const q = p.position
+    for (let i = LAZY.length - 1; i >= 0; i--) {
+      const L = LAZY[i]
+      const dx = q.x - L.cx, dz = q.z - L.cz
+      if (dx * dx + dz * dz > L.r2) continue
+      LAZY.splice(i, 1)
+      L.fn()
+    }
+  })
+}
+
 // world.load, not app.load — app has no loader. Getting that wrong threw on
 // the first model and took the whole script with it, which is how the campus
 // shipped with no skyline, no trees and no lamps and nothing said a word.
@@ -111,6 +161,12 @@ function model(key, pos, rotY, scale, opts) {
   const prop = props[key]
   if (!prop || !prop.url) return
   opts = opts || {}
+  if (opts.near) {
+    const n = opts.near
+    const o = {}
+    for (const k in opts) if (k !== 'near') o[k] = opts[k]
+    return whenNear(n[0], n[1], n[2], () => model(key, pos, rotY, scale, o))
+  }
   world.load('model', prop.url)
     .then(node => {
       node.position.set(pos[0], pos[1], pos[2])
@@ -467,6 +523,10 @@ const TALK = 'asset://emote-talk.glb'
 function villager(x, z, rotY, cat, emote) {
   const prop = props[cat]
   if (!prop || !prop.url) return
+  // a VRM is 1.6MB and there are five of them; none is visible from the plaza
+  if (!isServer && !villager.armed) {
+    return whenNear(x, z, 70, () => { villager.armed = 1; villager(x, z, rotY, cat, emote); villager.armed = 0 })
+  }
   const av = app.create('avatar')
   av.src = prop.url
   av.position.set(x, 0, z)
@@ -678,7 +738,7 @@ jetty(DX + 16, 16, 4.2)
 // its origin is two metres above its own footing and it builds backwards from
 // there. At y=0 it stood sunk to the shins; at y=2 it sits on the ground with
 // its frontage on z, facing the water the way a quayside terrace does.
-model('hq_modular_urban_apartments_facade', [DX, 2.0, SHORE_Z - 8], 0, 1.0)
+model('hq_modular_urban_apartments_facade', [DX, 2.0, SHORE_Z - 8], 0, 1.0, { near: [DX, SHORE_Z - 8, 95] })
 
 model('p_towerBase', [DX + 8.5, 0, SHORE_Z - 4], -0.3, PIR)
 model('p_towerRoof', [DX + 8.5, 4.6, SHORE_Z - 4], -0.3, PIR)
@@ -714,7 +774,7 @@ model('m_boat',  [DX + 20,   0.1, SHORE_Z + 6],  1.9,  PIR)
 // x=-73 put her seven metres past the west bank — the lake was narrowed to 38
 // to keep it out of the Cat Park and the ship never moved with it. Water runs
 // x -66..-28, so she sits at -58 with room to swing.
-model('hq_dutch_ship_medium', [DX - 11, -0.6, SHORE_Z + 28], 0.55, 1.0)
+model('hq_dutch_ship_medium', [DX - 11, -0.6, SHORE_Z + 28], 0.55, 1.0, { near: [DX, SHORE_Z + 10, 95] })
 model('p_wreck', [DX + 25,   0.0, SHORE_Z + 33], -1.1, PIR * 1.2)
 for (let i = 0; i < 9; i++)
   model(i % 2 ? 'm_palm' : 'p_palmBend',
@@ -817,14 +877,15 @@ const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
  * what it is good for, since the thing you want from a 46-metre rock is
  * distance and it has no business being the wall you stand at.
  */
-model('hq_coastal_cliff_02', [SX,      0, SZ - 16],  0,              1.0)
-model('hq_coastal_cliff_01', [SX,      0, SZ - 27],  0,              0.5)
-model('hq_coastal_cliff_02', [SX + 24, 0, SZ -  6], -Math.PI / 2.6,  0.7)
-model('hq_coastal_cliff_02', [SX - 24, 0, SZ -  6],  Math.PI / 2.4,  0.7)
+model('hq_coastal_cliff_02', [SX,      0, SZ - 16],  0,              1.0, { near: [SX, SZ, 100] })
+model('hq_coastal_cliff_01', [SX,      0, SZ - 27],  0,              0.5, { near: [SX, SZ, 100] })
+model('hq_coastal_cliff_02', [SX + 24, 0, SZ -  6], -Math.PI / 2.6,  0.7, { near: [SX, SZ, 100] })
+model('hq_coastal_cliff_02', [SX - 24, 0, SZ -  6],  Math.PI / 2.4,  0.7, { near: [SX, SZ, 100] })
 // boulders fallen off the face, at the foot of it
 const BLD = ['hq_boulder_01', 'hq_namaqualand_boulder_02', 'hq_namaqualand_boulder_03', 'hq_rock_moss_set_01']
 for (let i = 0; i < 11; i++)
-  model(BLD[i % BLD.length], [SX + rr(-20, 20), 0, SZ - 6 + rr(-2, 5)], rr(0, 6.28), rr(0.8, 1.9))
+  model(BLD[i % BLD.length], [SX + rr(-20, 20), 0, SZ - 6 + rr(-2, 5)], rr(0, 6.28), rr(0.8, 1.9),
+        { near: [SX, SZ, 70] })
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)
