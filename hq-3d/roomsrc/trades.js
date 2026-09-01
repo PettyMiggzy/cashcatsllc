@@ -54,20 +54,46 @@ const INK='#16150f'
  * Weights are percentages and sum to 100, so the rate on the sheet in the
  * world is the rate in the world.
  */
+/*
+ * Rarity is four levels — Common, Uncommon, Rare, Ultra Rare — and the fish
+ * inside them are placeholders. The dev is naming the real ones, so the table
+ * is built to be swapped: a fish is one row, and rarity, weight, value, the
+ * rod it needs and the model it shows are all on that row. Adding the real
+ * list later touches nothing but this array.
+ *
+ * Weights are percentages and sum to 100.
+ */
+const COMMON = 0, UNCOMMON = 1, RARE = 2, ULTRA = 3
+const RARITY = ['Common', 'Uncommon', 'Rare', 'Ultra Rare']
+const RARITY_COLOR = ['#a9c4b6', '#7ec8a9', '#4fb3d9', '#e8c25a']
+
 const FISH = [
-  { key:'fishPerch', name:'Penny Perch',    w:34.0, v:1,   rod:0 },
-  { key:'fishCarp',  name:'Copper Carp',    w:26.0, v:2,   rod:0 },
-  { key:'fishTrout', name:'Paper Trout',    w:20.0, v:4,   rod:0 },
-  { key:'fishBass',  name:'Silver Bass',    w:12.0, v:9,   rod:0, big:1 },
-  { key:'fishEel',   name:'Ledger Eel',     w: 7.0, v:20,  rod:0, big:1 },
-  // Ultra Rare — Gold Rod only
-  { key:'fishTuna',  name:'Blue Chip Tuna', w: 0.5, v:120, rod:2, big:1 },
-  // and the one everybody is here for: Silver or Gold rod, and bait
-  { key:'fishGold',  name:'GOLD CASH CAT',  w: 0.5, v:500, rod:1, bait:1 },
+  { key:'fishPerch', name:'Penny Perch',    r:COMMON,   w:30.0, v:1,   rod:0 },
+  { key:'fishCarp',  name:'Copper Carp',    r:COMMON,   w:26.0, v:2,   rod:0 },
+  { key:'fishTrout', name:'Paper Trout',    r:COMMON,   w:22.0, v:4,   rod:0 },
+  { key:'fishBass',  name:'Silver Bass',    r:UNCOMMON, w:14.0, v:9,   rod:0, big:1 },
+  { key:'fishEel',   name:'Ledger Eel',     r:RARE,     w: 7.0, v:20,  rod:0, big:1 },
+  { key:'fishTuna',  name:'Blue Chip Tuna', r:ULTRA,    w: 0.5, v:120, rod:2, big:1 },
+  { key:'fishGold',  name:'GOLD CASH CAT',  r:ULTRA,    w: 0.5, v:500, rod:1, bait:1 },
 ]
-/* Anything the player cannot currently land has its weight folded back into
- * the common end, so the odds always add to 100 and nobody is quietly fishing
- * an eight-percent hole. */
+
+/*
+ * Baits all cost the same and each one draws different species — so choosing
+ * bait is aiming, not paying for a better roll. That distinction is the whole
+ * reason this economy is not a loot box, and it should survive contact with
+ * whatever the final fish list turns out to be.
+ *
+ * A bait multiplies the weight of what it draws and everything renormalises,
+ * so bait never *guarantees* anything and the printed odds stay true.
+ */
+const BAIT_DRAW = 4.0
+const BAITS = [
+  { key:'worm',    name:'Worm',        draws:[COMMON],   note:'the everyday fish' },
+  { key:'shrimp',  name:'Shrimp',      draws:[UNCOMMON], note:'the better commons' },
+  { key:'minnow',  name:'Minnow',      draws:[RARE],     note:'what the rare fish chase' },
+  { key:'spinner', name:'Glitter Lure',draws:[ULTRA],    note:'draws what almost never bites' },
+]
+const baitByKey = k => { for (let i = 0; i < BAITS.length; i++) if (BAITS[i].key === k) return BAITS[i]; return null }
 
 const RODS = [
   { key:'rodWood',   name:'Wooden Rod', window:1500, how:'yours from the first cast' },
@@ -216,7 +242,9 @@ if (isServer) {
   // leaderboard. `coin` is the spendable balance and does. Keeping them apart
   // means buying bait does not cost you your place on the board.
   const blank = () => ({ name:'?', fish:0, catches:{}, forage:0, kinds:{}, ore:0,
-                         best:0, filed:0, coin:0, bait:0, gold:0, rods:1 })
+                         best:0, filed:0, coin:0, gold:0, rods:1,
+                         // bait is a bag now: kind -> how many, plus what is on the line
+                         bait:{}, onLine:null })
   const grant = (L, n) => { L.filed += n; L.coin += n }
   /*
    * Fetch a ledger, and bring an old one up to the current shape.
@@ -233,6 +261,9 @@ if (isServer) {
     const L = book[id], base = blank()
     for (const k in base) if (L[k] === undefined || L[k] === null) L[k] = base[k]
     if (typeof L.coin !== 'number' || L.coin !== L.coin) L.coin = L.filed || 0
+    // bait used to be a single count; carry an old stock over as worms
+    if (typeof L.bait === 'number') L.bait = L.bait > 0 ? { worm: L.bait } : {}
+    if (!L.bait || typeof L.bait !== 'object') L.bait = {}
     L.name = p.name || '?'
     return L
   }
@@ -256,26 +287,36 @@ if (isServer) {
    * that, a wooden rod with no bait would be fishing a one-percent hole and
    * the printed rates would be lies.
    */
-  const rollFish = (tier, baited) => {
-    const can = f => tier >= f.rod && (!f.bait || baited)
+  /*
+   * Roll the catch table for a rod and a bait.
+   *
+   * Bait multiplies the weight of the rarity it draws and everything then
+   * renormalises, so bait aims rather than upgrades — it can never guarantee a
+   * fish, and the odds on the board stay true whatever is on the line.
+   *
+   * Anything the player cannot land right now is dropped and its weight folds
+   * back into the commons. Without that, a wooden rod on a bare line would be
+   * fishing a one-percent hole while the sign claimed otherwise.
+   */
+  const rollFish = (tier, bait) => {
+    const draws = bait ? bait.draws : null
+    const can = f => tier >= f.rod && (!f.bait || !!bait)
     let locked = 0
     for (let i = 0; i < FISH.length; i++) if (!can(FISH[i])) locked += FISH[i].w
-    // the Gold Rod's edge: the bigger commons come up more often, and what
-    // that costs is taken off the smallest fish rather than off the rares
-    const weight = f => {
-      let w = f.w
+    const weight = (f, i) => {
+      let w = f.w + (i < 3 ? locked / 3 : 0)
       if (f.big && tier >= 2) w *= BIG_BONUS
+      if (draws && draws.indexOf(f.r) !== -1) w *= BAIT_DRAW
       return w
     }
     let total = 0
-    for (let i = 0; i < FISH.length; i++) if (can(FISH[i])) total += weight(FISH[i]) + (i < 3 ? locked / 3 : 0)
+    for (let i = 0; i < FISH.length; i++) if (can(FISH[i])) total += weight(FISH[i], i)
     const r = num(0, total, 4)
     let acc = 0
     for (let i = 0; i < FISH.length; i++) {
-      const f = FISH[i]
-      if (!can(f)) continue
-      acc += weight(f) + (i < 3 ? locked / 3 : 0)
-      if (r <= acc) return f
+      if (!can(FISH[i])) continue
+      acc += weight(FISH[i], i)
+      if (r <= acc) return FISH[i]
     }
     return FISH[0]
   }
@@ -304,7 +345,8 @@ if (isServer) {
   const pushYou = (pid, L) => {
     app.sendTo(pid, 'you', {
       fish: L.fish, forage: L.forage, ore: L.ore, filed: L.filed, best: L.best,
-      rod: rodTier(L), pick: pickTier(L), coin: L.coin, bait: L.bait, gold: L.gold || 0,
+      rod: rodTier(L), pick: pickTier(L), coin: L.coin, gold: L.gold || 0,
+      bait: L.bait, onLine: L.onLine,
       kinds: Object.keys(L.kinds).length,
     })
   }
@@ -343,9 +385,14 @@ if (isServer) {
     const L = ledgerFor(p)
     // bait is spent on the strike, not on the cast — a cast that never bit
     // should not cost you anything
-    const baited = (L.bait || 0) > 0
-    if (baited) L.bait -= 1
-    const f = rollFish(rodTier(L), baited)
+    // whichever bait is on the line is what gets spent, and only on a strike
+    let bait = null
+    if (L.onLine && (L.bait[L.onLine] || 0) > 0) {
+      bait = baitByKey(L.onLine)
+      L.bait[L.onLine] -= 1
+      if (L.bait[L.onLine] <= 0) delete L.bait[L.onLine]
+    }
+    const f = rollFish(rodTier(L), bait)
     L.fish += 1
     L.catches[f.key] = (L.catches[f.key] || 0) + 1
     grant(L, f.v)
@@ -353,7 +400,7 @@ if (isServer) {
     if (f.v > L.best) L.best = f.v
     touch()
     app.sendTo(pid, 'caught', { key: f.key, name: f.name, v: f.v,
-                                gold: f.key === 'fishGold', bait: L.bait })
+                                gold: f.key === 'fishGold' })
     if (f.key === 'fishGold') world.chat(p.name + ' landed a GOLD CASH CAT at the Docks.', true)
     pushYou(pid, L); dirty = true
   })
@@ -422,8 +469,21 @@ if (isServer) {
     const what = d && d.what
     let msg = null
     if (what === 'bait') {
-      if (L.coin < BAIT_COST) msg = 'Not enough CashCoin — ' + BAIT_COST + ' for ' + BAIT_LOT + ' bait.'
-      else { L.coin -= BAIT_COST; L.bait += BAIT_LOT; msg = '+' + BAIT_LOT + ' bait.' }
+      // every bait costs the same — what differs is what it draws
+      const b = baitByKey(d && d.kind)
+      if (!b) msg = 'No such bait.'
+      else if (L.coin < BAIT_COST) msg = 'Not enough CashCoin — ' + BAIT_COST + ' for ' + BAIT_LOT + '.'
+      else {
+        L.coin -= BAIT_COST
+        L.bait[b.key] = (L.bait[b.key] || 0) + BAIT_LOT
+        if (!L.onLine) L.onLine = b.key
+        msg = '+' + BAIT_LOT + ' ' + b.name + '.'
+      }
+    } else if (what === 'online') {
+      const b = baitByKey(d && d.kind)
+      if (!b) msg = 'No such bait.'
+      else if (!(L.bait[b.key] > 0)) msg = 'No ' + b.name + ' in the box.'
+      else { L.onLine = b.key; msg = b.name + ' on the line — ' + b.note + '.' }
     } else if (what === 'silver') {
       if (L.rods >= 2) msg = 'You already have the Silver Rod.'
       else if (L.ore < SILVER_ORE || L.forage < SILVER_FORAGE)
@@ -472,7 +532,7 @@ if (isServer) {
  * ================================================================== */
 if (!isServer) {
 
-  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:0, gold:0 }
+  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0 }
   let board = []
   let nodeOn = [], veinLeft = []
   let fishing = -1, phase = 'idle', biteEnds = 0
@@ -506,19 +566,30 @@ if (!isServer) {
   model('rodSilver', [DX + 7.3, 0.9, SHORE - 3.4], 0.5, 1.0)
   model('rodGold',   [DX + 8.1, 0.9, SHORE - 3.6], 0.4, 1.0)
 
-  const shop = panel(3.4, 2.5, 0.005, [DX + 6.0, 2.5, SHORE - 4.6], Math.PI,
+  const shop = panel(3.6, 3.4, 0.005, [DX + 6.0, 2.9, SHORE - 4.6], Math.PI,
                      'rgba(24,20,10,0.93)', GOLD)
   text(shop, 'THE SHOP', 42, GOLD_L, 800)
-  const sLine = text(shop, '', 24, CREAM, 700, 10)
-  text(shop, BAIT_LOT + ' bait — ' + BAIT_COST + ' CashCoin', 22, CREAM, 400, 12)
-  text(shop, 'Silver Rod — ' + SILVER_ORE + ' ore, ' + SILVER_FORAGE + ' gathered', 22, CREAM, 400, 3)
-  text(shop, 'Gold Rod — ' + GOLD_ROD_COST + ' Gold Cash Cat', 22, GOLD_L, 400, 3)
+  const sLine = text(shop, '', 24, CREAM, 700, 8)
+  const sBait = text(shop, '', 22, LIME, 400, 4)
+  text(shop, 'Every bait is ' + BAIT_COST + ' CashCoin for ' + BAIT_LOT + '.', 21, CREAM, 400, 12)
+  text(shop, 'They cost the same. They draw different fish.', 20, DIM, 400, 3)
+  for (let i = 0; i < BAITS.length; i++)
+    text(shop, '  ' + BAITS[i].name + ' — ' + BAITS[i].note, 20, RARITY_COLOR[BAITS[i].draws[0]], 400, 3)
+  text(shop, 'Silver Rod — ' + SILVER_ORE + ' ore, ' + SILVER_FORAGE + ' gathered', 21, CREAM, 400, 12)
+  text(shop, 'Gold Rod — ' + GOLD_ROD_COST + ' Gold Cash Cat', 21, GOLD_L, 400, 3)
   const sMsg = text(shop, 'CashCoin is only earned by playing.', 20, DIM, 400, 12)
 
-  action('Buy bait', [DX + 6.0, 1.3, SHORE - 4.0], 3.6, 0.35, () => app.send('buy', { what: 'bait' }))
-  action('Craft the Silver Rod', [DX + 7.2, 1.3, SHORE - 4.0], 3.6, 0.5, () => app.send('buy', { what: 'silver' }))
-  action('Buy the Gold Rod', [DX + 8.4, 1.3, SHORE - 4.0], 3.6, 0.5, () => app.send('buy', { what: 'gold' }))
-  app.on('shop', d => { if (d && d.msg) sMsg.value = d.msg })
+  // one action per bait, laid along the counter, plus the two rods
+  for (let i = 0; i < BAITS.length; i++) {
+    const b = BAITS[i]
+    action('Buy ' + b.name, [DX + 3.2 + i * 1.15, 1.3, SHORE - 4.0], 3.4, 0.35,
+           () => app.send('buy', { what: 'bait', kind: b.key }))
+    action('Put ' + b.name + ' on the line', [DX + 3.2 + i * 1.15, 2.0, SHORE - 4.0], 3.4, 0.5,
+           () => app.send('buy', { what: 'online', kind: b.key }))
+  }
+  action('Craft the Silver Rod', [DX + 8.2, 1.3, SHORE - 4.0], 3.4, 0.5, () => app.send('buy', { what: 'silver' }))
+  action('Buy the Gold Rod',     [DX + 9.3, 1.3, SHORE - 4.0], 3.4, 0.5, () => app.send('buy', { what: 'gold' }))
+    app.on('shop', d => { if (d && d.msg) sMsg.value = d.msg })
 
   /* the catch, held up where you can see it */
   let heldKey = null, held = null, heldUntil = 0
@@ -567,20 +638,22 @@ if (!isServer) {
   for (let i = 0; i < 6; i++) rows.push(text(reg, '', 22, CREAM, 400, 5))
 
   /* a sheet at each ground, so the rules are posted where you play */
-  const dk = panel(3.6, 2.9, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
+  const dk = panel(3.8, 4.4, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
   text(dk, 'THE DOCKS', 42, BLUE, 800)
   text(dk, 'Cast, wait for the bite, strike inside', 21, CREAM, 400, 10)
   text(dk, 'the window. Early spooks it.', 21, CREAM, 400, 2)
-  text(dk, 'Penny Perch    34%   ·    1', 20, DIM, 400, 12)
-  text(dk, 'Copper Carp    26%   ·    2', 20, DIM, 400, 2)
-  text(dk, 'Paper Trout    20%   ·    4', 20, DIM, 400, 2)
-  text(dk, 'Silver Bass    12%   ·    9', 20, DIM, 400, 2)
-  text(dk, 'Ledger Eel      7%   ·   20', 20, DIM, 400, 2)
-  text(dk, 'Blue Chip Tuna 0.5%  ·  120', 20, CREAM, 400, 2)
-  text(dk, 'GOLD CASH CAT  0.5%  ·  500', 20, GOLD_L, 700, 2)
-  text(dk, 'Tuna needs the Gold Rod.', 19, LIME, 400, 10)
+  for (let i = 0; i < FISH.length; i++) {
+    const f = FISH[i]
+    const pct = (f.w % 1 ? f.w.toFixed(1) : f.w.toFixed(0)) + '%'
+    text(dk, RARITY[f.r].toUpperCase().slice(0, 8).padEnd(9) + f.name, 19,
+         RARITY_COLOR[f.r], f.r === ULTRA ? 700 : 400, i ? 3 : 12)
+    text(dk, '          ' + pct + '   ·   ' + f.v + ' CashCoin', 18, DIM, 400, 1)
+  }
+  text(dk, 'Bait aims, it does not upgrade — every bait', 19, LIME, 400, 10)
+  text(dk, 'costs the same and draws a different tier.', 19, LIME, 400, 2)
+  text(dk, 'Ultra Rare fish need the Gold Rod.', 19, LIME, 400, 6)
   text(dk, 'A Gold Cash Cat needs a Silver or Gold rod', 19, LIME, 400, 2)
-  text(dk, 'AND a baited line.', 19, LIME, 700, 2)
+  text(dk, 'and a baited line.', 19, LIME, 700, 2)
   text(dk, 'Rods are crafted and won, never sold for tokens.', 19, DIM, 400, 8)
 
   const gv = panel(3.4, 1.9, 0.005, [GX, 2.6, GZ - 12.5], Math.PI, 'rgba(12,26,14,0.92)', '#8fd07a')
@@ -599,13 +672,21 @@ if (!isServer) {
     rMine.value = comma(me.filed) + ' CashCoin earned  ·  ' + me.fish + ' fish  ·  ' +
                   me.forage + ' gathered  ·  ' + me.ore + ' ore'
     rGear.value = RODS[me.rod].name + '  ·  ' + PICKS[me.pick].name +
-                  '  ·  ' + me.bait + ' bait' + (me.gold ? '  ·  ' + me.gold + ' GOLD' : '')
+                  (me.gold ? '  ·  ' + me.gold + ' GOLD' : '')
     if (me.rod < RODS.length - 1) {
       rNext.value = 'Next rod: ' + RODS[me.rod + 1].name + ' — ' + RODS[me.rod + 1].how
     } else {
       rNext.value = 'Every rod in hand.'
     }
     if (sLine) sLine.value = comma(me.coin) + ' CashCoin to spend'
+    if (sBait) {
+      let held = 0
+      for (const k in me.bait) held += me.bait[k]
+      const on = me.onLine ? baitByKey(me.onLine) : null
+      sBait.value = held
+        ? (held + ' bait in the box · ' + (on ? on.name + ' on the line' : 'nothing on the line'))
+        : 'No bait — a bare line cannot land a Gold Cash Cat.'
+    }
     for (let i = 0; i < rows.length; i++) {
       const b = board[i]
       rows[i].value = b ? ((i + 1) + '. ' + b.n + '   ' + comma(b.t)) : ''
@@ -616,7 +697,7 @@ if (!isServer) {
   app.on('you', d => {
     me.fish = d.fish; me.forage = d.forage; me.ore = d.ore; me.filed = d.filed
     me.best = d.best; me.rod = d.rod; me.pick = d.pick; me.kinds = d.kinds
-    me.coin = d.coin || 0; me.bait = d.bait || 0; me.gold = d.gold || 0
+    me.coin = d.coin || 0; me.bait = d.bait || {}; me.onLine = d.onLine; me.gold = d.gold || 0
     paint()
   })
   app.on('world', d => {
