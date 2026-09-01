@@ -224,12 +224,22 @@ fastify.get('/status', async (request, reply) => {
       connectedUsers: [],
       commitHash: process.env.COMMIT_HASH,
     }
-    for (const socket of world.network.sockets.values()) {
-      status.connectedUsers.push({
-        id: socket.player.data.userId,
-        position: socket.player.position.value.toArray(),
-        name: socket.player.data.name,
-      })
+    // Names, user ids and live positions are only for whoever holds the admin
+    // code. This endpoint is public and unauthenticated, and a world where
+    // anyone can poll where every player is standing is a world with no
+    // privacy in it at all. Everyone else gets the count, which is what an
+    // uptime monitor was ever reading.
+    const code = request.headers['x-admin-code'] || request.query?.code
+    const admin = !!process.env.ADMIN_CODE && code === process.env.ADMIN_CODE
+    status.connectedCount = world.network.sockets.size
+    if (admin) {
+      for (const socket of world.network.sockets.values()) {
+        status.connectedUsers.push({
+          id: socket.player.data.userId,
+          position: socket.player.position.value.toArray(),
+          name: socket.player.data.name,
+        })
+      }
     }
 
     return reply.code(200).send(status)

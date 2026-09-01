@@ -344,8 +344,13 @@ if (isServer) {
     const id = p.userId || p.id
     if (!book[id]) book[id] = blank()
     const L = book[id], base = blank()
-    for (const k in base) if (L[k] === undefined || L[k] === null) L[k] = base[k]
+    // Before the generic backfill, not after. blank() carries coin: 0, so by
+    // the time the loop below had run, a ledger written before CashCoin existed
+    // already had a coin of 0 and this line could never see it missing -- every
+    // player from before the currency landed was being handed a zero balance
+    // instead of the total they had already filed.
     if (typeof L.coin !== 'number' || L.coin !== L.coin) L.coin = L.filed || 0
+    for (const k in base) if (L[k] === undefined || L[k] === null) L[k] = base[k]
     // bait used to be a single count; carry an old stock over as worms
     if (typeof L.bait === 'number') L.bait = L.bait > 0 ? { worm: L.bait } : {}
     if (!L.bait || typeof L.bait !== 'object') L.bait = {}
@@ -453,15 +458,35 @@ if (isServer) {
     return rows.slice(0, 6)
   }
   let dirty = true
-  const pushWorld = () => {
+  let topRows = []            // recomputed only when the ledger actually moves
+  let lastWorld = ''          // last payload broadcast, to skip identical ones
+  const pushWorld = (pid) => {
     const nb = [], vb = []
     for (let i = 0; i < NODES.length; i++) nb.push((nodeBack[i] || 0) > now() ? 0 : 1)
-    for (let i = 0; i < VEINS.length; i++) vb.push(veinState[i].backAt > now() ? 0 : veinState[i].left)
+    // base36, one character per vein. Cinderlode takes 12 hits and this is a
+    // positional string the client reads a character at a time -- as decimal,
+    // '12' was two entries and every vein after it was reading its neighbour's
+    // state. Anything up to 35 hits now fits in the one slot it is given.
+    for (let i = 0; i < VEINS.length; i++) {
+      const left = veinState[i].backAt > now() ? 0 : veinState[i].left
+      vb.push(Math.min(left, 35).toString(36))
+    }
     const bb = [], kk = []
     for (let i = 0; i < BOXES.length; i++) bb.push((boxHold[i] && boxHold[i].until > now()) ? 0 : 1)
     for (let i = 0; i < KNOCKS.length; i++) kk.push((knockBack[i] || 0) > now() ? 0 : 1)
-    app.send('world', { n: nb.join(''), v: vb.join(''), top: top(),
-                        b: bb.join(''), k: kk.join(''), sun: sunLit.join(',') })
+    if (dirty) { topRows = top(); dirty = false }
+    const msg = { n: nb.join(''), v: vb.join(''), top: topRows,
+                  b: bb.join(''), k: kk.join(''), sun: sunLit.join(',') }
+    // A player who just joined needs the state whatever it is; everyone else
+    // only needs it when something moved. `book` holds every player who has
+    // ever worked a trade, and this was sorting the whole of it and
+    // broadcasting the result once a second to a world where, most seconds,
+    // nothing at all had changed.
+    if (pid) return app.sendTo(pid, 'world', msg)
+    const line = JSON.stringify(msg)
+    if (line === lastWorld) return
+    lastWorld = line
+    app.send('world', msg)
   }
   const pushYou = (pid, L) => {
     app.sendTo(pid, 'you', {
@@ -474,7 +499,7 @@ if (isServer) {
 
   app.on('hello', (d, pid) => {
     const p = world.getPlayer(pid); if (!p) return
-    pushYou(pid, ledgerFor(p)); pushWorld()
+    pushYou(pid, ledgerFor(p)); pushWorld(pid)
   })
 
   /* ---- fishing ---- */
@@ -516,7 +541,17 @@ if (isServer) {
       // line, so a stale pointer means buying a different kind silently does
       // nothing — and since the bait branch never runs again, the flat 0.5%
       // Gold Cash Cat roll the spec promises quietly stops happening too.
-      if (L.bait[L.onLine] <= 0) { delete L.bait[L.onLine]; L.onLine = null }
+      if (L.bait[L.onLine] <= 0) {
+        delete L.bait[L.onLine]
+        // Move to whatever else is in the box rather than leaving the line
+        // bare. Clearing to null was right for the pointer but wrong for the
+        // player: with worms still in the box the next strike rolled unbaited,
+        // and the flat Gold Cash Cat chance needs a baited line.
+        L.onLine = Object.keys(L.bait)[0] || null
+        app.sendTo(pid, 'shop', { msg: L.onLine
+          ? 'Last one gone — ' + baitByKey(L.onLine).name + ' on the line now.'
+          : 'That was your last bait. The line is bare.' })
+      }
     }
     const f = rollFish(rodTier(L), bait)
     L.fish += 1
@@ -635,8 +670,17 @@ if (isServer) {
       app.sendTo(pid, 'shop', { msg: 'You are already in this box.' })
       return
     }
-    boxHold[i] = { until: now() + BOX_HOLD, who: pid }
     const L = ledgerFor(p)
+    // Per player, not just per box. The box hold on its own only stopped you
+    // sitting in the SAME box twice, and there are nine of them in a row -- a
+    // lap of the park paid 36 CashCoin for thirty seconds of walking, which is
+    // two to three times what any of the three trades pays for the same time.
+    if ((L.sitAt || 0) > now()) {
+      app.sendTo(pid, 'shop', { msg: 'You have only just got out of a box.' })
+      return
+    }
+    L.sitAt = now() + BOX_HOLD
+    boxHold[i] = { until: now() + BOX_HOLD, who: pid }
     L.park = (L.park || 0) + 1
     grant(L, BOX_PAY)
     touch()
@@ -671,8 +715,13 @@ if (isServer) {
     const k = KNOCKS[i]; if (!k) return
     if ((knockBack[i] || 0) > now()) return
     if (Math.abs(p.position.x - k.x) > 4 || Math.abs(p.position.z - k.z) > 4) return
-    knockBack[i] = now() + KNOCK_BACK
     const L = ledgerFor(p)
+    if ((L.knockAt || 0) > now()) {
+      app.sendTo(pid, 'shop', { msg: 'Let it settle first.' })
+      return
+    }
+    L.knockAt = now() + KNOCK_BACK
+    knockBack[i] = now() + KNOCK_BACK
     L.park = (L.park || 0) + 1
     grant(L, KNOCK_PAY)
     touch()
@@ -760,7 +809,6 @@ if (isServer) {
     acc += dt
     if (acc >= 1.0) {
       acc = 0
-      if (dirty) { dirty = false }
       pushWorld()
       if (saveAt && now() > saveAt) { world.set(KEY, book); saveAt = 0 }
     }
@@ -834,12 +882,20 @@ if (!isServer) {
     app.on('shop', d => { if (d && d.msg) sMsg.value = d.msg })
 
   /* the catch, held up where you can see it */
-  let heldKey = null, held = null, heldUntil = 0
+  // One holder per species, kept and reused. Every catch used to build a fresh
+  // group, load the model into it again, and hide the previous one without
+  // ever removing it -- an hour on the jetty left a few hundred invisible fish
+  // parented to the app, each holding its own loaded tree.
+  const heldPool = {}
+  let held = null, heldUntil = 0
   const showCatch = key => {
-    if (held) { held.active = false; held = null }
-    held = model(key, [SPOTS[Math.max(fishing, 0)].x, SPOTS[Math.max(fishing, 0)].y + 2.2,
-                       SPOTS[Math.max(fishing, 0)].z - 0.6], 0, 1.1)
-    heldKey = key
+    if (held) held.active = false
+    if (!heldPool[key]) heldPool[key] = model(key, [0, -50, 0], 0, 1.1)
+    held = heldPool[key]
+    if (!held) return
+    const s = SPOTS[Math.max(fishing, 0)]
+    held.position.set(s.x, s.y + 2.2, s.z - 0.6)
+    held.active = true
     heldUntil = now() + 4200
   }
 
@@ -956,17 +1012,31 @@ if (!isServer) {
   for (let i = 0; i < 6; i++) rows.push(text(reg, '', 22, CREAM, 400, 5))
 
   /* a sheet at each ground, so the rules are posted where you play */
-  const dk = panel(3.8, 4.4, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
+  const dk = panel(3.8, 5.0, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
   text(dk, 'THE DOCKS', 42, BLUE, 800)
   text(dk, 'Cast, wait for the bite, strike inside', 21, CREAM, 400, 10)
   text(dk, 'the window. Early spooks it.', 21, CREAM, 400, 2)
+  // The numbers here are the ones the roll actually uses, not the raw table
+  // weights. The ordinary fish are shares of their own table, which sums to 99
+  // and renormalises, and the two Ultra Rares are flat independent rolls made
+  // before it -- printing w for all seven had the commons a point light and
+  // implied the ultras competed with them. Bait and the big-fish bonus move the
+  // ordinary shares, so the sheet says so rather than pretending to a number.
+  let baseTotal = 0
+  for (let i = 0; i < FISH.length; i++) if (FISH[i].r !== ULTRA) baseTotal += FISH[i].w
   for (let i = 0; i < FISH.length; i++) {
     const f = FISH[i]
-    const pct = (f.w % 1 ? f.w.toFixed(1) : f.w.toFixed(0)) + '%'
+    const flat = f.r === ULTRA
+    const share = flat ? f.w : (f.w / baseTotal) * 100
+    const pct = (share < 10 ? share.toFixed(1) : share.toFixed(0)) + '%'
     text(dk, RARITY[f.r].toUpperCase().slice(0, 8).padEnd(9) + f.name, 19,
-         RARITY_COLOR[f.r], f.r === ULTRA ? 700 : 400, i ? 3 : 12)
-    text(dk, '          ' + pct + '   ·   ' + f.v + ' CashCoin', 18, DIM, 400, 1)
+         RARITY_COLOR[f.r], flat ? 700 : 400, i ? 3 : 12)
+    text(dk, '          ' + pct + (flat ? ' flat' : ' base') + '   ·   ' + f.v + ' CashCoin',
+         18, DIM, 400, 1)
   }
+  text(dk, 'Flat rates roll first and on their own. Base', 18, DIM, 400, 6)
+  text(dk, 'rates are shares of the rest — bait and a bigger', 18, DIM, 400, 1)
+  text(dk, 'rod move them.', 18, DIM, 400, 1)
   text(dk, 'Bait aims, it does not upgrade — every bait', 19, LIME, 400, 10)
   text(dk, 'costs the same and draws a different tier.', 19, LIME, 400, 2)
   text(dk, 'Ultra Rare fish need the Gold Rod.', 19, LIME, 400, 6)
@@ -978,13 +1048,24 @@ if (!isServer) {
   text(gv, 'THE GROVE', 42, '#8fd07a', 800)
   text(gv, 'Gather what grows. It grows back', 21, CREAM, 400, 10)
   text(gv, 'in about forty seconds.', 21, CREAM, 400, 2)
-  text(gv, 'File one of all five kinds: +15 bonus.', 20, LIME, 400, 10)
+  // Read off the tables. This line said five kinds and a +15 bonus; there are
+  // six kinds, and both numbers are constants three lines up in this file.
+  text(gv, 'File one of all ' + FORAGE.length + ' kinds: +' + BUNDLE + ' bonus.', 20, LIME, 400, 10)
 
-  const sv = panel(3.4, 1.9, 0.005, [SX, 2.6, SZ - 2.5], Math.PI, 'rgba(26,20,12,0.92)', '#c98b3a')
+  const sv = panel(3.4, 2.6, 0.005, [SX, 2.6, SZ - 2.5], Math.PI, 'rgba(26,20,12,0.92)', '#c98b3a')
   text(sv, 'THE SEAM', 42, '#c98b3a', 800)
   text(sv, 'Veins take several swings.', 21, CREAM, 400, 10)
-  text(sv, 'Copper 3 · Silver 5 · Gold 8', 21, CREAM, 400, 2)
-  text(sv, 'Steel Pick at 40 ore, Gold Pick at 150.', 20, LIME, 400, 10)
+  // Generated, because the hand-written version had dropped the Cinderlode
+  // entirely and then advertised a Steel Pick at 40 ore and a Gold Pick at 150.
+  // There is no Steel Pick, 40 ore is the Silver, and the Gold is not bought
+  // with ore at all -- it costs a Gold Cash Cat.
+  text(sv, SEAMS.map(k => k.name.replace(' Seam', '') + ' ' + k.hits).join(' · '),
+       20, CREAM, 400, 2)
+  const nextPick = PICKS[1]
+  text(sv, nextPick.name + ' at ' + nextPick.ore + ' ore and ' +
+       nextPick.forage + ' gathered.', 20, LIME, 400, 10)
+  text(sv, 'Cinderlode needs the Gold Pickaxe, and that', 19, LIME, 400, 2)
+  text(sv, 'costs a Gold Cash Cat.', 19, LIME, 400, 1)
 
   const paint = () => {
     rMine.value = comma(me.filed) + ' CashCoin earned  ·  ' + me.fish + ' fish  ·  ' +
@@ -1043,7 +1124,7 @@ if (!isServer) {
       }
     }
     for (let i = 0; i < veinVis.length; i++) {
-      const left = d.v.charCodeAt(i) - 48
+      const left = parseInt(d.v.charAt(i), 36) || 0
       if (veinVis[i]) {
         veinVis[i].active = left > 0
         const s = 0.55 + left * 0.13

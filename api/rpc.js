@@ -40,11 +40,40 @@ const CACHE_TTL = 15_000; // ms
 const CACHE_MAX = 500;
 const cache = new Map(); // key -> { t, body }
 
+// The Origin check is not a security control and should not be read as one.
+// Any script can send whatever Origin it likes, and requests with no Origin at
+// all are let through on purpose so server-side rendering and curl still work.
+// What actually stops this endpoint being used as somebody's free RPC is the
+// method allowlist, the 15s cache, and the bucket below.
 function allowedOrigin(req) {
   const o = (req.headers.origin || req.headers.referer || '').toLowerCase();
   if (!o) return true; // same-origin server-side / curl with no Origin
   return o.includes('cashcatllc') || o.includes('cashcatsll') ||
          o.includes('cashcatsllc') || o.includes('localhost') || o.includes('vercel.app');
+}
+
+// Per-IP token bucket. The last entry in UPSTREAMS is the paid one, so an open
+// proxy here is a bill, not just load. Held in memory like the cache above, so
+// it is per warm instance rather than global -- partial, and still enough to
+// stop one client hammering it. A caller with no Origin gets a smaller bucket,
+// since that is the shape a scripted abuser has and a browser never does.
+const RATE_WINDOW = 60_000;
+const RATE_BROWSER = 120;   // requests per minute per IP
+const RATE_ANON = 30;
+const buckets = new Map(); // ip -> { t, n }
+
+function overRate(req, now) {
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+             req.socket?.remoteAddress || 'unknown';
+  const cap = req.headers.origin || req.headers.referer ? RATE_BROWSER : RATE_ANON;
+  const b = buckets.get(ip);
+  if (!b || now - b.t >= RATE_WINDOW) {
+    buckets.set(ip, { t: now, n: 1 });
+    if (buckets.size > 5000) buckets.delete(buckets.keys().next().value);
+    return false;
+  }
+  b.n++;
+  return b.n > cap;
 }
 
 async function readBody(req) {
@@ -78,6 +107,12 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
   if (req.method !== 'POST') { res.statusCode = 405; res.end(JSON.stringify({ error: 'POST only' })); return; }
   if (!allowedOrigin(req)) { res.statusCode = 403; res.end(JSON.stringify({ error: 'forbidden' })); return; }
+  if (overRate(req, Date.now())) {
+    res.statusCode = 429;
+    res.setHeader('retry-after', '60');
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: -32005, message: 'rate limited' } }));
+    return;
+  }
 
   const body = await readBody(req);
   const id = (body && body.id) != null ? body.id : 1;
