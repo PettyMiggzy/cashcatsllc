@@ -37,7 +37,10 @@ const isServer = world.isServer
 const STATES = {
   clear: {
     bg: 'skyBg', hdr: 'skyHdr',
-    sun: [-0.4, -0.8, -0.5], intensity: 1.6, sunColor: '#fff0d0',
+    // 1.6 clipped every pale surface in the world to white — the quarry face,
+    // the nature-kit stone, the trees. This is a pure-sky HDRI with no ground
+    // bounce, so it is already flat and bright before the sun is added.
+    sun: [-0.4, -0.8, -0.5], intensity: 1.15, sunColor: '#ffeecb',
     fogNear: 60, fogFar: 380, fogColor: '#cfd8d0',
   },
 }

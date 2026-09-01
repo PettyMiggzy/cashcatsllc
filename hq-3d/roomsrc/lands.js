@@ -26,7 +26,10 @@
  *   modular-cave-kit  already metres -> x1
  */
 
-const NAT = 3.4, TOWN = 3.6, PIR = 1.5, SMALL = 0.65
+// TOWN was 3.6, which made a one-storey cottage 3.6m to the eaves with a 1.8m
+// window in it — the cat came up to the doorknob. Kenney draws this kit at
+// roughly one unit to a storey, so 2.7 puts a door at head height.
+const NAT = 3.4, TOWN = 2.7, PIR = 1.5, SMALL = 0.65
 const Y = 0.02
 
 const GOLD='#a9812a', GOLD_L='#e8c25a', CREAM='#e8f2ec', INK='#16150f'
@@ -164,8 +167,10 @@ marker('THE GROVE',  'Woodland · foraging',      [ 27.5, 0, 23.0],  2.6, '#8fd0
  * deeds are *for*: a working smallholding you can walk through. */
 const FX = -47, FZ = -26          // centre of the Fields
 
-// the yard the cottages sit on
-prim('box', [46, 0.22, 38], '#ffffff', [FX, Y - 0.11, FZ], { tex: 'paving', rough: 1.0 })
+// No slab. The first cut paved the entire farm — forty-six metres of stone
+// with wheat growing out of it. The meadow IS the field; only the market row
+// and the mill yard are made ground.
+prim('box', [30, 0.2, 9], '#ffffff', [FX + 1, Y - 0.1, FZ + 16.5], { tex: 'soil', rough: 1.0 })
 
 /*
  * A cottage from the town kit. The kit is a 1-unit grid and a wall piece is a
@@ -221,7 +226,7 @@ cottage(FX - 17, FZ +  8, 2, 2,  0.4,        true,  1)
 /* the mill on the water channel, and a windmill on the rise behind */
 prim('box', [5.5, 0.3, 26], WATER, [FX + 1, Y + 0.06, FZ + 2], { rough: 0.15, metal: 0.35 })
 prim('box', [6.6, 0.24, 26], STONE_D, [FX + 1, Y - 0.02, FZ + 2])
-model('t_watermill', [FX + 4.6, 0, FZ + 2], -Math.PI / 2, TOWN)
+model('t_watermill', [FX + 4.2, 0, FZ + 2], 0, TOWN * 0.85)
 model('t_windmill',  [FX - 21, 0, FZ - 3], 0.6, TOWN * 0.95)
 for (let i = 0; i < 5; i++) model('n_lily', [FX + rr(-1.6, 1.6), 0.2, FZ - 9 + i * 4.6], rr(0, 6.28), NAT * 0.9)
 
@@ -391,10 +396,12 @@ for (let i = 0; i < 26; i++) {
 }
 
 /* the forager's camp in the clearing */
-model('n_campfire', [GX, 0, GZ], 0, NAT * 1.2)
-prim('cone', [0.8, 1.5], '#ff7a2a', [GX, 0.9, GZ], { emissive: '#ff9a3a', rough: 0.4 })
-model('n_tent',   [GX - 6, 0, GZ - 3], 0.9,  NAT * 1.2)
-model('n_tentSm', [GX + 5.5, 0, GZ - 4], -0.7, NAT * 1.2)
+model('n_campfire', [GX, 0, GZ], 0, NAT * 0.9)
+// A flame, not a bollard. [r, h] on a cone is radius and height, so the first
+// one was 1.6m across and 1.5m tall and the player stood inside it.
+prim('cone', [0.26, 0.62], '#ff7a2a', [GX, 0.34, GZ], { emissive: '#ff9a3a', rough: 0.4 })
+model('n_tent',   [GX - 6.5, 0, GZ - 3.5], 0.9,  NAT * 0.75)
+model('n_tentSm', [GX + 6.0, 0, GZ - 4.5], -0.7, NAT * 0.75)
 model('n_logStack', [GX + 3, 0, GZ + 5], 0.4, NAT)
 model('n_log',      [GX - 4, 0, GZ + 5.5], 1.5, NAT)
 for (let i = 0; i < 5; i++) model('n_stump', [GX + rr(-8, 8), 0, GZ + rr(-8, 8)], rr(0, 6.28), NAT)
@@ -443,9 +450,11 @@ prim('cylinder', [0.9, 0.9, 0.5], '#4a4a4a', [SX, 6.7, SZ - 6.5], { rotZ: Math.P
 model('c_ladder', [SX + 5.6, 0, SZ - 8], 0, 1.4)
 
 /* spoil heaps, ore boulders and the carts that move them */
+// rock_* and stone_* are two different palettes in this kit — stone is nearly
+// white and under this sky it read as snow scattered round a quarry.
 for (let i = 0; i < 22; i++)
-  model(pick(['n_rockTallA', 'n_rockTallD', 'n_rockLgB', 'n_stoneLgA', 'n_stoneTall']),
-        [SX + rr(-19, 19), 0, SZ + rr(-8, 8)], rr(0, 6.28), NAT * rr(0.6, 1.3))
+  model(pick(['n_rockTallA', 'n_rockTallD', 'n_rockLgB', 'n_rockTallA', 'n_rockLgB']),
+        [SX + rr(-19, 19), 0, SZ + rr(-8, 8)], rr(0, 6.28), NAT * rr(0.5, 1.1))
 model('t_cart',     [SX - 8, 0, SZ + 3], 0.9, TOWN)
 model('t_cartHigh', [SX + 9, 0, SZ + 5], -1.3, TOWN)
 model('t_lantern',  [SX - 4, 0, SZ - 5], 0, TOWN)
