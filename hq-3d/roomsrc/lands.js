@@ -310,7 +310,7 @@ prim('box', [56, 0.26, 12], SAND, [DX, Y - 0.05, SHORE_Z - 1], { rough: 1.0 })
 // Metalness 0.45 on a dark blue is a mirror with no diffuse left, and against
 // this sky it read as a flat navy wall standing at the end of the jetty.
 // Water in a stylised world wants to be bright and barely metallic.
-prim('box', [64, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.22, metal: 0.08 })
+prim('box', [64, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.45, metal: 0.05 })
 prim('box', [66, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
 
 /* three jetties out over the water. The kit dock is scenery; the plank deck
@@ -318,11 +318,16 @@ prim('box', [66, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
 function jetty(jx, len, wide) {
   prim('box', [wide, 0.36, len], '#8a6f4c', [jx, 0.55, SHORE_Z + len / 2 - 1],
        { tex: 'wood', rough: 0.85, physics: 'static' })
+  // No kit dock platforms here. structure-platform-dock is 1.31 units tall —
+  // 2 metres at this scale — and it is a deck in its own right, so dropping
+  // one at y=0 under a plank deck at 0.73 puts a chest-high block on the
+  // walkway. Three of them in a row down the middle of a jetty is a wall with
+  // a fishing spot behind it. The planks are the deck; these are the piles.
   for (let i = 0; i < Math.floor(len / 4); i++) {
     const z = SHORE_Z + 1.5 + i * 4
-    model('p_dock', [jx, 0, z], 0, PIR)
     prim('cylinder', [0.22, 0.22, 1.6], '#6b543a', [jx - wide / 2 + 0.3, -0.2, z], { rough: 0.9 })
     prim('cylinder', [0.22, 0.22, 1.6], '#6b543a', [jx + wide / 2 - 0.3, -0.2, z], { rough: 0.9 })
+    prim('box', [wide + 0.5, 0.18, 0.35], '#7a6244', [jx, 0.72, z], { rough: 0.9 })
   }
   // a ramp up from the sand so you can actually get on
   prim('box', [wide, 0.3, 3.2], '#8a6f4c', [jx, 0.28, SHORE_Z - 2.2],
@@ -353,9 +358,14 @@ model('p_wreck', [DX + 25,   0.0, SHORE_Z + 33], -1.1, PIR * 1.2)
 for (let i = 0; i < 9; i++)
   model(i % 2 ? 'm_palm' : 'p_palmBend',
         [DX - 26 + i * 6.4 + rr(-1.5, 1.5), 0, SHORE_Z - rr(5, 11)], rr(0, 6.28), PIR * rr(0.85, 1.15))
-for (let i = 0; i < 12; i++)
-  model(pick(['p_rocksSand', 'p_patchSand', 'n_stoneLgA']),
-        [DX + rr(-27, 27), 0, SHORE_Z + rr(-9, 1)], rr(0, 6.28), PIR * rr(0.7, 1.2))
+// rocks-sand-a is 5.1 x 3.2 x 4.4 UNITS, not one — at the pirate scale it came
+// out a nine-metre boulder, and a dozen of them terraced the whole shoreline
+// like a quarry. One scale across three kits is never right; measure each.
+for (let i = 0; i < 8; i++)
+  model('p_rocksSand', [DX + rr(-27, 27), 0, SHORE_Z + rr(-9, 0)], rr(0, 6.28), rr(0.30, 0.55))
+for (let i = 0; i < 8; i++)
+  model(rnd() > 0.5 ? 'n_stoneLgA' : 'p_patchSand',
+        [DX + rr(-27, 27), 0, SHORE_Z + rr(-9, 1)], rr(0, 6.28), NAT * rr(0.5, 0.9))
 for (let i = 0; i < 16; i++)
   model(rnd() > 0.5 ? 'n_lily' : 'n_lilySm',
         [DX + rr(-28, 28), 0.24, SHORE_Z + rr(4, 34)], rr(0, 6.28), NAT * rr(0.8, 1.4))
@@ -401,14 +411,23 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
 /* a cliff face across the back, stepped so it reads as a worked quarry rather
  * than a wall. The nature kit cliff block is a 1m cube at 1 unit; at 3.4 each
  * course is 3.4m, so three courses give a ten-metre face. */
-for (let c = 0; c < 3; c++) {
-  const wide = 13 - c * 2
-  for (let i = 0; i < wide; i++) {
-    const x = SX + (i - (wide - 1) / 2) * NAT
-    // higher courses step BACK, not forward — the first cut leaned the whole
-    // face out over the player's head like an overhang about to go
-    const z = SZ - 13 - c * NAT * 0.75
-    model(c === 2 && i === Math.floor(wide / 2) ? 'n_cliffCave' : 'n_cliff', [x, c * NAT, z], 0, NAT)
+/*
+ * cliff_block_rock is a plain 1x1x1 cube. Thirty-nine of them on a grid is not
+ * a quarry face, it is a wall — and forty metres of one pale flat surface under
+ * this HDRI blows out to a featureless white slab, which is exactly how the
+ * first render came back. Vary the piece, vary the height of each column, and
+ * let the top line wander.
+ */
+const FACE = ['n_cliff', 'n_cliffHalf', 'n_cliffSlope', 'n_cliff', 'n_cliffCnr']
+for (let i = 0; i < 13; i++) {
+  const x = SX + (i - 6) * NAT
+  // a ragged skyline to the rock: 2 or 3 courses, never the same run twice
+  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)
+  for (let c = 0; c < h; c++) {
+    const z = SZ - 13 - c * NAT * 0.75 + ((i + c) % 2) * 0.4
+    const mid = i === 6
+    model(mid && c === h - 1 ? 'n_cliffCave' : FACE[(i * 3 + c) % FACE.length],
+          [x + ((i + c) % 3 - 1) * 0.25, c * NAT, z], ((i + c) % 4) * Math.PI / 2, NAT)
   }
 }
 for (let i = 0; i < 6; i++)

@@ -33,17 +33,21 @@ const VIEWS = {
   office:    [   0, 0,  14,   0,  -6,  7],
   dedication:[  -9, 0,  20, 180,  -2,  4],
   markerW:   [ -27, 0,  14, 180,  -4,  4],
-  fields:    [ -47, 0, -18,   0, -12, 16],
+  // The four grounds want an establishing shot from above. At eye level with a
+  // big zoom the lens ends up behind a signboard or inside a hedge — the first
+  // Fields render was a close-up of a plank. Negative pitch orbits the camera
+  // UP as well as back, so -32 at zoom 30 is a drone shot that clears clutter.
+  fields:    [ -47, 0, -26,   0, -32, 30],
   fieldsIn:  [ -47, 0, -26,   0,  -6,  9],
   cottages:  [ -62, 0, -30, 270,  -8, 12],
   market:    [ -47, 0, -10,   0,  -6, 10],
   mill:      [ -42, 0, -24,  90,  -4,  8],
-  docks:     [ -47, 0,  40, 180, -12, 16],
+  docks:     [ -47, 0,  50, 180, -30, 30],
   jetty:     [ -47, 0,  52, 180,  -4, 10],
   lake:      [ -47, 0,  60, 180,  -2, 12],
-  grove:     [  47, 0,  44, 180, -10, 16],
+  grove:     [  47, 0,  52, 180, -30, 30],
   groveIn:   [  47, 0,  52, 180,  -2,  8],
-  seam:      [  47, 0, -24,   0, -12, 16],
+  seam:      [  47, 0, -28,   0, -30, 30],
   mine:      [  47, 0, -32,   0,   0,  9],
   pit:       [  48, 0,   2,   0,  -6, 12],
   skyline:   [   0, 0,  40, 180,   8, 18],
