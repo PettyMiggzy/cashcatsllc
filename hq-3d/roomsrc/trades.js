@@ -750,7 +750,7 @@ if (!isServer) {
     const vn = VEINS[i], seam = SEAMS[vn.kind]
     const col = seam.r === ULTRA ? '#ff7a3a'
               : (vn.kind === 2 ? '#e8c25a' : (vn.kind === 1 ? '#d8dde2' : '#c07a3a'))
-    const g = prim('sphere', [seam.r === ULTRA ? 1.15 : 0.85], col, [vn.x, vn.y, vn.z],
+    const g = prim('sphere', [seam.r === ULTRA ? 0.62 : 0.42], col, [vn.x, vn.y, vn.z],
                    { metal: 0.75, rough: 0.3,
                      emissive: seam.r === ULTRA ? '#8a3a10' : (vn.kind === 2 ? '#6b5210' : null) })
     veinVis.push(g)
@@ -865,7 +865,7 @@ if (!isServer) {
       const left = d.v.charCodeAt(i) - 48
       if (veinVis[i]) {
         veinVis[i].active = left > 0
-        const s = 0.6 + left * 0.16
+        const s = 0.55 + left * 0.13
         veinVis[i].scale.set(s, s, s)
       }
     }

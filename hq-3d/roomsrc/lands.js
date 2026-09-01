@@ -466,33 +466,40 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
 const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
 
 /*
- * The quarry face, from the cave kit rather than from boxes.
+ * The quarry face, from the nature-kit cliffs after all.
  *
- * The first version of this was prim boxes, because nature-kit's rock is white
- * and I wanted a colour I controlled. It worked and it looked exactly like what
- * it was: a row of boxes. modular-cave-kit is the right answer and I should
- * have reached for it first — its wall modules are proper sculpted rock, they
- * are already at metre scale (4.0 x 4.05 x 2.16 each), and they carry a real
- * texture, so the colour problem that sent me to prims does not exist here.
+ * I have now been wrong about this rock twice, in opposite directions, and
+ * both times because I judged geometry from a render taken before a colour fix
+ * had landed. The cliff pieces are not white: they carry a warm brown 'dirt'
+ * with 'grass' along the top, which is exactly what the lip of a quarry looks
+ * like. What was white was the standalone boulders, which export an unassigned
+ * _defaultMat at pure 1,1,1 — that is fixed in the asset now rather than
+ * worked around here.
  *
- * Two courses stepped back, capped along the top, with the corner pieces
- * closing the ends so the face does not stop in mid-air.
+ * The prim boxes before this were boxes, and the cave-kit swap after them was
+ * worse: that kit is an interior set with a warm tan palette, and at forty
+ * metres wide it read as one enormous pink wall. This is sculpted rock, the
+ * right colour, at the scale the rest of the ground uses.
  */
-const FACE_W = 4.0
-for (let i = 0; i < 12; i++) {
-  const x = SX + (i - 5.5) * FACE_W
-  model('c_wall', [x, 0, SZ - 12.5], 0, 1.0)
-  // the upper course steps back and skips a bay here and there, so the top
-  // line is broken rather than ruled
-  if (i % 5 !== 2) model('c_wall', [x, 4.05, SZ - 14.4], 0, 1.0)
-  if (i % 5 !== 2) model('c_wallTop', [x, 8.1, SZ - 15.2], 0, 1.0)
+const FACE = ['n_cliff', 'n_cliffHalf', 'n_cliffSlope', 'n_cliff', 'n_cliffCnr']
+for (let i = 0; i < 14; i++) {
+  const x = SX + (i - 6.5) * NAT
+  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)      // a ragged top line
+  for (let c = 0; c < h; c++) {
+    const z = SZ - 12.5 - c * NAT * 0.7 + ((i + c) % 2) * 0.35
+    const mid = i === 6 || i === 7
+    model(mid && c === h - 1 ? 'n_cliffCave' : FACE[(i * 3 + c) % FACE.length],
+          [x + ((i + c) % 3 - 1) * 0.3, c * NAT * 0.98, z],
+          ((i + c) % 4) * Math.PI / 2, NAT)
+  }
 }
-model('c_wallCnr', [SX - 6.4 * FACE_W, 0, SZ - 12.5], 0, 1.0)
-model('c_wallCnr', [SX + 6.4 * FACE_W, 0, SZ - 12.5], 0, 1.0)
-// a floor of the same rock under the working face, so the ground reads as cut
-for (let i = 0; i < 10; i++)
-  for (let k = 0; k < 2; k++)
-    model('c_floor', [SX + (i - 4.5) * FACE_W, 0.02, SZ - 9.5 + k * FACE_W], 0, 1.0)
+// wings running back on both sides, so the face is a pit rather than a wall
+for (let k = 0; k < 4; k++) {
+  for (const sx of [-1, 1]) {
+    model(pick(['n_cliff', 'n_cliffSlope']),
+          [SX + sx * (7.0 * NAT), 0, SZ - 11 + k * NAT], sx > 0 ? Math.PI / 2 : -Math.PI / 2, NAT)
+  }
+}
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)

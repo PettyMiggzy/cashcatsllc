@@ -102,6 +102,14 @@ def fix_materials(js):
         pbr = m.get('pbrMetallicRoughness')
         if not pbr:
             continue
+        # An unassigned slot exported as pure white. nature-kit's standalone
+        # boulders carry it on the rock body itself, so a quarry built from
+        # them is a quarry made of snow. The cliff pieces are fine — they use a
+        # proper brown 'dirt' with 'grass' on top — so only the literal
+        # untinted default is touched.
+        if m.get('name') == '_defaultMat' and pbr.get('baseColorFactor', [0])[:3] == [1.0, 1.0, 1.0]:
+            pbr['baseColorFactor'] = [0.29, 0.24, 0.19, 1.0]
+            changed = True
         if pbr.get('metallicFactor', 1) > 0.05:
             pbr['metallicFactor'] = 0.0
             changed = True
