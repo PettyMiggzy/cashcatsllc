@@ -32,7 +32,11 @@ EMAIL="${EMAIL:-admin@${DOMAIN#*.}}"
 
 echo "==> packages"
 apt-get update -qq
-apt-get install -y -qq git curl python3 nginx certbot python3-certbot-nginx xz-utils iproute2
+# python3-pil is not optional. embed_tex.py needs Pillow to read the kits'
+# colour atlases, and without it the script dies partway through the pack list
+# — leaving some kits corrected and the rest shipped raw. It failed exactly
+# that way once, on a box where nobody had installed it.
+apt-get install -y -qq git curl python3 python3-pil nginx certbot python3-certbot-nginx xz-utils iproute2
 
 echo "==> node $NODE"
 if [ "$(/opt/node/bin/node -v 2>/dev/null || true)" != "v$NODE" ]; then
@@ -191,7 +195,15 @@ python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — 
 # complaint is one loader warning per model. Embed the texture, and while we
 # are in there drop metallicFactor from the export default of 1, which is what
 # was making every tree and rock come out dark and faintly wet.
-python3 roomsrc/embed_tex.py 2>&1 | tail -3 || echo "    could not correct pack materials"
+# Fatal, not a warning. This used to end in `|| echo "could not correct pack
+# materials"` and carry on, which is how a world went live with four kits
+# corrected and six shipped raw — teal trees, unembedded colormaps, and a
+# green boot check on top of it. If the materials are wrong the world is
+# wrong, so stop here rather than publish it.
+if ! python3 roomsrc/embed_tex.py 2>&1 | tail -3; then
+  echo "    embed_tex failed — refusing to publish a world with raw materials"
+  exit 1
+fi
 
 # And then give them a surface. The packs are gitignored and re-fetched here
 # every deploy, so anything done to them locally has to be done again on the

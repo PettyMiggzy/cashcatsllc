@@ -338,7 +338,28 @@ def embed(path, cache):
     return changed
 
 
+def _need_pillow():
+    """
+    Say which package is missing, once, instead of a traceback per model.
+
+    This ran on a server without Pillow and died five kits into the pack list
+    with a bare ModuleNotFoundError, having already rewritten four. Half a
+    correction is worse than none, because everything downstream — the boot
+    check, the installers — reports success on top of it.
+    """
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        raise SystemExit(
+            'embed_tex needs Pillow and it is not installed.\n'
+            '  Ubuntu/Debian:  sudo apt-get install -y python3-pil\n'
+            '  elsewhere:      pip install pillow\n'
+            'Refusing to run: a partial pass leaves some kits corrected and '
+            'the rest raw, which nothing downstream would notice.')
+
+
 def main(only):
+    _need_pillow()
     cache = {}
     total = 0
     for pack in sorted(os.listdir(PACKS)):
