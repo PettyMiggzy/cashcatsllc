@@ -37,6 +37,12 @@ const DIM='#8fa39a', PAPER='#f4f0e3', GREEN='#1a7f4b'
 const SOIL='#5c4630', SAND='#d9c89a', WATER='#3f9dc4', WATER_D='#2b6f8f'
 const LIME='#2ecc71'
 const STONE='#cfc9b8', STONE_D='#a8a291', GRASS='#4f8f4a'
+// The ground sheets are photographic albedos already retinted to the colour
+// they should be (fetch_tex.py), so the prim must not tint them again — a
+// mid-grey multiply is what turned the Seam's gravel into tarmac. White here
+// is safe where it was not on the walls: these average around half value and
+// face up at a sky they never clipped against.
+const WHITE='#ffffff'
 
 /* ------------------------------------------------------------------ *
  * helpers                                                             *
@@ -58,6 +64,44 @@ function prim(type, size, color, pos, opts) {
   // opacity > 0 — so opacity 0 is an invisible body that still collides.
   if (opts.opacity !== undefined) n.opacity = opts.opacity
   app.add(n); return n
+}
+
+/*
+ * A textured ground, laid as a grid rather than one plane.
+ *
+ * Every ground here used to be a single big box with one texture stretched
+ * over it, which at forty metres is a smear the eye reads as flat colour —
+ * and flat colour ground is the loudest cartoon tell in the world, louder
+ * than any building. Prims have no repeat control (Prim.js sets material.map
+ * and stops, and the material is cached across every prim sharing a key), so
+ * the repeat has to come from somewhere else.
+ *
+ * It comes from here. Each cell is its own prim with its own 0..1 UV, so a
+ * sheet baked at twelve tiles laid on a five-by-four grid repeats sixty times
+ * across the ground. Cells are ~11m; smaller would tile better and cost more
+ * draw calls than the gain is worth.
+ *
+ * Heights matter more than they look. Y is 0.05 and the scene's own terrain
+ * is at 0, so a ground laid at Y-0.13 tops out two centimetres above it and
+ * loses the z-fight from any distance — the first pass laid grass across the
+ * whole Cat Park and rendered the terrain's flat green instead. The world now
+ * stacks in the order you walk on it: ground cover at Y-0.04, paving and
+ * paths at Y+0.02 on top of it, both clear of the terrain by a hand's width.
+ */
+function ground(cx, cz, w, d, y, tex, color, opts) {
+  opts = opts || {}
+  const cell = opts.cell || 11
+  const nx = Math.max(1, Math.round(w / cell))
+  const nz = Math.max(1, Math.round(d / cell))
+  const sx = w / nx, sz = d / nz
+  for (let i = 0; i < nx; i++) {
+    for (let j = 0; j < nz; j++) {
+      prim('box', [sx, 0.2, sz], color,
+           [cx - w / 2 + sx * (i + 0.5), y, cz - d / 2 + sz * (j + 0.5)],
+           { tex: tex, rough: opts.rough === undefined ? 1.0 : opts.rough,
+             metal: opts.metal })
+    }
+  }
 }
 
 // world.load, not app.load — app has no loader. Getting that wrong threw on
@@ -238,9 +282,11 @@ function cottage(cx, cz, w, d, rot, wood, storeys) {
 }
 
 /* the street itself, and the square at its head */
-prim('box', [ST_W, 0.22, 46], '#c8c1ae', [FX, Y - 0.11, FZ], { tex: 'paving', rough: 1.0 })
+prim('box', [ST_W, 0.22, 46], '#c8c1ae', [FX, Y + 0.02, FZ], { tex: 'paving', rough: 1.0 })
 prim('box', [ST_W + 1.6, 0.06, 46], STONE_D, [FX, Y - 0.02, FZ])
-prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y - 0.11, FZ + 15], { tex: 'paving', rough: 1.0 })
+prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y + 0.02, FZ + 15], { tex: 'paving', rough: 1.0 })
+// worked ground around the village, so the farm stands in soil rather than on lawn
+ground(FX, FZ - 4, 62, 44, Y - 0.04, 'field', WHITE)
 for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
   prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 22 + i * 4])
 }
@@ -359,15 +405,19 @@ for (let i = 0; i < 7; i++)
 const DX = -47, DZ = 54
 const SHORE_Z = DZ - 16          // sand ends, water begins
 
-prim('box', [56, 0.2, 14], '#c8c1ae', [DX, Y - 0.1, SHORE_Z - 7], { tex: 'paving', rough: 1.0 })
-prim('box', [56, 0.26, 12], SAND, [DX, Y - 0.05, SHORE_Z - 1], { rough: 1.0 })
+prim('box', [56, 0.2, 14], '#c8c1ae', [DX, Y + 0.02, SHORE_Z - 7], { tex: 'paving', rough: 1.0 })
+ground(DX, SHORE_Z - 1, 56, 12, Y - 0.05, 'sand', WHITE, { cell: 9 })
 // the lake. Low roughness with a little metalness is what reads as water on a
 // prim — there is no transparency to lean on.
 // Metalness 0.45 on a dark blue is a mirror with no diffuse left, and against
 // this sky it read as a flat navy wall standing at the end of the jetty.
 // Water in a stylised world wants to be bright and barely metallic.
-prim('box', [64, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.45, metal: 0.05 })
-prim('box', [66, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
+// 64 wide ran the lake from x=-79 to x=-15, and the Cat Park's lawn starts
+// at x=-29 — so fourteen metres of open water lay across the park with a
+// row of sitting-boxes in it. 38 stops the lake just past the East Jetty at
+// x=-28.9, which is the furthest thing that actually has to float.
+prim('box', [38, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.45, metal: 0.05 })
+prim('box', [40, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
 
 /* three jetties out over the water. The kit dock is scenery; the plank deck
  * under it is what carries a player, so it is a static prim. */
@@ -432,7 +482,9 @@ for (let i = 0; i < 16; i++)
 const GX = 47, GZ = 52
 
 // a clearing floor of trodden earth, then trees thick around the outside
-prim('cylinder', [11, 11, 0.24], SOIL, [GX, Y - 0.1, GZ], { rough: 1.0 })
+prim('cylinder', [11, 11, 0.24], WHITE, [GX, Y + 0.02, GZ], { tex: 'forest', rough: 1.0 })
+// leaf litter out past the clearing, so the wood has a floor and not a lawn
+ground(GX, GZ, 46, 46, Y - 0.04, 'forest', WHITE, { cell: 12 })
 
 for (let i = 0; i < 70; i++) {
   // ring the clearing: dense at the rim, none in the middle
@@ -463,8 +515,11 @@ model('n_bridge', [GX - 20, 0, GZ + 16], 0.3, NAT)
  * ------------------------------------------------------------------ */
 const SX = 47, SZ = -27
 
-prim('box', [44, 0.22, 34], '#c8c1ae', [SX, Y - 0.11, SZ], { tex: 'paving', rough: 1.0 })
-prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
+// A quarry has no paved forecourt. The 44x34 apron that used to be here was
+// laid before there was any ground texture to put down, and once the paving
+// went above the gravel it buried it — the whole working floor came back as
+// flagstones. Gravel over the lot, and the cliff meets ground it belongs on.
+ground(SX, SZ, 44, 34, Y - 0.04, 'gravel', WHITE, { cell: 11 })
 
 /* a cliff face across the back, stepped so it reads as a worked quarry rather
  * than a wall. The nature kit cliff block is a 1m cube at 1 unit; at 3.4 each
@@ -679,8 +734,19 @@ for (let i = 0; i < 44; i++) {
  */
 const PX = 0, PZ = 56
 
-prim('box', [46, 0.22, 38], '#c8c1ae', [PX, Y - 0.11, PZ], { tex: 'paving', rough: 1.0 })
-for (let i = 0; i < 5; i++) prim('box', [46, 0.04, 0.3], STONE_D, [PX, Y + 0.01, PZ - 16 + i * 8])
+// Lawn first, then paths across it. The paving used to be a 46x38 slab with
+// grass showing at the edges, which is a car park with trees in it — a park
+// is grass you cross on a path, and the ratio is what says which one you are
+// standing in. Two 7m walks and a circle at the post is about a tenth paved.
+ground(PX, PZ, 46, 50, Y - 0.04, 'grass', WHITE, { cell: 12 })
+prim('box', [7.0, 0.22, 50], '#c8c1ae', [PX, Y + 0.02, PZ], { tex: 'paving', rough: 1.0 })
+prim('box', [46, 0.22, 7.0], '#c8c1ae', [PX, Y + 0.02, PZ - 6], { tex: 'paving', rough: 1.0 })
+prim('cylinder', [7.5, 7.5, 0.22], '#c8c1ae', [PX, Y + 0.02, PZ + 2], { tex: 'paving', rough: 1.0 })
+// a kerb, so the walks read as laid rather than painted on
+for (const sx of [-1, 1]) {
+  prim('box', [0.3, 0.16, 50], STONE_D, [PX + sx * 3.65, Y + 0.03, PZ], { rough: 1.0 })
+  prim('box', [46, 0.16, 0.3], STONE_D, [PX, Y + 0.03, PZ - 6 + sx * 3.65], { rough: 1.0 })
+}
 
 /* the gate in from the Vault side */
 for (const sx of [-1, 1]) {
@@ -692,10 +758,12 @@ text(gate, 'THE CAT PARK', 54, LIME, 800)
 
 /* THE POST — a scratching post, monumentally */
 prim('cylinder', [1.5, 1.5, 0.5], STONE, [PX, 0.25, PZ + 2], { rough: 0.9, physics: 'static' })
-prim('cylinder', [1.05, 1.05, 7.5], '#8a6f4c', [PX, 4.0, PZ + 2], { tex: 'wood', rough: 1.0, physics: 'static' })
-prim('cylinder', [1.35, 1.35, 0.4], '#6b543a', [PX, 7.9, PZ + 2], { tex: 'wood', rough: 1.0 })
+// 2.1m across read as a tree trunk rather than a post — monumental is the
+// point, but the proportion has to stay a scratching post's.
+prim('cylinder', [0.7, 0.7, 7.5], '#8a6f4c', [PX, 4.0, PZ + 2], { tex: 'wood', rough: 1.0, physics: 'static' })
+prim('cylinder', [1.0, 1.0, 0.4], '#6b543a', [PX, 7.9, PZ + 2], { tex: 'wood', rough: 1.0 })
 for (let i = 0; i < 5; i++)
-  prim('box', [0.12, 1.4, 0.08], '#6b543a', [PX + Math.cos(i * 1.3) * 1.06, 2.5 + i * 0.9, PZ + 2 + Math.sin(i * 1.3) * 1.06],
+  prim('box', [0.12, 1.4, 0.08], '#6b543a', [PX + Math.cos(i * 1.3) * 0.71, 2.5 + i * 0.9, PZ + 2 + Math.sin(i * 1.3) * 0.71],
        { rotZ: 0.25, rough: 1 })
 
 /* THE BOX YARD — boxes to sit in, at the west end */

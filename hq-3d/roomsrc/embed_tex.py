@@ -63,6 +63,63 @@ def write_glb(path, js, bin_):
 SRGB_FIXED = 'ccl_srgb_basecolor'
 
 
+# A naturalistic palette for the untextured kits.
+#
+# Kenney's nature kit is not drab-realistic and was never meant to be: its
+# foliage is #29c9ab, its stone #b8e2e8 ice blue, its bark and dirt #e28357
+# salmon. That is a coherent art direction and it is why every render of this
+# world came back teal and pink — 688 materials across every tree, rock, bush,
+# log and stump in it, sitting next to photoscanned cliffs that are none of
+# those colours. Two directions in one frame reads as the cheaper one.
+#
+# So the greens go green and the woods go brown, and the silhouettes — which
+# are good, and which are the reason to use the kit at all — do not change.
+# Berries, flowers and signage keep their accent colours; those are meant to
+# pop and nothing about them says cartoon.
+#
+# Keyed on material name and written in sRGB, so it is idempotent and reads
+# like a paint chart. fix_materials applies it before the sRGB->linear step.
+PALETTE = {
+    # foliage
+    'grass':        '#5f8f42',
+    'leafsGreen':   '#4f8438',
+    'leafsDark':    '#3d6b2e',
+    'leafsFall':    '#c8722f',
+    # timber
+    'wood':         '#9c7248',
+    'woodDark':     '#6b4f38',
+    'woodBark':     '#7d5f42',
+    'woodBarkDark': '#5e4632',
+    'woodInner':    '#d8bd97',
+    'woodBirch':    '#e8e0cf',
+    # ground and rock
+    'dirt':         '#9a7550',
+    'dirtDark':     '#7a5c3f',
+    'stone':        '#a8a49c',
+    'stoneDark':    '#83807a',
+    'water':        '#5f9fbe',
+    'colorTan':     '#cfa276',
+}
+
+
+def repaint(js):
+    """Put PALETTE on any factor-only material it names. sRGB in, sRGB out."""
+    changed = False
+    for m in js.get('materials', []):
+        hexc = PALETTE.get(m.get('name'))
+        if not hexc:
+            continue
+        pbr = m.get('pbrMetallicRoughness')
+        if not pbr or pbr.get('baseColorTexture') or not pbr.get('baseColorFactor'):
+            continue
+        rgb = [int(hexc[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
+        want = [round(c, 6) for c in rgb] + list(pbr['baseColorFactor'][3:])
+        if pbr['baseColorFactor'] != want:
+            pbr['baseColorFactor'] = want
+            changed = True
+    return changed
+
+
 def fix_materials(js):
     """
     Painted props are dielectric, and their colours are in the wrong space.
@@ -86,7 +143,21 @@ def fix_materials(js):
        is why the textured kits looked right and the untextured one did not.
     """
     changed = False
-    if not js.get('extras', {}).get(SRGB_FIXED):
+    # Repaint first: PALETTE is written in sRGB, and the pass below is what
+    # converts sRGB to linear. On a model already converted (the flag is set)
+    # the same values have to be squared here instead, or a re-run would put
+    # raw sRGB into a linear slot and the greens would come back fluorescent.
+    linear = bool(js.get('extras', {}).get(SRGB_FIXED))
+    if repaint(js):
+        changed = True
+        if linear:
+            for m in js.get('materials', []):
+                if m.get('name') in PALETTE:
+                    pbr = m.get('pbrMetallicRoughness', {})
+                    f = pbr.get('baseColorFactor')
+                    if f:
+                        pbr['baseColorFactor'] = [round(c ** 2.2, 6) for c in f[:3]] + list(f[3:])
+    if not linear:
         for m in js.get('materials', []):
             pbr = m.get('pbrMetallicRoughness')
             if not pbr or pbr.get('baseColorTexture'):
@@ -120,6 +191,39 @@ def fix_materials(js):
     return changed
 
 
+# Kit colormaps that need their whole atlas moved, keyed by the pack folder.
+#
+# The textured kits carry the same magenta cast the nature kit does, but in
+# pixels rather than factors: measured over its non-black swatches, the cave
+# kit's atlas averages #a28589. That is a pink rock, and it is what the mine
+# portal has been the whole time — bright salmon against a photoscanned cliff.
+#
+# Only the cave kit is moved. Its atlas is rock and nothing else, so shifting
+# the lot is safe; the town and pirate kits share the cast but also carry blue
+# windows, green shutters and painted hulls that a blanket retint would wreck.
+ATLAS = {'modular-cave-kit': '#8a8279'}
+
+
+def retint_atlas(src, target):
+    """Scale a colormap's channels so its non-black mean lands on target."""
+    from PIL import Image
+    import io as _io
+    im = Image.open(_io.BytesIO(src)).convert('RGBA')
+    rgb = im.convert('RGB')
+    px = [c for c in rgb.get_flattened_data() if sum(c) > 24]
+    if not px:
+        return src
+    mean = [sum(c[i] for c in px) / len(px) / 255.0 for i in range(3)]
+    want = [int(target[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
+    ks = [w / max(m, 1e-3) for w, m in zip(want, mean)]
+    r, g, b, a = im.split()
+    out = Image.merge('RGBA', [ch.point(lambda v, k=k: min(255, int(v * k)))
+                               for ch, k in zip((r, g, b), ks)] + [a])
+    buf = _io.BytesIO()
+    out.save(buf, 'PNG', optimize=True)
+    return buf.getvalue()
+
+
 def embed(path, cache):
     js, bin_ = read_glb(path)
     if not js:
@@ -138,7 +242,11 @@ def embed(path, cache):
                 continue
             src = alt
         if src not in cache:
-            cache[src] = open(src, 'rb').read()
+            data = open(src, 'rb').read()
+            kit = os.path.basename(os.path.dirname(path))
+            if kit in ATLAS and src.lower().endswith('.png'):
+                data = retint_atlas(data, ATLAS[kit])
+            cache[src] = data
         png = cache[src]
         # bin chunk offsets must stay 4-aligned for the accessors that follow
         pad = (4 - len(bin_) % 4) % 4

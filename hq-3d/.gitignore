@@ -35,3 +35,7 @@ roomsrc/packs/
 # carrying a normal map and a deploy that quietly loses them looks like the
 # cartoon build we just left. CC0, so redistributing them is fine.
 roomsrc/hq/*.raw.glb
+
+# Poly Haven texture downloads. fetch_tex.py re-pulls them and bakes the
+# tiled sheets beside them; only the sheets are worth keeping.
+roomsrc/tex/raw/

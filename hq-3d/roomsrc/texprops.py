@@ -22,6 +22,14 @@ TEXTURES = {
     'marbleWall':  ('t_marble_wall.jpg',  'image'),
     'wood':        ('t_wood.jpg',         'image'),
     'soil':        ('t_soil.jpg',         'image'),
+    # Ground cover, from Poly Haven via fetch_tex.py. These are what the four
+    # grounds stand on; before them every ground was one flat colour.
+    'grass':       ('t_grass.jpg',        'image'),
+    'gravel':      ('t_gravel.jpg',       'image'),
+    'sand':        ('t_sand.jpg',         'image'),
+    'forest':      ('t_forest.jpg',       'image'),
+    'field':       ('t_field.jpg',        'image'),
+    'path':        ('t_path.jpg',         'image'),
     'skyBg':       ('sky_bg.jpg',         'image'),
     'skyHdr':      ('sky_env.hdr',        'hdr'),
 }
