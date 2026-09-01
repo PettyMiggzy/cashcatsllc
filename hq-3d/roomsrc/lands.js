@@ -344,9 +344,14 @@ for (let i = 0; i < 18; i++) {
   model(pick(['n_oak', 'n_fat', 'n_pineA', 'n_blocks']),
         [FX + side * rr(28, 38), 0, FZ + rr(-24, 24)], rr(0, 6.28), NAT * rr(0.9, 1.3))
 }
-for (let i = 0; i < 20; i++)
+for (let i = 0; i < 16; i++)
   model(pick(['n_bushL', 'n_bushS', 'n_grassLeaf', 'n_potLarge', 'n_stump']),
         [FX + rr(-30, 30), 0, FZ + rr(-25, 25)], rr(0, 6.28), NAT * rr(0.6, 1.0))
+// a few high-detail pieces among the kit ones — the eye lands on the detailed
+// thing and reads the whole group as better than it is
+for (let i = 0; i < 7; i++)
+  model(pick(['hq_fern_02', 'hq_dandelion_01', 'hq_potted_plant_02', 'hq_dead_tree_trunk']),
+        [FX + rr(-28, 28), 0, FZ + rr(-23, 23)], rr(0, 6.28), rr(0.8, 1.4))
 
 /* ------------------------------------------------------------------ *
  * THE DOCKS — the lake                                                *
@@ -467,40 +472,31 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
 const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
 
 /*
- * The quarry face, from the nature-kit cliffs after all.
+ * The quarry face — a real cliff, finally.
  *
- * I have now been wrong about this rock twice, in opposite directions, and
- * both times because I judged geometry from a render taken before a colour fix
- * had landed. The cliff pieces are not white: they carry a warm brown 'dirt'
- * with 'grass' along the top, which is exactly what the lip of a quarry looks
- * like. What was white was the standalone boulders, which export an unassigned
- * _defaultMat at pure 1,1,1 — that is fixed in the asset now rather than
- * worked around here.
+ * Third attempt and the first one that is not a compromise. Prim boxes were
+ * boxes. The cave kit was an interior set and read as a pink wall. The
+ * nature-kit cliffs are the right shape but they are flat-shaded chunks, which
+ * is the house style of that kit and exactly the cartoon look the world needed
+ * to lose.
  *
- * The prim boxes before this were boxes, and the cave-kit swap after them was
- * worse: that kit is an interior set with a warm tan palette, and at forty
- * metres wide it read as one enormous pink wall. This is sculpted rock, the
- * right colour, at the scale the rest of the ground uses.
+ * These are photoscanned CC0 cliffs from Poly Haven carrying a diffuse, a real
+ * normal map and a packed AO/roughness/metalness — the only assets in this
+ * world with surface detail that survives being stood next to. coastal_cliff_01
+ * is ninety-two metres of face in a single model at real-world scale, so the
+ * quarry is now two of them and a corner rather than fourteen tiles in a row.
+ *
+ * They arrived at 188MB and 5.5 million triangles between them and are here at
+ * 11MB and 245k, because the detail lives in the normal map rather than in the
+ * geometry — which is the entire reason they are worth having.
  */
-const FACE = ['n_cliff', 'n_cliffHalf', 'n_cliffSlope', 'n_cliff', 'n_cliffCnr']
-for (let i = 0; i < 14; i++) {
-  const x = SX + (i - 6.5) * NAT
-  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)      // a ragged top line
-  for (let c = 0; c < h; c++) {
-    const z = SZ - 12.5 - c * NAT * 0.7 + ((i + c) % 2) * 0.35
-    const mid = i === 6 || i === 7
-    model(mid && c === h - 1 ? 'n_cliffCave' : FACE[(i * 3 + c) % FACE.length],
-          [x + ((i + c) % 3 - 1) * 0.3, c * NAT * 0.98, z],
-          ((i + c) % 4) * Math.PI / 2, NAT)
-  }
-}
-// wings running back on both sides, so the face is a pit rather than a wall
-for (let k = 0; k < 4; k++) {
-  for (const sx of [-1, 1]) {
-    model(pick(['n_cliff', 'n_cliffSlope']),
-          [SX + sx * (7.0 * NAT), 0, SZ - 11 + k * NAT], sx > 0 ? Math.PI / 2 : -Math.PI / 2, NAT)
-  }
-}
+model('hq_coastal_cliff_01', [SX - 6, 0, SZ - 15], 0, 1.0)
+model('hq_coastal_cliff_02', [SX + 26, 0, SZ - 9], -Math.PI / 2.6, 1.0)
+model('hq_coastal_cliff_02', [SX - 34, 0, SZ - 7], Math.PI / 2.4, 1.0)
+// boulders fallen off the face, at the foot of it
+const BLD = ['hq_boulder_01', 'hq_namaqualand_boulder_02', 'hq_namaqualand_boulder_03', 'hq_rock_moss_set_01']
+for (let i = 0; i < 11; i++)
+  model(BLD[i % BLD.length], [SX + rr(-20, 20), 0, SZ - 6 + rr(-2, 5)], rr(0, 6.28), rr(0.8, 1.9))
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)
@@ -597,8 +593,13 @@ model('p_towerRoof', [DX + 23, 8.6, QUAY_Z - 1], -0.3, PIR)
 model('p_flag',      [DX + 23, 11.5, QUAY_Z - 1], -0.3, PIR * 0.8)
 
 /* clutter on the boards */
-for (let i = 0; i < 14; i++)
-  ob(pick(['crate', 'barrel', 'sack']), [DX + rr(-24, 24), 0, QUAY_Z + rr(-1, 3)], rr(0, 6.28), rr(0.85, 1.1))
+// real barrels and crates, with normal maps, because this is the surface a
+// player stands closest to in the whole world
+const QUAY_KIT = ['hq_Barrel_01', 'hq_Barrel_02', 'hq_barrel_03', 'hq_wooden_crate_02']
+for (let i = 0; i < 16; i++)
+  model(QUAY_KIT[i % QUAY_KIT.length], [DX + rr(-24, 24), 0, QUAY_Z + rr(-1, 3)], rr(0, 6.28), rr(0.9, 1.25))
+for (let i = 0; i < 5; i++)
+  ob('sack', [DX + rr(-20, 20), 0, QUAY_Z + rr(-1, 2)], rr(0, 6.28), rr(0.85, 1.0))
 for (let i = 0; i < 6; i++)
   model('p_crateBtl', [DX + rr(-20, 20), 0, QUAY_Z + rr(-2, 2)], rr(0, 6.28), PIR * SMALL)
 for (let i = 0; i < 8; i++) model('t_lantern', [DX - 21 + i * 6, 0, QUAY_Z + 2.6], 0, TOWN)
@@ -702,7 +703,7 @@ const BOXES = []
 for (let i = 0; i < 9; i++) {
   const bx = PX - 17 + (i % 3) * 3.6, bz = PZ - 8 + Math.floor(i / 3) * 3.6
   BOXES.push([bx, bz])
-  ob('crate', [bx, 0, bz], (i % 4) * 0.4, 1.35)
+  model('hq_cardboard_box_01', [bx, 0, bz], (i % 4) * 0.4, 2.6)
 }
 model('t_bannerGrn', [PX - 20, 0, PZ - 10], 0, TOWN)
 

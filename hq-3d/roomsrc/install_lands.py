@@ -40,7 +40,8 @@ BP = 'cashcats-lands'
 bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — the Lands',
       'image': None, 'author': None, 'url': None, 'desc': None,
       'model': model, 'script': script,
-      'props': dict(texprops.props(), **texprops.models(), **texprops.gear(GEAR)),
+      'props': dict(texprops.props(), **texprops.models(), **texprops.gear(GEAR),
+                    **texprops.hq()),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

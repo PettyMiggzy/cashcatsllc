@@ -897,7 +897,7 @@ if (!isServer) {
   /* the boxes */
   for (let i = 0; i < BOXES.length; i++) {
     const b = BOXES[i]
-    const g = model('crate', [b.x, 0, b.z], (i % 4) * 0.4, 1.35)
+    const g = model('hq_cardboard_box_01', [b.x, 0, b.z], (i % 4) * 0.4, 2.6)
     boxVis.push(g)
     action('Sit in the box', [b.x, 0.9, b.z], 3.0, 0.7, () => app.send('sit', { i }))
   }

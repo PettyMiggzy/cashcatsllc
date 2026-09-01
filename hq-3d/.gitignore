@@ -30,3 +30,8 @@ roomsrc/props/state.json
 # Fetched CC0 packs. Not committed — 31MB of someone else's assets, and
 # fetch_packs.py pulls them on demand. The script is the source of truth.
 roomsrc/packs/
+# Poly Haven photoscans. The 188MB of raw downloads stay out; the 11MB of
+# decimated ones are committed, because they are the only geometry in the world
+# carrying a normal map and a deploy that quietly loses them looks like the
+# cartoon build we just left. CC0, so redistributing them is fine.
+roomsrc/hq/*.raw.glb

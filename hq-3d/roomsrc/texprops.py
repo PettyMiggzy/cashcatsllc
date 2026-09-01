@@ -310,3 +310,30 @@ def gear(names=None):
             continue
         out[key] = {'type': 'model', 'name': f, 'url': put(os.path.join(d, f), 'glb')}
     return out
+
+
+# High-detail CC0 models from Poly Haven, fetched by fetch_hq.py and decimated
+# by thin_hq.py. Keyed hq_<name>.
+#
+# These are the only assets in the world carrying a normal map. Prims in this
+# engine take one albedo texture and nothing else, so anything built out of
+# them is flat by construction — and flat is what reads as cartoon. Detail has
+# to arrive as a model or it does not arrive.
+def hq(names=None):
+    """
+    The high-detail set. A missing directory is skipped rather than fatal —
+    fetch_hq.py and thin_hq.py can rebuild it from scratch, and a quarry built
+    of kit rock beats an install that will not run.
+    """
+    out = {}
+    d = os.path.join(ROOT, 'hq')
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        if not f.endswith('.glb') or f.endswith('.raw.glb'):
+            continue
+        key = 'hq_' + f[:-4]
+        if names and key not in names:
+            continue
+        out[key] = {'type': 'model', 'name': f, 'url': put(os.path.join(d, f), 'glb')}
+    return out
