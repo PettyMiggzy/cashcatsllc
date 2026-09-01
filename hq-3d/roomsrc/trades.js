@@ -88,11 +88,24 @@ const FISH = [
  */
 const BAIT_DRAW = 4.0
 const BAITS = [
-  { key:'worm',    name:'Worm',        draws:[COMMON],   note:'the everyday fish' },
-  { key:'shrimp',  name:'Shrimp',      draws:[UNCOMMON], note:'the better commons' },
-  { key:'minnow',  name:'Minnow',      draws:[RARE],     note:'what the rare fish chase' },
-  { key:'spinner', name:'Glitter Lure',draws:[ULTRA],    note:'draws what almost never bites' },
+  { key:'worm',   name:'Worm',       draws:['fishPerch', 'fishCarp'] },
+  { key:'shrimp', name:'Shrimp',     draws:['fishTrout', 'fishBass'] },
+  { key:'minnow', name:'Minnow',     draws:['fishEel'] },
+  { key:'roe',    name:'Salmon Roe', draws:['fishBass', 'fishEel'] },
 ]
+/*
+ * Baits draw SPECIES, not rarity tiers — which is what the spec says, and the
+ * first cut got it wrong in a way only a simulation showed. Drawing a tier
+ * meant the Glitter Lure, which drew Ultra Rare, did precisely nothing: Ultra
+ * Rare is rolled as its own flat 0.5% before the weighted table is touched, so
+ * the bait was multiplying the weight of fish that were never in that pool. It
+ * cost twelve CashCoin and changed no number in the game.
+ *
+ * Naming species also means the real fish list can give each bait its own
+ * quarry without any of this logic changing.
+ */
+const baitDraws = (bait, f) => !!bait && bait.draws.indexOf(f.key) !== -1
+
 const baitByKey = k => { for (let i = 0; i < BAITS.length; i++) if (BAITS[i].key === k) return BAITS[i]; return null }
 
 const RODS = [
@@ -298,27 +311,56 @@ if (isServer) {
    * back into the commons. Without that, a wooden rod on a bare line would be
    * fishing a one-percent hole while the sign claimed otherwise.
    */
+  /*
+   * Roll the catch.
+   *
+   * The two headline rates are rolled FIRST and independently, because the
+   * spec states them as flat numbers: a Gold Cash Cat is 0.5% on a baited
+   * line with a Silver or Gold rod, and an Ultra Rare fish is 0.5% on the
+   * Gold Rod. Folding those into the weighted table looked fine and was
+   * wrong — a simulation of 400k casts put the Gold Cash Cat at 0.15% on a
+   * worm and 1.95% on the glitter lure, because the bait multiplier dragged
+   * the jackpot around with the tier it was drawing. Bait is supposed to aim
+   * among the fish, not move the headline rate.
+   *
+   * So: jackpot, then ultra, then the ordinary table — and only that last
+   * roll is weighted by bait. The number on the sign is now the number the
+   * server rolls, whatever is on the line.
+   */
+  const GOLD_CAT = FISH.filter(f => f.key === 'fishGold')[0]
   const rollFish = (tier, bait) => {
-    const draws = bait ? bait.draws : null
-    const can = f => tier >= f.rod && (!f.bait || !!bait)
-    let locked = 0
-    for (let i = 0; i < FISH.length; i++) if (!can(FISH[i])) locked += FISH[i].w
-    const weight = (f, i) => {
-      let w = f.w + (i < 3 ? locked / 3 : 0)
+    // 1. the jackpot: flat, independent, needs a Silver rod and a baited line
+    if (GOLD_CAT && tier >= GOLD_CAT.rod && bait && num(0, 100, 4) <= GOLD_CAT.w) return GOLD_CAT
+
+    // 2. Ultra Rare fish: flat, independent, Gold Rod only
+    const ultra = FISH.filter(f => f.r === ULTRA && !f.bait && tier >= f.rod)
+    if (ultra.length) {
+      let uw = 0
+      for (let i = 0; i < ultra.length; i++) uw += ultra[i].w
+      if (num(0, 100, 4) <= uw) {
+        const r = num(0, uw, 4)
+        let a = 0
+        for (let i = 0; i < ultra.length; i++) { a += ultra[i].w; if (r <= a) return ultra[i] }
+        return ultra[0]
+      }
+    }
+
+    // 3. the ordinary table. This is the only part bait touches: it multiplies
+    //    the tier it draws and everything renormalises, so bait can shift what
+    //    you catch but never guarantee it.
+    const pool = FISH.filter(f => f.r !== ULTRA && !f.bait && tier >= f.rod)
+    const weight = f => {
+      let w = f.w
       if (f.big && tier >= 2) w *= BIG_BONUS
-      if (draws && draws.indexOf(f.r) !== -1) w *= BAIT_DRAW
+      if (baitDraws(bait, f)) w *= BAIT_DRAW
       return w
     }
     let total = 0
-    for (let i = 0; i < FISH.length; i++) if (can(FISH[i])) total += weight(FISH[i], i)
+    for (let i = 0; i < pool.length; i++) total += weight(pool[i])
     const r = num(0, total, 4)
     let acc = 0
-    for (let i = 0; i < FISH.length; i++) {
-      if (!can(FISH[i])) continue
-      acc += weight(FISH[i], i)
-      if (r <= acc) return FISH[i]
-    }
-    return FISH[0]
+    for (let i = 0; i < pool.length; i++) { acc += weight(pool[i]); if (r <= acc) return pool[i] }
+    return pool[0] || FISH[0]
   }
 
   const casts = {}          // playerId -> { spot, biteAt, endAt, phase }
@@ -483,7 +525,7 @@ if (isServer) {
       const b = baitByKey(d && d.kind)
       if (!b) msg = 'No such bait.'
       else if (!(L.bait[b.key] > 0)) msg = 'No ' + b.name + ' in the box.'
-      else { L.onLine = b.key; msg = b.name + ' on the line — ' + b.note + '.' }
+      else { L.onLine = b.key; msg = b.name + ' on the line.' }
     } else if (what === 'silver') {
       if (L.rods >= 2) msg = 'You already have the Silver Rod.'
       else if (L.ore < SILVER_ORE || L.forage < SILVER_FORAGE)
@@ -574,7 +616,9 @@ if (!isServer) {
   text(shop, 'Every bait is ' + BAIT_COST + ' CashCoin for ' + BAIT_LOT + '.', 21, CREAM, 400, 12)
   text(shop, 'They cost the same. They draw different fish.', 20, DIM, 400, 3)
   for (let i = 0; i < BAITS.length; i++)
-    text(shop, '  ' + BAITS[i].name + ' — ' + BAITS[i].note, 20, RARITY_COLOR[BAITS[i].draws[0]], 400, 3)
+    text(shop, '  ' + BAITS[i].name + ' — ' + BAITS[i].draws
+           .map(k => { for (let j = 0; j < FISH.length; j++) if (FISH[j].key === k) return FISH[j].name; return k })
+           .join(', '), 19, CREAM, 400, 3)
   text(shop, 'Silver Rod — ' + SILVER_ORE + ' ore, ' + SILVER_FORAGE + ' gathered', 21, CREAM, 400, 12)
   text(shop, 'Gold Rod — ' + GOLD_ROD_COST + ' Gold Cash Cat', 21, GOLD_L, 400, 3)
   const sMsg = text(shop, 'CashCoin is only earned by playing.', 20, DIM, 400, 12)
