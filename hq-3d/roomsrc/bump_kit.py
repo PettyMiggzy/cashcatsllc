@@ -108,7 +108,7 @@ MARK = 'ccl_bumped'
 # nothing says so. embed_tex.sweep_stale() is the only thing that can repair
 # that, because repairing means refetching the pristine pack, so it reads this
 # number. Bump it whenever the surfacing should reach existing boxes.
-BUMP = 2
+BUMP = 3
 
 
 def read_glb(path):
@@ -126,6 +126,15 @@ def write_glb(path, js, bin_):
     j = json.dumps(js, separators=(',', ':')).encode()
     j += b' ' * ((4 - len(j) % 4) % 4)
     b = bin_ + b'\0' * ((4 - len(bin_) % 4) % 4)
+    # The buffer grew -- UVs and two embedded images went into it -- and the
+    # declared length has to grow with it. glTF requires buffers[0].byteLength
+    # to cover every bufferView, and three.js is forgiving about it while
+    # stricter validators and other engines are not. Left stale, every bumped
+    # file was formally invalid and read correctly only by luck.
+    if js.get('buffers'):
+        js['buffers'][0]['byteLength'] = len(b)
+        j = json.dumps(js, separators=(',', ':')).encode()
+        j += b' ' * ((4 - len(j) % 4) % 4)
     out = struct.pack('<III', 0x46546C67, 2, 12 + 8 + len(j) + 8 + len(b))
     out += struct.pack('<II', len(j), 0x4E4F534A) + j
     out += struct.pack('<II', len(b), 0x004E4942) + b

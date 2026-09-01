@@ -462,7 +462,6 @@ paint()
 if (isServer) {
   const KEY = 'ccl.pets.v1'
   let book = world.get(KEY) || {}     // userId -> record
-  let saveAt = 0
 
   const blank = () => ({ name:'?', chibis:{}, kills:{}, chests:0, rating:0, base:0, debuff:0,
                          shelves:0, shown:{} })
@@ -474,8 +473,7 @@ if (isServer) {
     R.name = p.name || '?'
     return R
   }
-  const save = () => { world.set(KEY, book); saveAt = now() + 4000 }
-  const touch = () => { if (now() > saveAt) save() }
+  const save = () => { world.set(KEY, book) }
 
   /*
    * Upkeep. The Homestead owns houses; this only reads them.
@@ -740,7 +738,11 @@ if (isServer) {
       cur.hits = {}
       push()
     }
-    touch()
+    // No save here. Every path that writes to the book -- claiming, shelving,
+    // displaying, and defeat -- calls save() itself, and world.set serialises
+    // the whole book, so a touch() on the tick was rewriting every player's
+    // pet record every four seconds for the entire uptime of the server to
+    // persist nothing that had changed.
   })
 
   world.on('leave', () => { save() })

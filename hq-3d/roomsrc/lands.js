@@ -542,7 +542,10 @@ villager(GRN_X - 2.2, GRN_Z - 1.0,  0.7, 'avLong')
 villager(GRN_X - 0.6, GRN_Z - 1.6, -2.4, 'avApple')
 
 // fixing a roof: ladder up the gable, a cat at its foot, timber stacked
-model('c_ladder', [FX - 9.0, 0, FZ + 9.4], Math.PI / 2, 2.6)
+// 1.0, because the cave kit is authored in real metres and this model is 2.9
+// of them. At 2.6 it was a seven-and-a-half metre ladder leaning on a
+// single-storey cottage whose eaves are under three.
+model('c_ladder', [FX - 9.0, 0, FZ + 9.4], Math.PI / 2, 1.0)
 villager(FX - 10.2, FZ + 10.4, -1.2, 'avSerious')
 for (let i = 0; i < 4; i++)
   prim('box', [2.4, 0.16, 0.34], '#8a6f4c', [FX - 11.6, 0.09 + i * 0.17, FZ + 11.4],

@@ -15,9 +15,9 @@
 const PAPER='#f4f0e3', INK='#16150f', GREEN='#1a7f4b', GREEN_D='#0f5c35'
 const GOLD='#a9812a', GOLD_L='#e8c25a', WOOD='#6b543a', WOOD_L='#8a6f4c'
 const DIM='#8fa39a', CREAM='#e8f2ec', RED='#c0392b', LIME='#2ecc71'
-// This panel is client-local demo state, with one exception: the house's
-// condition is published to the server so the Chibi Rating can be debuffed by
-// it. See publish() and the block above render().
+// The server owns every number on this panel and persists them under
+// ccl.house.v1; the client sends intents and draws what comes back. See the
+// isServer block above render().
 const isServer = world.isServer
 const SOIL='#5a4632', SOIL_D='#463526', CROP='#7ac14a'
 
@@ -117,7 +117,10 @@ const s = {
   harvests: 0,
   boosts: 0,
   burned: 0,
-  gcc: 3,        // Gold Cash Cats on hand (earned from bosses in the Workshop)
+  // Mirror only. The server fills every field in here; nothing on the client
+  // is a source of truth any more. This used to start at 3, which handed a
+  // free 3 Gold Cash Cats to anyone who reloaded the page.
+  gcc: 0,        // Gold Cash Cats on hand, fished at the Docks
   vault: 0,      // ...and how many are stacked in the House Vault
   level: 6,      // the cat's level, which caps what the vault can give
   readyAt: 0,    // when the crop is next ready — the debuff pushes this out
@@ -135,20 +138,21 @@ const repairCost= (dur) => Math.round((100 - dur) * REPAIR_RATE)
  *
  * The debuff crosses an app boundary: the Chibi Rating lives in pets.js and
  * the house lives here, so pets.js reads `ccl.house.v1` out of shared server
- * storage and this is what writes it.
+ * storage. The contract it reads is exactly two fields, `house` and `cond`,
+ * and nothing below may rename them.
  *
- * BE HONEST ABOUT WHAT THIS IS. Every other number on this panel is
- * client-local demo state — there is no isServer block, nothing persists, and
- * `gcc: 3` is a freebie so the loop can be walked through. So the condition
- * published here is whatever the client says it is, and a player who wanted
- * to dodge the debuff could simply claim 100%. That is fine for a demo panel
- * and is NOT fine the moment houses are real.
+ * THE SERVER OWNS ALL OF THIS. It used to be client-local: the panel kept its
+ * own numbers, handed itself three Gold Cash Cats on every page load, and
+ * published whatever condition it liked -- so the 80% debuff was opt-in, the
+ * land gate was a boolean anyone could set, and a reload wiped the lot. Now
+ * the client sends intents and draws what comes back; every rule below runs
+ * once, on the server, against a record that persists.
  *
- * This is the seam where that changes. When the Homestead becomes
- * authoritative the server owns `houseDur`, decays it on its own clock, and
- * this function goes away — pets.js does not change at all, because it only
- * ever reads the store. Keeping the boundary here rather than letting pets.js
- * reach into homestead state is what makes that a one-file job later.
+ * Gold Cash Cats are READ from the trades ledger and never written there.
+ * They are fished out of the lake, which is trades.js's business, and two apps
+ * writing one storage key clobber each other -- each holds its own copy and
+ * saves on its own clock. So this counts what it has spent in its own record
+ * and subtracts. Same shape pets.js uses for chests, and for the same reason.
  */
 const upkeepBad = () => s.house && s.houseDur < UPKEEP_LINE
 const yieldMs   = () => Math.round(HARVEST_MS * (upkeepBad() ? 1 + UPKEEP_DEBUFF : 1))
@@ -236,6 +240,7 @@ const vFD    = row(hold,'Farm condition',30,12)
 const bFD    = indented(hold,30,LIME,2)
 const lRepH  = text(hold,'',24,DIM,400,18)
 const lRepF  = text(hold,'',24,DIM,400,4)
+const lNote  = text(hold,'',24,GOLD_L,700,10)   // what the server said about the last thing you pressed
 const lUpkeep= text(hold,'',24,DIM,400,10)
 
 /* ---- the barn ---- */
@@ -329,121 +334,169 @@ function action(label,pos,fn,dist){
 }
 const BY = FLOOR_Y+1.2
 
-const aBuy = action('',[LEFT_X+1.5,BY,-1.0],()=>{
-  if(s.plot >= PLOTS.length-1) return
-  const next = s.plot + 1
-  if(s.vault < PLOT_GCC[next]){
-    lLand.value = PLOTS[next].name + ' needs ' + PLOT_GCC[next] + ' vaulted (have ' + s.vault + ')'
-    return
-  }
-  s.burned += PLOTS[next].price      // demo: the real build burns on-chain
-  s.plot = next
-  render()
-},3.2)
+const send = (what, note) => {
+  if (note) lastNote = note
+  app.send('home', { do: what })
+}
 
-const aVault = action('',[RIGHT_X-1.5,BY,-4.4],()=>{
-  if(s.gcc <= 0) return
-  s.gcc--; s.vault++                 // bound to the player, never traded away
-  render()
-},3.2)
-
-const aBuild = action('',[-4.6,BY,5.6],()=>{
-  if(s.plot < 0){ lRepH.value = 'Buy a plot before building.'; return }
-  if(s.house) return
-  if(s.timber < HOUSE_COST){ lRepH.value = 'Raise a house: '+HOUSE_COST+' timber (not enough)'; return }
-  s.timber -= HOUSE_COST
-  s.house = true
-  // Tell the server the house exists. Without this the Chibi Rating is
-  // structurally zero for everyone: pets.js gates displaying a chibi on
-  // hasHouse(), which reads ccl.house.v1, and nothing wrote that key until a
-  // harvest or an upkeep payment — neither of which you can reach before you
-  // have built. Raise a house, and the shelf still says you have not.
-  publish()
-  render()
-})
-
-const aHarvest = action('Work the farm',[0,BY,-0.6],()=>{
-  if(!s.house){ lYield.value = 'Raise a house before the farm produces.'; return }
-  if(s.houseDur <= 0 || s.farmDur <= 0){ lRepF.value = 'Repair before harvesting.'; return }
-  // the crop has to be ready. this is where "5% longer to yield" is actually
-  // spent — without a timer the debuff would be a line of text and nothing else
-  const t = Date.now()
-  if(t < s.readyAt){
-    lYield.value = 'Not ready — ' + Math.ceil((s.readyAt - t)/1000) + 's to go' +
-                   (upkeepBad() ? '  (+5%: house below ' + UPKEEP_LINE + '%)' : '')
-    return
-  }
-  s.readyAt = t + yieldMs()
-  s.produce += yieldPer()                       // counted, never rolled
-  s.houseDur = Math.max(0, s.houseDur - HOUSE_WEAR)
-  s.farmDur  = Math.max(0, s.farmDur  - FARM_WEAR)
-  s.harvests++
-  publish()
-  render()
-})
-
-const aMill = action('Mill produce into timber',[3.2,BY,-0.6],()=>{
-  if(s.produce < TIMBER_RATE){ lMill.value = 'Mill: '+TIMBER_RATE+' produce -> 1 timber (not enough)'; return }
-  s.produce -= TIMBER_RATE; s.timber++; render()
-})
+const aBuy   = action('', [LEFT_X+1.5, BY, -1.0], () => send('plot'),   3.2)
+const aVault = action('', [RIGHT_X-1.5, BY, -4.4], () => send('vault'), 3.2)
+const aBuild = action('', [-4.6, BY, 5.6], () => send('build'))
+const aHarvest = action('Work the farm', [0, BY, -0.6], () => send('harvest'))
+const aMill  = action('Mill produce into timber', [3.2, BY, -0.6], () => send('mill'))
 
 /* the two upkeep routes, and only these two */
-const aFixH = action('Upkeep: pay a Gold Cash Cat',[-3.2,BY,-0.6],()=>{
-  if(!s.house){ lRepH.value = 'No house to maintain.'; return }
-  if(s.houseDur >= 100) return
-  if(s.gcc < UPKEEP_GCC){
-    lRepH.value = 'Upkeep: '+UPKEEP_GCC+' Gold Cash Cat (you hold '+s.gcc+')'
-    return
-  }
-  s.gcc -= UPKEEP_GCC; s.houseDur = 100; publish(); render()
-})
-
-const aFixH2 = action('Upkeep: pay in $CASHCATSLLC',[-3.2,BY,-2.2],()=>{
-  if(!s.house){ lRepH.value = 'No house to maintain.'; return }
-  if(s.houseDur >= 100) return
-  // demo build: the burn is counted, nothing is minted and no wallet is
-  // connected. The Premium Shop the dev described runs on this same rail.
-  s.burned += UPKEEP_TOKENS
-  s.houseDur = 100; publish(); render()
-})
-
-const aFixF = action('Repair the farm',[1.6,BY,-0.6],()=>{
-  const c = repairCost(s.farmDur)
-  if(c === 0) return
-  if(s.produce < c){ lRepF.value = 'Repair farm: '+c+' produce (not enough)'; return }
-  s.produce -= c; s.farmDur = 100; render()
-})
-
-const aTimber = action('',[RIGHT_X-1.5,BY,-3.4],()=>{
-  s.timber += TIMBER_LOT
-  s.burned += TIMBER_PRICE           // demo: the real build burns on-chain
-  render()
-},3.2)
-
-const aBoost = action('',[RIGHT_X-1.5,BY,-1.0],()=>{
-  if(s.produce < BOOST_COST){ lBoost.value = 'Boost: '+BOOST_COST+' produce (not enough)'; return }
-  s.produce -= BOOST_COST; s.boosts++; render()
-},3.2)
+const aFixH  = action('Upkeep: pay a Gold Cash Cat', [-3.2, BY, -0.6], () => send('upkeepGold'))
+const aFixH2 = action('Upkeep: pay in $CASHCATSLLC', [-3.2, BY, -2.2], () => send('upkeepToken'))
+const aFixF  = action('Repair the farm', [1.6, BY, -0.6], () => send('repairFarm'))
+const aTimber = action('', [RIGHT_X-1.5, BY, -3.4], () => send('timber'), 3.2)
+const aBoost  = action('', [RIGHT_X-1.5, BY, -1.0], () => send('boost'),  3.2)
 
 /* ---- the seam: condition out to shared storage, for the Chibi debuff ---- */
-function publish(){
-  if(isServer) return
-  app.send('house', { c: s.houseDur, h: s.house })
+
+let lastNote = ''
+
+if(!isServer){
+  app.on('home', d => {
+    if(!d) return
+    if(d.s) for(const k in d.s) s[k] = d.s[k]
+    if(d.msg) lastNote = d.msg
+    render()
+  })
+  app.send('home', { do: 'hello' })
 }
 
 if(isServer){
   const KEY = 'ccl.house.v1'
-  const book = () => world.get(KEY) || {}
-  app.on('house', (d, pid) => {
+  const LEDGER = 'ccl.ledger.v1'
+  let book = null
+  const load = () => { if(!book) book = world.get(KEY) || {}; return book }
+  // Saved on every write rather than on a timer. These are clicks on a panel,
+  // not a tick -- there is no volume here to throttle, and losing a house
+  // someone just built to an unlucky restart is not a trade worth making.
+  const save = () => { world.set(KEY, load()) }
+
+  // Gold Cash Cats held, straight off the trades ledger, less whatever this
+  // homestead has already spent. Read only -- see the note above this block.
+  const goldHeld = uid => {
+    const L = (world.get(LEDGER) || {})[uid]
+    const earned = L && typeof L.gold === 'number' ? L.gold : 0
+    return Math.max(0, earned - (rec(uid).goldSpent || 0))
+  }
+
+  const BLANK = {
+    plot: -1, house: false, cond: 100, farm: 100, produce: 0, timber: 0,
+    harvests: 0, boosts: 0, burned: 0, vault: 0, goldSpent: 0, level: 6,
+    readyAt: 0,
+  }
+  function rec(uid){
+    const b = load()
+    if(!b[uid]) b[uid] = {}
+    const r = b[uid]
+    for(const k in BLANK) if(r[k] === undefined || r[k] === null) r[k] = BLANK[k]
+    return r
+  }
+
+  // The same derived numbers the client used to compute for itself. They live
+  // here now so the client cannot disagree with them.
+  const rBeds  = r => r.plot < 0 ? 0 : PLOTS[r.plot].beds
+  const rMult  = r => 1 + VAULT_YIELD * r.vault
+  const rYield = r => r.house ? Math.round(rBeds(r) * YIELD_PER_BED * rMult(r)) : 0
+  const rBad   = r => r.house && r.cond < UPKEEP_LINE
+  const rMs    = r => Math.round(HARVEST_MS * (rBad(r) ? 1 + UPKEEP_DEBUFF : 1))
+  const rFarmCost = r => Math.round((100 - r.farm) * REPAIR_RATE)
+
+  const push = (pid, uid, msg) => {
+    const r = rec(uid)
+    app.sendTo(pid, 'home', {
+      msg: msg || '',
+      s: {
+        plot: r.plot, house: r.house, houseDur: r.cond, farmDur: r.farm,
+        produce: r.produce, timber: r.timber, harvests: r.harvests,
+        boosts: r.boosts, burned: r.burned, vault: r.vault, level: r.level,
+        readyAt: r.readyAt, gcc: goldHeld(uid),
+      },
+    })
+  }
+
+  app.on('home', (d, pid) => {
     const p = world.getPlayer(pid); if(!p) return
-    const b = book()
     const uid = p.userId || p.id
-    // clamped, because a client sending 4000% would hand itself a debuff-proof
-    // house forever. It cannot be trusted, but it can at least be bounded.
-    const c = Math.max(0, Math.min(100, Number(d && d.c)))
-    b[uid] = { cond: (c === c ? c : 100), house: !!(d && d.h), at: Date.now() }
-    world.set(KEY, b)
+    const r = rec(uid)
+    const what = d && d.do
+    let msg = ''
+    let wrote = false
+
+    if(what === 'plot'){
+      const next = r.plot + 1
+      if(next >= PLOTS.length) msg = 'You already hold the largest plot.'
+      else if(r.vault < PLOT_GCC[next])
+        msg = PLOTS[next].name + ' needs ' + PLOT_GCC[next] + ' vaulted (have ' + r.vault + ')'
+      else { r.burned += PLOTS[next].price; r.plot = next; wrote = true }
+
+    } else if(what === 'vault'){
+      if(goldHeld(uid) <= 0) msg = 'No Gold Cash Cat to vault. They are fished at the Docks.'
+      else { r.goldSpent++; r.vault++; wrote = true }
+
+    } else if(what === 'build'){
+      if(r.plot < 0) msg = 'Buy a plot before building.'
+      else if(r.house) msg = 'The house is already up.'
+      else if(r.timber < HOUSE_COST) msg = 'Raise a house: ' + HOUSE_COST + ' timber (you have ' + r.timber + ')'
+      else { r.timber -= HOUSE_COST; r.house = true; wrote = true }
+
+    } else if(what === 'harvest'){
+      const t = Date.now()
+      if(!r.house) msg = 'Raise a house before the farm produces.'
+      else if(r.cond <= 0 || r.farm <= 0) msg = 'Repair before harvesting.'
+      else if(t < r.readyAt)
+        msg = 'Not ready — ' + Math.ceil((r.readyAt - t)/1000) + 's to go' +
+              (rBad(r) ? '  (+5%: house below ' + UPKEEP_LINE + '%)' : '')
+      else {
+        r.readyAt = t + rMs(r)
+        r.produce += rYield(r)
+        r.cond = Math.max(0, r.cond - HOUSE_WEAR)
+        r.farm = Math.max(0, r.farm - FARM_WEAR)
+        r.harvests++
+        wrote = true
+      }
+
+    } else if(what === 'mill'){
+      if(r.produce < TIMBER_RATE) msg = 'Mill: ' + TIMBER_RATE + ' produce -> 1 timber (you have ' + r.produce + ')'
+      else { r.produce -= TIMBER_RATE; r.timber++; wrote = true }
+
+    } else if(what === 'upkeepGold'){
+      if(!r.house) msg = 'No house to maintain.'
+      else if(r.cond >= 100) msg = 'The house is already at 100%.'
+      else if(goldHeld(uid) < UPKEEP_GCC)
+        msg = 'Upkeep: ' + UPKEEP_GCC + ' Gold Cash Cat (you hold ' + goldHeld(uid) + ')'
+      else { r.goldSpent += UPKEEP_GCC; r.cond = 100; wrote = true }
+
+    } else if(what === 'upkeepToken'){
+      if(!r.house) msg = 'No house to maintain.'
+      else if(r.cond >= 100) msg = 'The house is already at 100%.'
+      // demo build: the burn is counted, nothing is minted and no wallet is
+      // connected. The Premium Shop the dev described runs on this same rail.
+      else { r.burned += UPKEEP_TOKENS; r.cond = 100; wrote = true }
+
+    } else if(what === 'repairFarm'){
+      const c = rFarmCost(r)
+      if(c === 0) msg = 'The farm is in good order.'
+      else if(r.produce < c) msg = 'Repair farm: ' + c + ' produce (you have ' + r.produce + ')'
+      else { r.produce -= c; r.farm = 100; wrote = true }
+
+    } else if(what === 'timber'){
+      r.timber += TIMBER_LOT; r.burned += TIMBER_PRICE; wrote = true
+
+    } else if(what === 'boost'){
+      if(r.produce < BOOST_COST) msg = 'Boost: ' + BOOST_COST + ' produce (you have ' + r.produce + ')'
+      else { r.produce -= BOOST_COST; r.boosts++; wrote = true }
+    }
+
+    if(wrote){ r.at = Date.now(); save() }
+    push(pid, uid, msg)
   })
+
+  world.on('leave', () => { if(book) save() })
 }
 
 /* =========================== render =========================== */
@@ -464,6 +517,7 @@ function render(){
       : ('Upkeep: ' + UPKEEP_GCC + ' Gold Cash Cat, or ' +
          commas(UPKEEP_TOKENS) + ' $CASHCATSLLC')
   lRepF.value  = 'Repair farm: '  + repairCost(s.farmDur)  + ' produce'
+  lNote.value  = lastNote
   // the debuff, named and costed, on the line it applies to
   lUpkeep.value = upkeepBad()
       ? ('BELOW ' + UPKEEP_LINE + '% — Chibi Rating -5%, crops take 5% longer (' +
@@ -493,7 +547,7 @@ function render(){
       : 'All territory unlocked.'
   aVault.label = s.gcc > 0
       ? 'Vault a Gold Cash Cat (' + s.gcc + ' on hand)'
-      : 'No Gold Cash Cats — win them from bosses'
+      : 'No Gold Cash Cats — fish one out of the lake at the Docks'
 
   vBurn.value  = commas(s.burned)
   vBurn.color  = s.burned ? '#e08a6a' : CREAM

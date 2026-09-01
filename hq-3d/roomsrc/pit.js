@@ -82,7 +82,7 @@ function text(parent,val,px,color,weight,mt){
   const t=app.create('uitext')
   t.value=val; t.fontSize=px; t.color=color||PAPER
   t.fontWeight=weight||400
-  if(mt) t.marginTop=mt
+  if(mt) t.margin=[mt,0,0,0]
   parent.add(t); return t
 }
 function row(parent,h){
@@ -231,6 +231,7 @@ function paint(){
   }
 }
 
+let entry = null
 function label(){
   if(s.phase==='lobby'){
     bPhase.value = 'DOORS OPEN — ' + Math.ceil(s.t) + 's'
@@ -242,6 +243,8 @@ function label(){
     bPhase.value = 'BELL'
     bSub.value = 'Next round in ' + Math.ceil(s.t) + 's'
   }
+  // set once the action exists; label() runs at module load, before it does
+  if(entry) entry.label = s.phase === 'lobby' ? 'Enter the Pit' : 'Watch from the stands'
   for(let i=0;i<bList.length;i++){
     const r = s.results[i]
     bList[i].value = r ? (r.place===1 ? 'WINNER  ' + r.name
@@ -659,8 +662,27 @@ aIn.duration = 0.5
 // the offset lives inside prim() and panel(); an action built by hand skips
 // it, which left the arena entrance standing in the middle of the plaza
 aIn.position.set(OX, 1.6, OZ + HALF_Z + 6)
+// Where you land depends on the round.
+//
+// This used to put everyone on the middle of the deck whatever the phase. Walk
+// in during a round and you were standing on a floor that is actively falling
+// away, not on the alive list, so nothing counted you and nothing caught you
+// -- the tiles opened underneath and you dropped into the pit with no
+// placement and no seat. Mid-round arrivals go to the stands instead, which is
+// exactly where the eliminated are sent, and the label says which is going to
+// happen before you press it.
 aIn.onTrigger = () => {
   const p = world.getPlayer()
-  if(p) p.teleport(new Vector3(OX, DECK_Y+1.2, OZ), 0)
+  if(!p) return
+  if(s.phase === 'lobby'){
+    p.teleport(new Vector3(OX, DECK_Y+1.2, OZ), 0)
+    return
+  }
+  // same ring seat() uses on the server, so watchers all end up in one place
+  const a = Math.random() * Math.PI * 2
+  p.teleport(new Vector3(OX + Math.cos(a)*(HALF_X+7),
+                         DECK_Y + 5.4,
+                         OZ + Math.sin(a)*(HALF_Z+7)), 0)
 }
+entry = aIn
 app.add(aIn)

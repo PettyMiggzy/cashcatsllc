@@ -96,13 +96,23 @@ def fetch(slug, force=False):
 def main(which, force=False):
     os.makedirs(OUT, exist_ok=True)
     total = 0
+    failed = []
     for slug in which:
         try:
             total += fetch(slug, force)
         except Exception as e:
             print('  %-22s failed: %s' % (slug, str(e)[:70]))
+            failed.append(slug)
     print('\n%d models in %s' % (total, OUT))
     print('CC0 / public domain, Kenney (kenney.nl) — donations at kenney.nl/donate')
+    # Say so in the exit code, not only on stdout. Every pack could fail and
+    # this still exited 0, so setup.sh's "packs unavailable" fallback message
+    # was unreachable and a deploy with no trees, no buildings and no lamps in
+    # it looked exactly like a clean one.
+    if failed:
+        print('%d pack(s) did not download: %s' % (len(failed), ', '.join(failed)))
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
@@ -111,4 +121,4 @@ if __name__ == '__main__':
         for k, v in PACKS.items():
             print('  %-22s %s' % (k, v))
         raise SystemExit(0)
-    main([a for a in args if a in PACKS] or list(PACKS), '--force' in args)
+    raise SystemExit(main([a for a in args if a in PACKS] or list(PACKS), '--force' in args))
