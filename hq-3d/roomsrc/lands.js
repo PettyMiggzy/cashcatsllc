@@ -750,9 +750,25 @@ const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
  * 11MB and 245k, because the detail lives in the normal map rather than in the
  * geometry — which is the entire reason they are worth having.
  */
-model('hq_coastal_cliff_01', [SX - 6, 0, SZ - 15], 0, 1.0)
-model('hq_coastal_cliff_02', [SX + 26, 0, SZ - 9], -Math.PI / 2.6, 1.0)
-model('hq_coastal_cliff_02', [SX - 34, 0, SZ - 7], Math.PI / 2.4, 1.0)
+/*
+ * The quarry face, sized to the quarry.
+ *
+ * cliff_01 is 91.9 metres wide as authored — I measured it rather than
+ * assuming, after it turned up as a dark slab on the horizon behind the
+ * village. Dropped in at full size centred near the Seam it spanned x=-5 to
+ * x=+87: a wall across a third of the world, reaching back past the campus.
+ * A photoscan does not come at the scale of your scene and this one is the
+ * length of a street.
+ *
+ * The Seam's working ground is 44 across, so the face is cliff_02 at 40.8 and
+ * fits it. cliff_01 stays, at half size, as a second ridge behind — which is
+ * what it is good for, since the thing you want from a 46-metre rock is
+ * distance and it has no business being the wall you stand at.
+ */
+model('hq_coastal_cliff_02', [SX,      0, SZ - 16],  0,              1.0)
+model('hq_coastal_cliff_01', [SX,      0, SZ - 27],  0,              0.5)
+model('hq_coastal_cliff_02', [SX + 24, 0, SZ -  6], -Math.PI / 2.6,  0.7)
+model('hq_coastal_cliff_02', [SX - 24, 0, SZ -  6],  Math.PI / 2.4,  0.7)
 // boulders fallen off the face, at the foot of it
 const BLD = ['hq_boulder_01', 'hq_namaqualand_boulder_02', 'hq_namaqualand_boulder_03', 'hq_rock_moss_set_01']
 for (let i = 0; i < 11; i++)

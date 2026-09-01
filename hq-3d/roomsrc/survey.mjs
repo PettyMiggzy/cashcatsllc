@@ -43,6 +43,7 @@ const VIEWS = {
   // the village from above, high enough to read the layout rather than a wall
   village:   [ -47, 0,  14,   0, -35, 55],
   topdown:   [ -47,28, -18,   0, -88,  2],
+  homeOut:   [ -22, 0, -22,   0,  -8, 18],
   green:     [ -64, 0, -21,   0, -14, 16],
   guard:     [  48, 0,  20,   0,  -4,  6],
   guardIn:   [45.1, 0,  19,   0,   2,  2.5],
