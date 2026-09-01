@@ -133,6 +133,69 @@ text(board,'The numbers on the boards are the real',24,INK,400,14)
 text(board,'proposed rules, running live — not mockups.',24,INK,400,2)
 
 
+/* ---------------- the chain, live ----------------
+ *
+ * The world runs on Robinhood Chain, and until now that was a line of text on
+ * a sign. This reads the chain itself — height ticking, both contracts, the
+ * supply — so the claim is checkable from inside the world rather than
+ * asserted at it. Chain-native is a thing you can be rather than a thing you
+ * say, and a board that is visibly wrong when the node is down is worth more
+ * than one that is always confident.
+ *
+ * The accent here is the chain's green rather than the Office's gold. Kept
+ * deliberately to our own green: this world is not affiliated with Robinhood
+ * Markets and should not dress like it thinks it is.
+ */
+const CHAIN_G = '#00d26a', CHAIN_D = '#0a1f16'
+const RPC_URL = 'https://rpc.mainnet.chain.robinhood.com'
+const T_CASH  = '0x466b4F0be1f6e7Cf87f6de43B3ABd33233EE05cc'
+const T_GOLD  = '0x2f6A90cE9Dcece3215df206B3Ac6fF7368E27acc'
+
+const chainB = panel(700,470,0.0050,[-22.5,2.9,16.0],0.55,CHAIN_D,CHAIN_G)
+text(chainB,'ROBINHOOD CHAIN',34,CHAIN_G,800)
+const cHeight = text(chainB,'—',54,CREAM,700,10)
+text(chainB,'block height, read live',18,'#5f7168',400,2)
+const cId     = text(chainB,'chain —',22,DIM,400,14)
+text(chainB,'$CASHCATSLLC',22,CHAIN_G,700,14)
+const cCash   = text(chainB,'—',20,CREAM,400,2)
+text(chainB,'0x466b…05cc',17,'#5f7168',400,2)
+text(chainB,'GOLD CASH CAT',22,CHAIN_G,700,12)
+const cGold   = text(chainB,'—',20,CREAM,400,2)
+text(chainB,'0x2f6A…7acc',17,'#5f7168',400,2)
+
+function rpc(method, params){
+  return fetch(RPC_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
+  }).then(r => r.json()).then(j => (j && j.result) || null)
+}
+function commas(n){
+  const d = String(n), out = []
+  for(let i=0;i<d.length;i++){ if(i>0 && (d.length-i)%3===0) out.push(','); out.push(d[i]) }
+  return out.join('')
+}
+function supplyOf(addr, node){
+  // totalSupply(), 18 decimals
+  return rpc('eth_call',[{ to: addr, data:'0x18160ddd' },'latest']).then(r => {
+    if(!r) { node.value = 'unreadable'; return }
+    node.value = commas(Math.floor(Number(BigInt(r) / BigInt('1000000000000000000')))) + ' supply'
+  }).catch(() => { node.value = 'offline' })
+}
+function chainRefresh(){
+  rpc('eth_blockNumber',[]).then(r => { cHeight.value = r ? commas(parseInt(r,16)) : 'offline' })
+                           .catch(() => { cHeight.value = 'offline' })
+  rpc('eth_chainId',[]).then(r => { if(r) cId.value = 'chain ' + parseInt(r,16) })
+                       .catch(() => {})
+  supplyOf(T_CASH, cCash)
+  supplyOf(T_GOLD, cGold)
+}
+chainRefresh()
+let chainSince = 0
+app.on('update', dt => {
+  chainSince += dt
+  if(chainSince >= 30){ chainSince = 0; chainRefresh() }
+})
+
 /* ---------------- the cast, out on the plaza ----------------
  * The protagonists, standing where everyone walks in. Standee planes rather
  * than models: rigged VRMs for each of them is real modelling work, and a
