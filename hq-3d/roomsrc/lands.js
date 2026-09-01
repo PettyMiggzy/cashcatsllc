@@ -31,7 +31,7 @@ const Y = 0.02
 
 const GOLD='#a9812a', GOLD_L='#e8c25a', CREAM='#e8f2ec', INK='#16150f'
 const DIM='#8fa39a', PAPER='#f4f0e3', GREEN='#1a7f4b'
-const SOIL='#5c4630', SAND='#d9c89a', WATER='#2b6f8f', WATER_D='#1d5169'
+const SOIL='#5c4630', SAND='#d9c89a', WATER='#3f9dc4', WATER_D='#2b6f8f'
 const STONE='#cfc9b8', STONE_D='#a8a291', GRASS='#4f8f4a'
 
 /* ------------------------------------------------------------------ *
@@ -227,13 +227,19 @@ for (let i = 0; i < 5; i++) model('n_lily', [FX + rr(-1.6, 1.6), 0.2, FZ - 9 + i
 
 /* the crop plots — fenced, planted, at four different stages so the field
  * reads as worked rather than decorated */
+/* CROP_S, not NAT. The bed grid is terrain-scale — a 3.4m row is a row you
+ * can walk between — but the *plants* are not terrain. At NAT the corn came
+ * out 4.25m tall and the pumpkins were a metre across; the camera could not
+ * get far enough back to see a field because it was standing inside a
+ * cornstalk the size of a tree. */
+const CROP_S = 1.35
 function plot(px, pz, cols, rows, crop) {
   const S = NAT
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = px + (c - (cols - 1) / 2) * S, z = pz + (r - (rows - 1) / 2) * S
       model('n_dirtRow', [x, 0, z], 0, S)
-      if (crop) for (let k = -1; k <= 1; k++) model(crop, [x + k * S * 0.3, 0.14, z + rr(-0.5, 0.5)], rr(0, 6.28), S * rr(0.85, 1.05))
+      if (crop) for (let k = -1; k <= 1; k++) model(crop, [x + k * S * 0.3, 0.14, z + rr(-0.5, 0.5)], rr(0, 6.28), CROP_S * rr(0.85, 1.05))
     }
   }
   // fence the plot
@@ -301,8 +307,11 @@ prim('box', [56, 0.2, 14], '#ffffff', [DX, Y - 0.1, SHORE_Z - 7], { tex: 'paving
 prim('box', [56, 0.26, 12], SAND, [DX, Y - 0.05, SHORE_Z - 1], { rough: 1.0 })
 // the lake. Low roughness with a little metalness is what reads as water on a
 // prim — there is no transparency to lean on.
-prim('box', [64, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.08, metal: 0.45 })
-prim('box', [66, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.3 })
+// Metalness 0.45 on a dark blue is a mirror with no diffuse left, and against
+// this sky it read as a flat navy wall standing at the end of the jetty.
+// Water in a stylised world wants to be bright and barely metallic.
+prim('box', [64, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.22, metal: 0.08 })
+prim('box', [66, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
 
 /* three jetties out over the water. The kit dock is scenery; the plank deck
  * under it is what carries a player, so it is a static prim. */

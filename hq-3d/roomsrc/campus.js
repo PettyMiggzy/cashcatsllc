@@ -258,24 +258,32 @@ function model(key, pos, rotY, scale) {
     .catch(() => {})   // a missing pack should cost a prop, not the room
 }
 
-/* a skyline behind the campus buildings, so the world has a horizon that is
- * not just green ground meeting sky */
+/* A skyline, on a ring well outside everything else.
+ *
+ * The first cut was a hand-typed list of positions that ran from x -58 to 72
+ * and z -33 to 54 — which was fine when the campus was the whole world, and
+ * became wrong the moment four grounds were built out to 72 metres. Every one
+ * of them had tower blocks standing in the middle of it: a skyscraper in the
+ * quarry, an office block in the middle of the Grove, the fishing jetty
+ * looking out at a car park. A computed ring cannot drift like that — nothing
+ * lands inside RING_R, and RING_R is comfortably past the furthest ground.
+ *
+ * Bigger than before, too. At 125 metres a 9-metre building is a speck, and
+ * the fog (near 60, far 380) is already doing the aerial perspective.
+ */
 const TOWERS = ['m_towerA', 'm_towerB', 'm_towerC']
 const BLOCKS = ['m_bldA', 'm_bldB', 'm_bldC', 'm_bldD', 'm_bldE']
-const SKYLINE = [
-  // [x, z, facing] — a loose ring, denser behind the Filing Office
-  [-46, -26], [-34, -30], [-22, -28], [-10, -32], [  2, -30], [ 14, -33],
-  [ 26, -29], [ 38, -31], [ 50, -27], [ 62, -30],
-  [-52,  -8], [-56,   6], [-52,  20], [-58,  34],
-  [ 66,  -8], [ 70,   8], [ 66,  22], [ 72,  36],
-  [-40,  48], [-26,  52], [-12,  50], [  4,  54], [ 20,  51], [ 36,  53], [ 52,  49],
-]
-for (let i = 0; i < SKYLINE.length; i++) {
-  const [x, z] = SKYLINE[i]
+const RING_R = 125          // the grounds reach 72; this clears them by half again
+const RING_N = 40
+for (let i = 0; i < RING_N; i++) {
+  const a = (i / RING_N) * Math.PI * 2
+  // deterministic jitter — Math.random would reshuffle the horizon on every
+  // reload and give two players standing together a different skyline
+  const r = RING_R + ((i * 37) % 26) + (i % 3) * 9
   const tall = i % 3 === 0
   const key = tall ? TOWERS[i % TOWERS.length] : BLOCKS[i % BLOCKS.length]
-  const s = CITY_S * (tall ? 1.25 : 0.9 + (i % 4) * 0.12)
-  model(key, [x, Y, z], (i % 4) * Math.PI / 2, s)
+  const s = CITY_S * (tall ? 2.2 : 1.5 + (i % 4) * 0.18)
+  model(key, [Math.sin(a) * r, Y, Math.cos(a) * r], a + Math.PI, s)
 }
 
 /* planting along the plaza, and lamps that are lamps rather than boxes */
