@@ -419,26 +419,37 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
  * than a wall. The nature kit cliff block is a 1m cube at 1 unit; at 3.4 each
  * course is 3.4m, so three courses give a ten-metre face. */
 /*
- * cliff_block_rock is a plain 1x1x1 cube. Thirty-nine of them on a grid is not
- * a quarry face, it is a wall — and forty metres of one pale flat surface under
- * this HDRI blows out to a featureless white slab, which is exactly how the
- * first render came back. Vary the piece, vary the height of each column, and
- * let the top line wander.
+ * The quarry face, built from prims rather than from the kit.
+ *
+ * Both nature-kit rock sets are near-white: cliff_*_rock and rock_* carry an
+ * unassigned `_defaultMat` at pure white for the body, and the stone_* set's
+ * own colour is #b7e2e7, a pale blue. Neither is something I can fix from
+ * outside the asset, and forty metres of either reads as a snowdrift with a
+ * mine door in it. There is no darker variant in the kit.
+ *
+ * So the face is prims — colour and texture I actually control — stepped back
+ * as it rises, jittered along its length so the top line wanders, and warm
+ * enough to sit beside the tan of the cave-kit arch.
  */
-const FACE = ['n_cliff', 'n_cliffHalf', 'n_cliffSlope', 'n_cliff', 'n_cliffCnr']
-for (let i = 0; i < 13; i++) {
-  const x = SX + (i - 6) * NAT
-  // a ragged skyline to the rock: 2 or 3 courses, never the same run twice
-  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)
+const ROCK = '#6f5f4c', ROCK_D = '#5b4d3e', ROCK_L = '#83705a'
+for (let i = 0; i < 16; i++) {
+  const x = SX + (i - 7.5) * 3.0
+  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)      // a ragged skyline to the rock
   for (let c = 0; c < h; c++) {
-    const z = SZ - 13 - c * NAT * 0.75 + ((i + c) % 2) * 0.4
-    const mid = i === 6
-    model(mid && c === h - 1 ? 'n_cliffCave' : FACE[(i * 3 + c) % FACE.length],
-          [x + ((i + c) % 3 - 1) * 0.25, c * NAT, z], ((i + c) % 4) * Math.PI / 2, NAT)
+    const w = 3.0 + rr(-0.3, 0.5)
+    const d = 3.4 + rr(-0.4, 0.6)
+    const z = SZ - 12.5 - c * 1.9 + rr(-0.4, 0.4)
+    prim('box', [w, 3.5, d], c === 0 ? ROCK : (c === 1 ? ROCK_L : ROCK_D),
+         [x + rr(-0.35, 0.35), c * 3.2 + 1.75, z],
+         { tex: 'soil', rough: 1.0, rotY: rr(-0.09, 0.09), physics: 'static' })
   }
 }
-for (let i = 0; i < 6; i++)
-  model('n_cliffSlope', [SX - 20 + i * NAT * 1.2, 0, SZ - 11 + rr(-1, 1)], rr(-0.2, 0.2), NAT)
+// spoil banked against the foot of the face, so rock does not meet floor at a
+// ruler line
+for (let i = 0; i < 14; i++)
+  prim('box', [rr(2.0, 3.6), rr(1.0, 2.2), rr(1.8, 3.0)], i % 2 ? ROCK_D : ROCK,
+       [SX + rr(-22, 22), rr(0.4, 0.9), SZ - 9.5 + rr(-1.2, 1.6)],
+       { tex: 'soil', rough: 1.0, rotY: rr(0, 6.28) })
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)
@@ -452,9 +463,14 @@ model('c_ladder', [SX + 5.6, 0, SZ - 8], 0, 1.4)
 /* spoil heaps, ore boulders and the carts that move them */
 // rock_* and stone_* are two different palettes in this kit — stone is nearly
 // white and under this sky it read as snow scattered round a quarry.
-for (let i = 0; i < 22; i++)
-  model(pick(['n_rockTallA', 'n_rockTallD', 'n_rockLgB', 'n_rockTallA', 'n_rockLgB']),
-        [SX + rr(-19, 19), 0, SZ + rr(-8, 8)], rr(0, 6.28), NAT * rr(0.5, 1.1))
+// A handful of pale boulders reads as quarried stone waiting to be carted.
+// Two dozen at terrain scale read as an avalanche.
+for (let i = 0; i < 7; i++)
+  model(pick(['n_rockTallA', 'n_rockLgB']),
+        [SX + rr(-18, 18), 0, SZ + rr(-4, 8)], rr(0, 6.28), NAT * rr(0.28, 0.5))
+for (let i = 0; i < 9; i++)
+  prim('box', [rr(0.8, 1.6), rr(0.5, 1.1), rr(0.7, 1.4)], i % 2 ? ROCK : ROCK_D,
+       [SX + rr(-18, 18), 0.35, SZ + rr(-5, 8)], { tex: 'soil', rough: 1.0, rotY: rr(0, 6.28) })
 model('t_cart',     [SX - 8, 0, SZ + 3], 0.9, TOWN)
 model('t_cartHigh', [SX + 9, 0, SZ + 5], -1.3, TOWN)
 model('t_lantern',  [SX - 4, 0, SZ - 5], 0, TOWN)
