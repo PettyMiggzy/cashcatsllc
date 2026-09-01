@@ -256,6 +256,8 @@ async function worldNetwork(fastify) {
   })
 }
 
+console.log(`[gate] holder gate ${GATE_ENABLED ? 'ENABLED' : 'DISABLED — the Vault is open to everyone'}`)
+
 console.log(`server listening on port ${port}`)
 
 // Graceful shutdown

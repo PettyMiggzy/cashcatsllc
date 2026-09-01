@@ -118,8 +118,18 @@ Written by deploy/setup.sh. Ignored by git — do not move it somewhere that
 is not, and do not paste the code into chat.
 NOTE
 chmod 600 "$DIR/hq-3d/deploy/secrets/world.txt"
-grep -q '^GATE_ENABLED=' .env && sed -i "s|^GATE_ENABLED=.*|GATE_ENABLED=0|" .env \
-                              || echo "GATE_ENABLED=0" >> .env
+# Seed the gate flag ONLY when the .env is being created. This line used to
+# run on every deploy, so an operator who followed the README, set
+# GATE_ENABLED=1 and restarted had it silently set back to 0 the next time
+# anyone re-ran this script — and with the gate off every socket is handed
+# tier 'vip', which makes the Vault guard skip everyone. A visitor holding no
+# $CASHCATSLLC could walk into the ten-million-token room and nothing in the
+# logs would say why.
+if [ -n "$NEW_ENV" ]; then
+  grep -q '^GATE_ENABLED=' .env && sed -i "s|^GATE_ENABLED=.*|GATE_ENABLED=0|" .env \
+                                || echo "GATE_ENABLED=0" >> .env
+fi
+echo "==> gate: $(grep '^GATE_ENABLED=' .env || echo 'GATE_ENABLED unset')"
 
 echo "==> service"
 cat > /etc/systemd/system/cashcats.service <<UNIT

@@ -484,6 +484,29 @@ export class ServerNetwork extends System {
   onEntityModified = async (socket, data) => {
     const entity = this.world.entities.get(data.id)
     if (!entity) return console.error('onEntityModified: no entity found', data)
+    /*
+     * A client may not modify itself into an admin.
+     *
+     * This handler applied whatever the socket sent straight through to
+     * entity.modify(), and PlayerRemote.modify honours a `rank` field. So one
+     * packet — entityModified { id: <own player id>, rank: 2 } — made any
+     * visitor an admin: isAdmin() and isBuilder() both start returning true,
+     * every builder-gated handler in this file opens up, and the new admin can
+     * then call onModifyRank on themselves, which writes the rank to the users
+     * table so it survives a reconnect. ADMIN_CODE was never typed.
+     *
+     * rank has exactly one legitimate path (onModifyRank, admin-gated) and
+     * health is the server's to decide, so neither is ever taken from a socket.
+     * A player entity may additionally only be modified by its own owner —
+     * without that, one client can rename, re-avatar or teleport another.
+     */
+    if (entity.isPlayer) {
+      if (data.id !== socket.player?.data?.id) {
+        return console.error('onEntityModified: socket tried to modify another player')
+      }
+      delete data.health
+    }
+    delete data.rank
     entity.modify(data)
     this.send('entityModified', data, socket.id)
     if (entity.isApp) {
