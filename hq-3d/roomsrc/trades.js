@@ -122,25 +122,53 @@ const BAIT_COST = 12, BAIT_LOT = 5
 // the Gold Rod's edge on the bigger commons, as a multiplier on their weight
 const BIG_BONUS = 1.8
 
+/*
+ * Herbs and ores carry the same four rarities as fish, and the same rule: the
+ * Ultra Rare ones are visible on the ground and refuse to be taken without a
+ * Gold tool. Seeing something you cannot have yet is a better hook than not
+ * knowing it exists.
+ */
 const FORAGE = [
-  { key:'n_mushRed', name:'Red Cap',    v:3 },
-  { key:'n_mushTan', name:'Tan Cap',    v:3 },
-  { key:'n_flowerY', name:'Gold Aster', v:2 },
-  { key:'n_flowerP', name:'Violet',     v:2 },
-  { key:'n_bushS',   name:'Sweetberry', v:4 },
+  { key:'n_mushRed',  name:'Red Cap',    r:COMMON,   v:3  },
+  { key:'n_mushTan',  name:'Tan Cap',    r:COMMON,   v:3  },
+  { key:'n_flowerY',  name:'Gold Aster', r:UNCOMMON, v:6  },
+  { key:'n_flowerP',  name:'Violet',     r:UNCOMMON, v:6  },
+  { key:'n_bushS',    name:'Sweetberry', r:RARE,     v:14 },
+  { key:'n_mushTall', name:'Embercap',   r:ULTRA,    v:70 },
 ]
 const REGROW = 40000          // ms before a gathered node comes back
 const BUNDLE = 15             // bonus for filing one of every kind
 
 const SEAMS = [
-  { name:'Copper Seam', hits:3, v:4  },
-  { name:'Silver Seam', hits:5, v:12 },
-  { name:'Gold Seam',   hits:8, v:40 },
+  { name:'Copper Seam', r:COMMON,   hits:3,  v:4   },
+  { name:'Silver Seam', r:UNCOMMON, hits:5,  v:12  },
+  { name:'Gold Seam',   r:RARE,     hits:8,  v:40  },
+  { name:'Cinderlode',  r:ULTRA,    hits:12, v:180 },
+]
+
+/*
+ * Shovels and Pickaxes, four tiers each, exactly as the rod works: Common,
+ * Copper and Silver are crafted from what the other trades produce, and only
+ * the Gold one is bought — with a Gold Cash Cat, never with the traded token.
+ *
+ * Crafting across trades on purpose. A better pickaxe wants herbs and a better
+ * shovel wants ore, so the three grounds pull on each other instead of being
+ * three separate grinds in three separate fields.
+ */
+const TOOLS = ['Common', 'Copper', 'Silver', 'Gold']
+const GOLD_TIER = 3           // the tier an Ultra Rare node demands
+
+const SHOVELS = [
+  { name:'Common Shovel', ore:0,  forage:0,  gold:0, yield:1.00 },
+  { name:'Copper Shovel', ore:15, forage:10, gold:0, yield:1.30 },
+  { name:'Silver Shovel', ore:45, forage:35, gold:0, yield:1.70 },
+  { name:'Gold Shovel',   ore:0,  forage:0,  gold:1, yield:2.20 },
 ]
 const PICKS = [
-  { name:'Iron Pick',  at:0,   off:0 },
-  { name:'Steel Pick', at:40,  off:1 },
-  { name:'Gold Pick',  at:150, off:2 },
+  { name:'Common Pickaxe', ore:0,  forage:0,  gold:0, off:0 },
+  { name:'Copper Pickaxe', ore:12, forage:12, gold:0, off:1 },
+  { name:'Silver Pickaxe', ore:40, forage:40, gold:0, off:2 },
+  { name:'Gold Pickaxe',   ore:0,  forage:0,  gold:1, off:3 },
 ]
 const RESEAM = 50000
 
@@ -157,15 +185,20 @@ const SPOTS = [
 
 const GX = 47, GZ = 52
 const NODES = []
-for (let i = 0; i < 10; i++) {
-  const a = i * 0.6283 + 0.31, r = 7.5 + (i % 3) * 1.9
-  NODES.push({ x: GX + Math.cos(a) * r, z: GZ + Math.sin(a) * r, kind: i % FORAGE.length })
+for (let i = 0; i < 12; i++) {
+  const a = i * 0.5236 + 0.31, r = 7.5 + (i % 3) * 1.9
+  // two Ultra Rare herbs in the ring, and they are meant to be seen and
+  // refused until someone owns a Gold Shovel
+  const kind = (i === 3 || i === 9) ? FORAGE.length - 1 : i % (FORAGE.length - 1)
+  NODES.push({ x: GX + Math.cos(a) * r, z: GZ + Math.sin(a) * r, kind: kind })
 }
 
 const SX = 47, SZ = -27
 const VEINS = []
-for (let i = 0; i < 7; i++) {
-  VEINS.push({ x: SX - 10 + i * 3.4, z: SZ - 11.4, y: 1.5, kind: i % 3 === 2 ? 2 : (i % 2) })
+for (let i = 0; i < 8; i++) {
+  // one Cinderlode, at the far end of the face
+  const kind = i === 7 ? 3 : (i % 3 === 2 ? 2 : (i % 2))
+  VEINS.push({ x: SX - 11 + i * 3.1, z: SZ - 11.4, y: 1.5, kind: kind })
 }
 
 /* ------------------------------------------------------------------ *
@@ -255,7 +288,7 @@ if (isServer) {
   // leaderboard. `coin` is the spendable balance and does. Keeping them apart
   // means buying bait does not cost you your place on the board.
   const blank = () => ({ name:'?', fish:0, catches:{}, forage:0, kinds:{}, ore:0,
-                         best:0, filed:0, coin:0, gold:0, rods:1,
+                         best:0, filed:0, coin:0, gold:0, rods:1, shovel:0, pick:0,
                          // bait is a bag now: kind -> how many, plus what is on the line
                          bait:{}, onLine:null })
   const grant = (L, n) => { L.filed += n; L.coin += n }
@@ -288,7 +321,10 @@ if (isServer) {
   // something you craft and the Gold Rod something you buy with a Gold Cash
   // Cat, so ownership is a thing the player did, not a threshold they passed.
   const rodTier = L => Math.max(0, Math.min(RODS.length - 1, (L.rods || 1) - 1))
-  const pickTier = L => { let t = 0; for (let i = 0; i < PICKS.length; i++) if (L.ore >= PICKS[i].at) t = i; return t }
+  // Tool tier is owned, not earned by a threshold — the spec makes these
+  // things you craft or buy, so they are a thing the player did.
+  const pickTier = L => Math.max(0, Math.min(PICKS.length - 1, L.pick || 0))
+  const shovelTier = L => Math.max(0, Math.min(SHOVELS.length - 1, L.shovel || 0))
 
   /* roll the catch table, folding locked weight down into the commons so the
    * printed rates stay honest whatever rod you hold */
@@ -387,7 +423,7 @@ if (isServer) {
   const pushYou = (pid, L) => {
     app.sendTo(pid, 'you', {
       fish: L.fish, forage: L.forage, ore: L.ore, filed: L.filed, best: L.best,
-      rod: rodTier(L), pick: pickTier(L), coin: L.coin, gold: L.gold || 0,
+      rod: rodTier(L), pick: pickTier(L), shovel: shovelTier(L), coin: L.coin, gold: L.gold || 0,
       bait: L.bait, onLine: L.onLine,
       kinds: Object.keys(L.kinds).length,
     })
@@ -455,11 +491,17 @@ if (isServer) {
     if ((nodeBack[i] || 0) > now()) return
     const q = p.position
     if (Math.abs(q.x - nd.x) > 4 || Math.abs(q.z - nd.z) > 4) return
-    nodeBack[i] = now() + REGROW
     const kind = FORAGE[nd.kind]
     const L = ledgerFor(p)
+    // An Ultra Rare herb can be stood over, looked at, and not taken. That is
+    // the point of it — the node stays where it is rather than being hidden.
+    if (kind.r === ULTRA && shovelTier(L) < GOLD_TIER) {
+      app.sendTo(pid, 'shop', { msg: kind.name + ' needs a Gold Shovel. You have the ' + SHOVELS[shovelTier(L)].name + '.' })
+      return
+    }
+    nodeBack[i] = now() + REGROW
     L.forage += 1
-    grant(L, kind.v)
+    grant(L, Math.round(kind.v * SHOVELS[shovelTier(L)].yield))
     let bonus = 0
     if (!L.kinds[kind.key]) {
       L.kinds[kind.key] = 1
@@ -481,6 +523,10 @@ if (isServer) {
     if (Math.abs(q.x - vn.x) > 4 || Math.abs(q.z - vn.z) > 5) return
     const L = ledgerFor(p)
     const seam = SEAMS[vn.kind]
+    if (seam.r === ULTRA && pickTier(L) < GOLD_TIER) {
+      app.sendTo(pid, 'shop', { msg: seam.name + ' needs a Gold Pickaxe. You have the ' + PICKS[pickTier(L)].name + '.' })
+      return
+    }
     const need = Math.max(1, seam.hits - PICKS[pickTier(L)].off)
     st.left = Math.min(st.left, need)
     st.left -= 1
@@ -526,6 +572,21 @@ if (isServer) {
       if (!b) msg = 'No such bait.'
       else if (!(L.bait[b.key] > 0)) msg = 'No ' + b.name + ' in the box.'
       else { L.onLine = b.key; msg = b.name + ' on the line.' }
+    } else if (what === 'shovel' || what === 'pick') {
+      const set = what === 'shovel' ? SHOVELS : PICKS
+      const have = what === 'shovel' ? shovelTier(L) : pickTier(L)
+      const next = set[have + 1]
+      if (!next) msg = 'You already have the ' + set[have].name + '.'
+      else if (next.gold) {
+        if ((L.gold || 0) < next.gold) msg = next.name + ' costs ' + next.gold + ' Gold Cash Cat. You have ' + (L.gold || 0) + '.'
+        else { L.gold -= next.gold; L[what] = have + 1
+               msg = next.name + ' bought. Ultra Rare ' + (what === 'shovel' ? 'herbs' : 'ore') + ' can be taken now.' }
+      } else if (L.ore < next.ore || L.forage < next.forage) {
+        msg = next.name + ' needs ' + next.ore + ' ore and ' + next.forage + ' gathered. You have ' + L.ore + ' and ' + L.forage + '.'
+      } else {
+        L.ore -= next.ore; L.forage -= next.forage; L[what] = have + 1
+        msg = next.name + ' crafted.'
+      }
     } else if (what === 'silver') {
       if (L.rods >= 2) msg = 'You already have the Silver Rod.'
       else if (L.ore < SILVER_ORE || L.forage < SILVER_FORAGE)
@@ -574,7 +635,7 @@ if (isServer) {
  * ================================================================== */
 if (!isServer) {
 
-  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0 }
+  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0, shovel:0 }
   let board = []
   let nodeOn = [], veinLeft = []
   let fishing = -1, phase = 'idle', biteEnds = 0
@@ -648,23 +709,63 @@ if (!isServer) {
   /* ---------------- the Grove ---------------- */
   for (let i = 0; i < NODES.length; i++) {
     const nd = NODES[i], kind = FORAGE[nd.kind]
-    const g = model(kind.key, [nd.x, 0, nd.z], i * 0.9, 3.4)
+    const ultra = kind.r === ULTRA
+    const g = model(kind.key, [nd.x, 0, nd.z], i * 0.9, ultra ? 4.6 : 3.4)
     nodeVis.push(g)
-    prim('cylinder', [1.5, 1.5, 0.06], '#6a8f4a', [nd.x, 0.03, nd.z], { rough: 1 })
-    action('Gather ' + kind.name, [nd.x, 1.0, nd.z], 3.2, 0.55, () => app.send('gather', { i }))
+    prim('cylinder', [ultra ? 1.9 : 1.5, ultra ? 1.9 : 1.5, 0.06],
+         ultra ? '#8a6a2a' : '#6a8f4a', [nd.x, 0.03, nd.z], { rough: 1 })
+    // an Ultra Rare herb is marked, not hidden — it should read as something
+    // worth wanting before the label is close enough to read
+    if (ultra) prim('cone', [0.5, 1.5], RARITY_COLOR[ULTRA], [nd.x, 2.4, nd.z],
+                    { emissive: RARITY_COLOR[ULTRA], rough: 0.3 })
+    action('Gather ' + kind.name, [nd.x, 1.0, nd.z], 3.2, ultra ? 0.9 : 0.55,
+           () => app.send('gather', { i }))
   }
+
+  /* the toolsmith at the Grove — a shovel is crafted where it is used */
+  model('p_shovel', [GX - 3.4, 0.9, GZ - 5.8], 0.6, 2.0)
+  const ts = panel(3.4, 2.4, 0.005, [GX - 3.4, 2.7, GZ - 5.2], Math.PI,
+                   'rgba(12,26,14,0.93)', '#8fd07a')
+  text(ts, 'SHOVELS', 40, '#8fd07a', 800)
+  const tsNow = text(ts, '', 23, CREAM, 700, 8)
+  for (let i = 1; i < SHOVELS.length; i++) {
+    const k = SHOVELS[i]
+    text(ts, k.name + ' — ' + (k.gold ? k.gold + ' Gold Cash Cat'
+         : k.ore + ' ore, ' + k.forage + ' gathered'), 20,
+         k.gold ? GOLD_L : DIM, 400, i === 1 ? 10 : 3)
+  }
+  text(ts, 'Embercap needs the Gold Shovel.', 19, RARITY_COLOR[ULTRA], 700, 10)
+  action('Craft the next Shovel', [GX - 3.4, 1.2, GZ - 5.8], 3.4, 0.6,
+         () => app.send('buy', { what: 'shovel' }))
 
   /* ---------------- the Seam ---------------- */
   for (let i = 0; i < VEINS.length; i++) {
     const vn = VEINS[i], seam = SEAMS[vn.kind]
-    const col = vn.kind === 2 ? '#e8c25a' : (vn.kind === 1 ? '#d8dde2' : '#c07a3a')
-    const g = prim('sphere', [0.85], col, [vn.x, vn.y, vn.z],
-                   { metal: 0.75, rough: 0.3, emissive: vn.kind === 2 ? '#6b5210' : null })
+    const col = seam.r === ULTRA ? '#ff7a3a'
+              : (vn.kind === 2 ? '#e8c25a' : (vn.kind === 1 ? '#d8dde2' : '#c07a3a'))
+    const g = prim('sphere', [seam.r === ULTRA ? 1.15 : 0.85], col, [vn.x, vn.y, vn.z],
+                   { metal: 0.75, rough: 0.3,
+                     emissive: seam.r === ULTRA ? '#8a3a10' : (vn.kind === 2 ? '#6b5210' : null) })
     veinVis.push(g)
     model('oreChunk', [vn.x, vn.y - 1.4, vn.z + 0.4], i * 1.3, 1.1)
     action('Mine ' + seam.name, [vn.x, vn.y, vn.z + 1.0], 3.4, 0.45, () => app.send('swing', { i }))
   }
   model('pickaxe', [SX - 6, 0.9, SZ - 4], 0.7, 1.0)
+
+  /* the toolsmith at the Seam */
+  const tp = panel(3.4, 2.4, 0.005, [SX - 6, 2.7, SZ - 3.4], Math.PI,
+                   'rgba(26,20,12,0.93)', '#c98b3a')
+  text(tp, 'PICKAXES', 40, '#c98b3a', 800)
+  const tpNow = text(tp, '', 23, CREAM, 700, 8)
+  for (let i = 1; i < PICKS.length; i++) {
+    const k = PICKS[i]
+    text(tp, k.name + ' — ' + (k.gold ? k.gold + ' Gold Cash Cat'
+         : k.ore + ' ore, ' + k.forage + ' gathered'), 20,
+         k.gold ? GOLD_L : DIM, 400, i === 1 ? 10 : 3)
+  }
+  text(tp, 'Cinderlode needs the Gold Pickaxe.', 19, '#ff7a3a', 700, 10)
+  action('Craft the next Pickaxe', [SX - 6, 1.2, SZ - 4.4], 3.4, 0.6,
+         () => app.send('buy', { what: 'pick' }))
 
   /* ---------------- the register on the plaza ---------------- */
   /* Beside the Filing Office door, because filing is what this is. */
@@ -715,7 +816,7 @@ if (!isServer) {
   const paint = () => {
     rMine.value = comma(me.filed) + ' CashCoin earned  ·  ' + me.fish + ' fish  ·  ' +
                   me.forage + ' gathered  ·  ' + me.ore + ' ore'
-    rGear.value = RODS[me.rod].name + '  ·  ' + PICKS[me.pick].name +
+    rGear.value = RODS[me.rod].name + '  ·  ' + SHOVELS[me.shovel].name + '  ·  ' + PICKS[me.pick].name +
                   (me.gold ? '  ·  ' + me.gold + ' GOLD' : '')
     if (me.rod < RODS.length - 1) {
       rNext.value = 'Next rod: ' + RODS[me.rod + 1].name + ' — ' + RODS[me.rod + 1].how
@@ -723,6 +824,8 @@ if (!isServer) {
       rNext.value = 'Every rod in hand.'
     }
     if (sLine) sLine.value = comma(me.coin) + ' CashCoin to spend'
+    if (tsNow) tsNow.value = SHOVELS[me.shovel].name + '  ·  ' + me.ore + ' ore, ' + me.forage + ' gathered'
+    if (tpNow) tpNow.value = PICKS[me.pick].name + '  ·  ' + me.ore + ' ore, ' + me.forage + ' gathered'
     if (sBait) {
       let held = 0
       for (const k in me.bait) held += me.bait[k]
@@ -742,6 +845,7 @@ if (!isServer) {
     me.fish = d.fish; me.forage = d.forage; me.ore = d.ore; me.filed = d.filed
     me.best = d.best; me.rod = d.rod; me.pick = d.pick; me.kinds = d.kinds
     me.coin = d.coin || 0; me.bait = d.bait || {}; me.onLine = d.onLine; me.gold = d.gold || 0
+    me.shovel = d.shovel || 0
     paint()
   })
   app.on('world', d => {
