@@ -49,7 +49,10 @@ const VIEWS = {
   groveIn:   [  47, 0,  52, 180,  -2,  8],
   seam:      [  47, 0, -28,   0, -30, 30],
   mine:      [  47, 0, -32,   0,   0,  9],
-  pit:       [  48, 0,   2,   0,  -6, 12],
+  // stand outside the colonnade looking down it at the arch. The old view put
+  // the lens at z=14, which is exactly where the arch now is.
+  pit:       [  48, 0,  22,   0,  -8, 16],
+  pitIn:     [  48, 0,  14,   0,  -2,  7],
   skyline:   [   0, 0,  40, 180,   8, 18],
 }
 

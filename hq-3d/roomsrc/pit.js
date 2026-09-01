@@ -429,8 +429,10 @@ prim('box',[30,0.3,22],'#d9c89a',[0,-0.14,APR+7],{rough:1,physics:'static'})
 prim('box',[9,0.32,22],'#cfc9b8',[0,-0.11,APR+7],{tex:'paving',rough:.95,physics:'static'})
 
 /* the colonnade */
-for(let i=0;i<5;i++){
-  const z = APR + 2 + i*4.4
+for(let i=0;i<4;i++){
+  // four, not five: the fifth stood at z 31.2 with the sand ending at 29.6,
+  // so the last pair of columns was planted on bare meadow
+  const z = APR + 2 + i*4.0
   model('t_pillarS',[-6.2,0,z],0,3.4)
   model('t_pillarS',[ 6.2,0,z],0,3.4)
 }
