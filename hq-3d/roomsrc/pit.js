@@ -115,8 +115,40 @@ const HALF_Z = (GRID_R*CELL)/2
 /* ------------------------------------------------------------------ */
 /* the stadium                                                         */
 
-// the shaft you fall into — dark, so the drop reads as a drop
-prim('box',[GRID_C*CELL+3, DECK_Y, GRID_R*CELL+3],'#0a1310',[0,DECK_Y/2-0.2,0],{rough:1})
+/*
+ * The plinth the arena stands on, and the shaft you fall down the inside of.
+ *
+ * DECK_Y is 14, so this is a fourteen-metre wall, and the face you meet
+ * walking up to the arch points away from the sun. It was #0a1310, which
+ * under the old pure-sky HDRI came out at eleven values of grey: not a
+ * stadium, a hole in the world. Lightening it helped and did not fix it,
+ * because the problem is not the colour — a flat unbroken wall in shade
+ * reads as nothing whatever you paint it. Measured, this face returns about
+ * a third of its albedo, so the stone has to be pale to land anywhere.
+ *
+ * So it gets built instead: pale limestone, a string course every few metres
+ * to break the height, and pilasters standing proud of the face. In shade
+ * those throw their own small shadows, and shadow is the only thing that
+ * reads as depth when there is no light to catch.
+ */
+const PW = GRID_C*CELL+3, PD = GRID_R*CELL+3
+prim('box',[PW, DECK_Y, PD],'#b8b2a4',[0,DECK_Y/2-0.2,0],{tex:'gravel',rough:1})
+// string courses: a lip that catches what light there is and casts a line
+for(let c=1;c<4;c++){
+  const y = c*(DECK_Y/4)
+  prim('box',[PW+0.5,0.45,PD+0.5],'#cfc9b8',[0,y,0],{tex:'paving',rough:.9})
+}
+// pilasters down the two long faces, and a pair on each short one
+for(let i=0;i<7;i++){
+  const x = -PW/2 + PW*(i/6)
+  for(const sz of [-1,1])
+    prim('box',[1.1,DECK_Y-0.6,0.55],'#c6c0b0',[x,DECK_Y/2-0.5,sz*(PD/2)],{tex:'paving',rough:.9})
+}
+for(let i=0;i<4;i++){
+  const z = -PD/2 + PD*(i/3)
+  for(const sx of [-1,1])
+    prim('box',[0.55,DECK_Y-0.6,1.1],'#c6c0b0',[sx*(PW/2),DECK_Y/2-0.5,z],{tex:'paving',rough:.9})
+}
 
 // tiered stands around the deck
 const STEPS = 5

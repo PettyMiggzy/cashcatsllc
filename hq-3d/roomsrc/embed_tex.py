@@ -221,9 +221,15 @@ ATLAS = {'modular-cave-kit': '#8a8279'}
 # It is a shift, not a repaint. The village stays a bright village; a memecoin
 # world has no business being drab. It just stops glowing.
 BANDS = [
-    # (hue from, hue to, hue pulled toward, blend, saturation x, value x)
-    (125, 172, 105, 0.55, 0.82, 0.86),   # mint roofs -> a leafier green
-    (245, 320, 285, 0.30, 0.55, 0.90),   # neon violet and magenta, muted
+    # (hue from, hue to, hue pulled toward, blend, saturation x, value x, sat ceiling)
+    (125, 172, 105, 0.55, 0.82, 0.86, 1.00),   # mint roofs -> a leafier green
+    (245, 320, 285, 0.30, 0.55, 0.90, 1.00),   # neon violet and magenta, muted
+    # The kit's masonry is blue-grey — #a0a8c9 and #868ba1 — which is why the
+    # Pit's Roman colonnade came out periwinkle. The ceiling is what makes this
+    # safe: the stone sits under a quarter saturation and the window glass
+    # (#6794d9, #d0e8ff) well above it, so the columns go to stone and the
+    # windows stay blue.
+    (195, 240, 210, 0.00, 0.22, 1.00, 0.30),   # blue-grey masonry -> stone
 ]
 SWATCH_KITS = ('fantasy-town-kit', 'pirate-kit')
 
@@ -248,8 +254,8 @@ def tone_bands(src, bands):
         hh, ss, vv = colorsys.rgb_to_hsv(*[x / 255 for x in c])
         deg = hh * 360
         out = c
-        for lo, hi, toward, blend, ks, kv in bands:
-            if lo <= deg <= hi and ss > 0.12:
+        for lo, hi, toward, blend, ks, kv, smax in bands:
+            if lo <= deg <= hi and 0.12 < ss <= smax:
                 deg = deg + (toward - deg) * blend
                 r, g, b = colorsys.hsv_to_rgb(deg / 360, min(1, ss * ks), min(1, vv * kv))
                 out = (int(r * 255), int(g * 255), int(b * 255))

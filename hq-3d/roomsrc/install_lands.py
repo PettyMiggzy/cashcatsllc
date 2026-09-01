@@ -25,6 +25,27 @@ def put(path, ext):
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 import texprops
 
+# A running server holds its blueprints in memory from boot, so installing
+# under one writes the database and changes nothing the player sees. That cost
+# an afternoon: three rounds of "the fix did not take" on renders shot against
+# the blueprint the server had loaded before the fix existed. Say so loudly.
+def _warn_if_serving(port=3000):
+    import socket
+    s = socket.socket()
+    s.settimeout(0.25)
+    try:
+        s.connect(('127.0.0.1', port))
+    except Exception:
+        return
+    finally:
+        s.close()
+    print('  !! a server is running on :%d — it is still serving the blueprints'
+          '\n     it loaded at boot. Restart it or this install changes nothing.' % port)
+
+
+_warn_if_serving()
+
+
 # only the props this room actually places — a room that carries all 41
 # makes every one of them part of its download for no reason
 GEAR = ['fountain', 'bench', 'planter', 'planterRound', 'lamp', 'bin', 'bollard', 'signpost', 'well', 'trough', 'haystack', 'toolRack', 'fence', 'sack', 'crate', 'barrel', 'lantern', 'chest', 'basket', 'toolbox', 'anvil']

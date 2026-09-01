@@ -9,6 +9,27 @@ ASSETS = os.path.join(HQ, 'world', 'assets')
 
 import texprops
 
+# A running server holds its blueprints in memory from boot, so installing
+# under one writes the database and changes nothing the player sees. That cost
+# an afternoon: three rounds of "the fix did not take" on renders shot against
+# the blueprint the server had loaded before the fix existed. Say so loudly.
+def _warn_if_serving(port=3000):
+    import socket
+    s = socket.socket()
+    s.settimeout(0.25)
+    try:
+        s.connect(('127.0.0.1', port))
+    except Exception:
+        return
+    finally:
+        s.close()
+    print('  !! a server is running on :%d — it is still serving the blueprints'
+          '\n     it loaded at boot. Restart it or this install changes nothing.' % port)
+
+
+_warn_if_serving()
+
+
 
 def check_js(path):
     """
@@ -45,7 +66,7 @@ BP = 'cashcats-pit'
 bp = {'id': BP, 'version': 1, 'name': 'The Pit', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
       # the Roman approach needs columns and the Cash Cat statue model
-      'props': dict(texprops.props(['paving', 'marbleFloor', 'wood']),
+      'props': dict(texprops.props(['paving', 'marbleFloor', 'wood', 'gravel']),
                     **texprops.models(['t_pillarS', 't_block', 't_overhang', 'n_statBlock', 'n_statRing']),
                     **texprops.avatars(['avCash'])),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
