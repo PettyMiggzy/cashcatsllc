@@ -132,9 +132,21 @@ function model(key, pos, rotY, scale) {
   }).catch(() => {})
   return holder
 }
-function panel(w, h, size, pos, rotY, bg, border) {
+/*
+ * A world-space panel, sized in METRES.
+ *
+ * `ui.width` and `ui.height` are the CANVAS size in pixels; `size` is the
+ * metres-per-pixel that maps it onto the quad. Passing metres straight in
+ * makes a two-pixel canvas, which renders as nothing at all — the dedication
+ * stone stood on the plaza with a blank bronze plate on it for exactly this
+ * reason. Take metres, convert here, and it cannot be got wrong per call.
+ */
+function panel(wm, hm, size, pos, rotY, bg, border) {
   const u = app.create('ui')
-  u.space = 'world'; u.width = w; u.height = h; u.size = size
+  u.space = 'world'
+  u.width = Math.round(wm / size)
+  u.height = Math.round(hm / size)
+  u.size = size
   u.backgroundColor = bg; u.borderColor = border; u.borderWidth = 6
   u.borderRadius = 12; u.padding = 22; u.flexDirection = 'column'
   u.lit = false; u.doubleside = false

@@ -391,3 +391,39 @@ function render(){
 }
 
 render()
+
+/* ---------------------------------------------------------------- *
+ * furnishing                                                        *
+ * ------------------------------------------------------------------
+ * The generated props (roomsrc/props, made by tripo_props.py) were sitting on
+ * disk placed nowhere while this room was furnished out of grey boxes.
+ * ground_props.py has normalised every one to exactly one unit tall with its
+ * base on y=0, so the last argument below is just how tall the thing is in
+ * metres. world.load, not app.load — app has no loader.
+ */
+function ob(key, pos, rotY, height) {
+  const prop = props[key]
+  if (!prop || !prop.url) return
+  const g = app.create('group')
+  g.position.set(pos[0], pos[1], pos[2])
+  if (rotY) g.rotation.y = rotY
+  app.add(g)
+  world.load('model', prop.url).then(n => {
+    const k = height || 1
+    n.scale.set(k, k, k)
+    g.add(n)
+  }).catch(() => {})
+}
+
+/* the deed office: a desk to sign at, and the yield stacked against the wall */
+ob('desk',    [-4.6, 0, -3.4],  Math.PI, 1.05)
+ob('chair',   [-4.6, 0, -2.3],  0,       1.05)
+ob('shelf',   [ 6.6, 0, -1.0],  Math.PI / 2, 2.1)
+ob('cabinet', [ 6.6, 0,  2.0],  Math.PI / 2, 2.0)
+ob('sack',    [ 4.8, 0,  4.4],  0.3,     0.85)
+ob('sack',    [ 5.6, 0,  4.0], -0.7,     0.85)
+ob('sack',    [ 5.1, 0,  3.3],  1.4,     0.85)
+ob('barrel',  [-6.2, 0,  3.8],  0.2,     1.05)
+ob('crate',   [-5.1, 0,  4.4], -0.5,     1.0)
+ob('planter', [ 0.0, 0,  4.9],  0,       1.0)
+ob('lantern', [-4.6, 1.1, -3.4], 0.4,    0.4)

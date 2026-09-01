@@ -40,7 +40,7 @@ gold   = put(os.path.join(ROOT, 'gold_cat.png'), 'png')
 BP = 'cashcats-vault'
 bp = {'id': BP, 'version': 1, 'name': 'The Vault', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
-      'props': dict(texprops.props(), **{'gold': {'type': 'image', 'name': 'gold_cat.png', 'url': gold}}),
+      'props': dict(texprops.props(), **texprops.gear(), **{'gold': {'type': 'image', 'name': 'gold_cat.png', 'url': gold}}),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

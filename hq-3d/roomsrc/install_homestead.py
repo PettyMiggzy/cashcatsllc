@@ -38,7 +38,7 @@ model  = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 BP = 'cashcats-homestead'
 bp = {'id': BP, 'version': 1, 'name': 'The Homestead', 'image': None, 'author': None,
-      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props()),
+      'url': None, 'desc': None, 'model': model, 'script': script, 'props': dict(texprops.props(), **texprops.gear()),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',

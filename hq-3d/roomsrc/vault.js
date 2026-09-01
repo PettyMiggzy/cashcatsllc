@@ -152,3 +152,37 @@ function refresh(){
 refresh()
 let since = 0
 app.on('update', dt => { since += dt; if (since >= 60) { since = 0; refresh() } })
+
+/* ---------------------------------------------------------------- *
+ * furnishing                                                        *
+ * ------------------------------------------------------------------
+ * The generated props (roomsrc/props, made by tripo_props.py) were sitting on
+ * disk placed nowhere while this room was furnished out of grey boxes.
+ * ground_props.py has normalised every one to exactly one unit tall with its
+ * base on y=0, so the last argument below is just how tall the thing is in
+ * metres. world.load, not app.load — app has no loader.
+ */
+function ob(key, pos, rotY, height) {
+  const prop = props[key]
+  if (!prop || !prop.url) return
+  const g = app.create('group')
+  g.position.set(pos[0], pos[1], pos[2])
+  if (rotY) g.rotation.y = rotY
+  app.add(g)
+  world.load('model', prop.url).then(n => {
+    const k = height || 1
+    n.scale.set(k, k, k)
+    g.add(n)
+  }).catch(() => {})
+}
+
+/* what a vault has in it. The centre is the display plinth, so this rings it */
+ob('safe',     [-5.4, 0, -4.0],  0.3, 1.7)
+ob('chest',    [ 5.2, 0, -4.2], -0.4, 1.1)
+ob('chest',    [ 4.0, 0, -4.9],  0.6, 1.1)
+ob('coinPile', [ 4.6, 0,  2.2],  0.0, 0.5)
+ob('coinPile', [-4.6, 0,  2.6],  1.2, 0.5)
+ob('coinPile', [ 3.2, 0,  3.4],  2.1, 0.4)
+ob('pedestal', [-5.0, 0,  3.6],  0.0, 1.0)
+ob('pedestal', [ 5.6, 0,  4.4],  0.0, 1.0)
+ob('lantern',  [ 0.0, 3.6,  0.0], 0,  0.6)

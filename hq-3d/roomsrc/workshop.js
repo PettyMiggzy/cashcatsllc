@@ -652,3 +652,38 @@ function render(){
 }
 
 render()
+
+/* ---------------------------------------------------------------- *
+ * furnishing                                                        *
+ * ------------------------------------------------------------------
+ * The generated props (roomsrc/props, made by tripo_props.py) were sitting on
+ * disk placed nowhere while this room was furnished out of grey boxes.
+ * ground_props.py has normalised every one to exactly one unit tall with its
+ * base on y=0, so the last argument below is just how tall the thing is in
+ * metres. world.load, not app.load — app has no loader.
+ */
+function ob(key, pos, rotY, height) {
+  const prop = props[key]
+  if (!prop || !prop.url) return
+  const g = app.create('group')
+  g.position.set(pos[0], pos[1], pos[2])
+  if (rotY) g.rotation.y = rotY
+  app.add(g)
+  world.load('model', prop.url).then(n => {
+    const k = height || 1
+    n.scale.set(k, k, k)
+    g.add(n)
+  }).catch(() => {})
+}
+
+/* a workshop with a workbench in it, rather than a workshop with a box in it */
+ob('workbench', [-3.6, 0, -3.6], 0,            1.15)
+ob('toolbox',   [-2.2, 1.05, -3.6], 0.4,       0.35)
+ob('anvil',     [ 3.8, 0, -3.4], 0.5,          0.95)
+ob('toolRack',  [-5.7, 0, -0.4], -Math.PI / 2, 2.0)
+ob('shelf',     [ 5.7, 0,  1.2],  Math.PI / 2, 2.1)
+ob('crate',     [ 5.2, 0, -1.4],  0.4,         1.0)
+ob('crate',     [ 4.2, 0, -1.0], -0.6,         1.0)
+ob('barrel',    [-5.2, 0,  3.4],  0.2,         1.05)
+ob('barrel',    [-4.1, 0,  3.9],  1.1,         1.05)
+ob('lantern',   [ 0.0, 3.1,  0.0], 0,          0.55)

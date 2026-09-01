@@ -52,7 +52,7 @@ blueprint = {
     'image': None, 'author': None, 'url': None, 'desc': None,
     'model': model_url,
     'script': script_url,
-    'props': dict(texprops.props(), **{
+    'props': dict(texprops.props(), **texprops.gear(), **{
         'logo':       { 'type':'image', 'name':'cashcat.png',   'url': logo_url },
         'npcStamp':   { 'type':'image', 'name':'npc_stamp.png',   'url': npc_stamp_url },
         'npcFolders': { 'type':'image', 'name':'npc_folders.png', 'url': npc_folders_url },

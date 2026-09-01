@@ -383,3 +383,41 @@ app.on('update', dt => {
   since += dt
   if (since >= 60) { since = 0; refreshRewards() }
 })
+
+/* ---------------------------------------------------------------- *
+ * furnishing                                                        *
+ * ------------------------------------------------------------------
+ * The generated props (roomsrc/props, made by tripo_props.py) were sitting on
+ * disk placed nowhere while this room was furnished out of grey boxes.
+ * ground_props.py has normalised every one to exactly one unit tall with its
+ * base on y=0, so the last argument below is just how tall the thing is in
+ * metres. world.load, not app.load — app has no loader.
+ */
+function ob(key, pos, rotY, height) {
+  const prop = props[key]
+  if (!prop || !prop.url) return
+  const g = app.create('group')
+  g.position.set(pos[0], pos[1], pos[2])
+  if (rotY) g.rotation.y = rotY
+  app.add(g)
+  world.load('model', prop.url).then(n => {
+    const k = height || 1
+    n.scale.set(k, k, k)
+    g.add(n)
+  }).catch(() => {})
+}
+
+/* the office it is supposed to be: filing cabinets against the west wall, a
+ * clerk's desk, shelves of ledgers */
+ob('cabinet', [-6.9, 0,  1.4], -Math.PI / 2, 2.0)
+ob('cabinet', [-6.9, 0,  3.6], -Math.PI / 2, 2.0)
+ob('cabinet', [-6.9, 0,  5.8], -Math.PI / 2, 2.0)
+ob('shelf',   [ 6.9, 0,  1.6],  Math.PI / 2, 2.1)
+ob('shelf',   [ 6.9, 0,  4.2],  Math.PI / 2, 2.1)
+ob('desk',    [ 3.2, 0, -1.6],  Math.PI,     1.05)
+ob('chair',   [ 3.2, 0, -0.5],  0,           1.05)
+ob('desk',    [-3.2, 0, -1.6],  Math.PI,     1.05)
+ob('chair',   [-3.2, 0, -0.5],  0,           1.05)
+ob('lantern', [ 2.2, 1.08, -3.2], 0.3,       0.45)
+ob('bin',     [ 6.6, 0,  6.6],  0.5,         0.9)
+ob('shelf',   [-2.0, 0,  6.9],  Math.PI,     2.1)
