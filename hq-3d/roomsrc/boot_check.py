@@ -19,7 +19,7 @@ This boots the real server against the real database, watches stdout for the
 engine's own crash reporting, and exits non-zero if it sees any. Run it after
 the installers and before the deploy.
 """
-import os, re, signal, subprocess, sys, time
+import hashlib, json, os, re, signal, sqlite3, subprocess, sys, time
 
 HQ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -37,7 +37,59 @@ BAD = re.compile(
 OK = re.compile(r'triangles are too big|Couldn.t load texture blob', re.I)
 
 
+# room script -> the blueprint that carries it
+ROOMS = {
+    'filing_office.js': 'cashcats-filing-office',
+    'workshop.js':      'cashcats-workshop',
+    'homestead.js':     'cashcats-homestead',
+    'vault.js':         'cashcats-vault',
+    'pit.js':           'cashcats-pit',
+    'sky.js':           'cashcats-sky',
+    'lands.js':         'cashcats-lands',
+    'trades.js':        'cashcats-trades',
+    'campus.js':        'cashcats-campus',
+}
+
+
+def check_stale():
+    """
+    Fail if a room script on disk is not the one installed in the database.
+
+    Editing a script does nothing on its own — the installer content-addresses
+    it into the asset store and writes the hash into a blueprint. Miss that
+    step and the world runs the previous version while the file in front of you
+    shows the change, which is a genuinely disorienting way to lose an hour.
+    It happened three times in one build, and once it meant a render was
+    reviewed, judged wrong, and "fixed" again when the first fix had simply
+    never been installed.
+    """
+    db = os.path.join(HQ, 'world', 'db.sqlite')
+    if not os.path.exists(db):
+        return []
+    con = sqlite3.connect(db)
+    stale = []
+    for fname, bp in ROOMS.items():
+        path = os.path.join(HQ, 'roomsrc', fname)
+        row = con.execute('select data from blueprints where id=?', (bp,)).fetchone()
+        if not row or not os.path.exists(path):
+            continue
+        installed = json.loads(row[0]).get('script') or ''
+        want = 'asset://%s.js' % hashlib.sha256(open(path, 'rb').read()).hexdigest()
+        if installed != want:
+            stale.append(fname)
+    con.close()
+    return stale
+
+
 def main(seconds=25):
+    stale = check_stale()
+    if stale:
+        print('boot check: %d room(s) edited but never installed — the world is '
+              'running the old version of:' % len(stale))
+        for f in stale:
+            print('    %s   ->  python3 roomsrc/install_*.py' % f)
+        return 1
+
     env = dict(os.environ, PORT=os.environ.get('BOOT_CHECK_PORT', '3199'))
     p = subprocess.Popen(['npm', 'start'], cwd=HQ, env=env, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1,
