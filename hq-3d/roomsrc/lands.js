@@ -462,10 +462,10 @@ function ob(key, pos, rotY, height) { model(key, pos, rotY, height) }
  * the first thing anyone sees and it was bare paving. The fountain goes behind
  * the spawn mark, not on it. */
 ob('fountain', [0, 0, 21.2], 0, 3.0)
-// the apron under it, not a pond around it — the first cut was 9m across for
-// a 3m fountain and read as a grey stain on the plaza
+// A stone apron, and only that. The first cut was a 9m disc — a grey stain on
+// the plaza — and the second still had a blue disc under it, which read as a
+// puddle around a fountain that already has water in its own basins.
 prim('cylinder', [2.6, 2.6, 0.16], STONE, [0, Y + 0.04, 21.2], { rough: 0.9 })
-prim('cylinder', [2.35, 2.35, 0.08], '#2f6f86', [0, Y + 0.13, 21.2], { rough: 0.1, metal: 0.4 })
 
 const RING = [[-6.4, 21.2], [6.4, 21.2], [0, 15.0], [-4.6, 25.2], [4.6, 25.2]]
 for (let i = 0; i < RING.length; i++) {
@@ -485,8 +485,9 @@ for (let i = 0; i < 8; i++) {
   ob('bollard', [-26 + i * 7.4, 0, 25.4], 0, 0.95)
   ob('bollard', [-26 + i * 7.4, 0,  8.4], 0, 0.95)
 }
-/* the fingerpost at the spawn mark, pointing at the four grounds */
-ob('signpost', [-3.4, 0, 17.6], 0.5, 3.0)
+/* No fingerpost here. The generated one came back bright green and read as a
+ * lollipop against the stone, and the four obelisk markers at the plaza edges
+ * already do the wayfinding in a material the plaza actually uses. */
 
 /* ---- the Fields: a working yard ---- */
 ob('well',     [FX - 8.5, 0, FZ + 2.5], 0.3, 2.4)
