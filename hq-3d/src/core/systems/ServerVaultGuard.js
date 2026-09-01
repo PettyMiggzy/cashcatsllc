@@ -50,6 +50,30 @@ export class ServerVaultGuard extends System {
       // move the server's own copy too, so a client that ignores the packet
       // is still outside as far as everyone else is concerned
       player.data.position = EJECT.position.slice()
+
+      /*
+       * Escalate, because this check is advisory and cannot be anything else.
+       *
+       * Movement in this engine is client-authoritative: the position read
+       * above is the one the client volunteered, and the server's own copy is
+       * overwritten by that client's next position packet milliseconds later.
+       * A client that simply declines to report being in the Vault is never
+       * seen here at all, and one that ignores the teleport packet is bounced
+       * on paper and standing still in practice.
+       *
+       * What that means is that a determined client cannot be kept out by this
+       * alone — so the honest thing is to make persistence expensive rather
+       * than pretend otherwise. Three ejections inside one session and the
+       * socket goes. Anything that must actually be secret should not be sent
+       * to a non-holder in the first place; a positional guard is a fence, not
+       * a vault door.
+       */
+      socket.vaultHits = (socket.vaultHits || 0) + 1
+      if (socket.vaultHits >= 3) {
+        socket.send('kick', 'vault_gate')
+        socket.disconnect?.()
+        continue
+      }
       // tell them why, once. world.chat.add() broadcasts to everyone, so
       // send the packet straight down this one socket instead.
       if (!socket.vaultWarned) {

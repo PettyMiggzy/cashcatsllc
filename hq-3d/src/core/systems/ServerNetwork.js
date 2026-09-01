@@ -295,6 +295,31 @@ export class ServerNetwork extends System {
       socket.tier = gate?.tier || (GATE_ENABLED ? 'none' : 'vip')
       socket.address = gate?.address || null
 
+      /*
+       * One live connection per wallet.
+       *
+       * The pass is a signed JWT carrying an address and a tier, and readPass
+       * checked the tier and nothing else — so it was a bearer token. One
+       * holder could sign in once, paste the string into a group chat, and
+       * every person who pasted it into their own browser walked into the
+       * Vault. Nothing about the pass said who was allowed to hold it.
+       *
+       * Binding it to the socket is what closes that: an address may have one
+       * live session, and a second connection on the same pass evicts the
+       * first. Sharing the pass now costs the sharer their own seat, which is
+       * the incentive that makes it self-policing. It also gives a real holder
+       * a clean reconnect after a dropped connection rather than locking them
+       * out of their own pass.
+       */
+      if (socket.address) {
+        for (const other of this.sockets.values()) {
+          if (other !== socket && other.address === socket.address) {
+            other.send('kick', 'signed_in_elsewhere')
+            other.disconnect?.()
+          }
+        }
+      }
+
       // send snapshot
       socket.send('snapshot', {
         id: socket.id,
