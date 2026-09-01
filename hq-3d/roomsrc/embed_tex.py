@@ -62,6 +62,30 @@ def write_glb(path, js, bin_):
 
 SRGB_FIXED = 'ccl_srgb_basecolor'
 
+# The version of the correction that produced a file, stamped into it.
+#
+# Without this the marker above is a one-way door: a model corrected by any
+# older version of this script is skipped forever, so a box that ran the
+# pipeline last week keeps last week's colours while a freshly provisioned one
+# gets today's. The two then disagree permanently and nothing says so — which
+# is exactly what happened. The server had four kits corrected by an older
+# pipeline and six not corrected at all, and re-running would have fixed only
+# the six because the flag told it the other four were done.
+#
+# packs/ is gitignored and refetchable, so the fix is simply to throw away any
+# pack stamped with an older version and pull it again. Bump this whenever the
+# material logic changes in a way that should reach existing boxes.
+PIPELINE = 3
+STAMP = 'ccl_pipeline'
+
+
+def stale(js):
+    """True if this file was corrected by an older pipeline than the current one."""
+    ex = js.get('extras') or {}
+    if not ex.get(SRGB_FIXED):
+        return False                     # never processed; not stale, just new
+    return int(ex.get(STAMP, 0)) < PIPELINE
+
 
 # A naturalistic palette for the untextured kits.
 #
@@ -168,6 +192,7 @@ def fix_materials(js):
             pbr['baseColorFactor'] = [round(c ** 2.2, 6) for c in f[:3]] + list(f[3:])
             changed = True
         js.setdefault('extras', {})[SRGB_FIXED] = True
+        js['extras'][STAMP] = PIPELINE
         changed = True
     for m in js.get('materials', []):
         pbr = m.get('pbrMetallicRoughness')
@@ -358,8 +383,44 @@ def _need_pillow():
             'the rest raw, which nothing downstream would notice.')
 
 
+def sweep_stale():
+    """
+    Throw away any pack corrected by an older pipeline, so it gets pulled fresh.
+
+    A correction cannot be undone in place — you cannot un-square a colour that
+    has already been squared — so the only honest way to re-apply a changed
+    pipeline to a box that ran an older one is to delete the pack and fetch it
+    again. packs/ is gitignored and fetch_packs.py re-downloads on demand, so
+    this costs a download and nothing else.
+
+    Without it the version stamp would only describe the divergence rather than
+    repair it.
+    """
+    import shutil
+    gone = []
+    for pack in sorted(os.listdir(PACKS)):
+        d = os.path.join(PACKS, pack)
+        if not os.path.isdir(d):
+            continue
+        for f in sorted(os.listdir(d)):
+            if not f.endswith('.glb'):
+                continue
+            js, _ = read_glb(os.path.join(d, f))
+            if js and stale(js):
+                shutil.rmtree(d)
+                gone.append(pack)
+            break                        # one file settles it for the pack
+    for pack in gone:
+        print('  %-24s stamped older than pipeline %d — removed, refetching' % (pack, PIPELINE))
+    return gone
+
+
 def main(only):
     _need_pillow()
+    if not only and sweep_stale():
+        import subprocess
+        subprocess.run([sys.executable, os.path.join(ROOT, 'fetch_packs.py')],
+                       cwd=ROOT, check=False)
     cache = {}
     total = 0
     for pack in sorted(os.listdir(PACKS)):
