@@ -189,15 +189,19 @@ MODELS = {
     'n_pineB':     'nature-kit/tree_pineDefaultB.glb',
     'n_blocks':    'nature-kit/tree_blocks.glb',
 
-    # the Seam — mining (nature-kit cliffs, x3.4; cave kit is already metres)
-    'n_cliff':     'nature-kit/cliff_block_rock.glb',
-    'n_cliffHalf': 'nature-kit/cliff_blockHalf_rock.glb',
-    'n_cliffSlope':'nature-kit/cliff_blockSlope_rock.glb',
-    'n_cliffCave': 'nature-kit/cliff_cave_rock.glb',
-    'n_cliffCnr':  'nature-kit/cliff_corner_rock.glb',
-    'n_rockTallA': 'nature-kit/rock_tallA.glb',
-    'n_rockTallD': 'nature-kit/rock_tallD.glb',
-    'n_rockLgB':   'nature-kit/rock_largeB.glb',
+    # The Seam — mining (nature-kit cliffs, x3.4; cave kit is already metres).
+    # _stone, not _rock. The rock_* and cliff_*_rock models carry an unassigned
+    # `_defaultMat` at pure white for the rock body itself — an authoring gap in
+    # the kit — so a quarry built from them is a quarry made of snow. The stone_*
+    # set has a real colour on it.
+    'n_cliff':       'nature-kit/cliff_block_stone.glb',
+    'n_cliffHalf':   'nature-kit/cliff_blockHalf_stone.glb',
+    'n_cliffSlope':  'nature-kit/cliff_blockSlope_stone.glb',
+    'n_cliffCave':   'nature-kit/cliff_cave_stone.glb',
+    'n_cliffCnr':    'nature-kit/cliff_corner_stone.glb',
+    'n_rockTallA':   'nature-kit/stone_tallA.glb',
+    'n_rockTallD':   'nature-kit/stone_tallD.glb',
+    'n_rockLgB':     'nature-kit/stone_largeB.glb',
     'n_stoneLgA':  'nature-kit/stone_largeA.glb',
     'n_stoneTall': 'nature-kit/stone_tallC.glb',
     'c_gateRock':  'modular-cave-kit/gate-rock.glb',

@@ -60,9 +60,44 @@ def write_glb(path, js, bin_):
     open(path, 'wb').write(out)
 
 
+SRGB_FIXED = 'ccl_srgb_basecolor'
+
+
 def fix_materials(js):
-    """Painted props are dielectric. metallicFactor 1 makes them look like wet slate."""
+    """
+    Painted props are dielectric, and their colours are in the wrong space.
+
+    Two separate faults in the same place:
+
+    1. metallicFactor 1. A fully metallic surface has no diffuse colour at all,
+       so the base colour becomes a specular tint and the model comes out dark
+       and faintly wet. Painted wood and leaves are dielectric.
+
+    2. baseColorFactor is authored as sRGB but glTF defines it as LINEAR, so
+       three.js decodes a value that was never encoded. Everything drifts pale
+       and cyan: nature-kit's leafsGreen [0.16, 0.79, 0.67] should display as a
+       teal-green #29c9ab and instead comes out #6de6d6, and woodBark should be
+       a warm #e28357 bark and lands on #f1bc9c salmon. Across 329 models that
+       is the difference between a wood and an Easter egg. Squaring the value
+       into real linear space puts the authored colour back on screen.
+
+       Only factor-coloured materials need it. Anything with a baseColorTexture
+       is already decoded correctly through the texture's own sRGB flag, which
+       is why the textured kits looked right and the untextured one did not.
+    """
     changed = False
+    if not js.get('extras', {}).get(SRGB_FIXED):
+        for m in js.get('materials', []):
+            pbr = m.get('pbrMetallicRoughness')
+            if not pbr or pbr.get('baseColorTexture'):
+                continue
+            f = pbr.get('baseColorFactor')
+            if not f:
+                continue
+            pbr['baseColorFactor'] = [round(c ** 2.2, 6) for c in f[:3]] + list(f[3:])
+            changed = True
+        js.setdefault('extras', {})[SRGB_FIXED] = True
+        changed = True
     for m in js.get('materials', []):
         pbr = m.get('pbrMetallicRoughness')
         if not pbr:
