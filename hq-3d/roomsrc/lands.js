@@ -168,16 +168,28 @@ marker('THE DOCKS',  'The lake · fishing',       [-27.5, 0, 23.0], -2.6, '#4fb3
 marker('THE GROVE',  'Woodland · foraging',      [ 27.5, 0, 23.0],  2.6, '#8fd07a')
 
 /* ------------------------------------------------------------------ *
- * THE FIELDS — the land thing, as land                                *
+ * THE FIELDS — a village, not five houses in a paddock                *
  * ------------------------------------------------------------------ */
-/* The Homestead building is the deed office at [-22,0,0]. This is what the
- * deeds are *for*: a working smallholding you can walk through. */
-const FX = -47, FZ = -26          // centre of the Fields
+/*
+ * The first cut scattered five cottages across a yard and called it a
+ * settlement. Walking it, the problem was obvious: there was no street. Houses
+ * facing nothing in particular, with gaps between them you could drive a bus
+ * through, read as objects placed on grass rather than a place anyone lives.
+ *
+ * So: a road down the middle, houses shoulder to shoulder along both sides
+ * with their doors on it, a square at the north end where the market already
+ * was, crofts and crop plots behind the houses rather than beside them, and
+ * the mill moved to the water at the east edge where a mill belongs. The
+ * channel used to run straight through where the street is now.
+ */
+const FX = -47, FZ = -26
+const ST_W = 7.5                     // the street
+const CHAN_X = FX + 19               // the mill channel, out at the east edge
 
-// No slab. The first cut paved the entire farm — forty-six metres of stone
-// with wheat growing out of it. The meadow IS the field; only the market row
-// and the mill yard are made ground.
-prim('box', [30, 0.2, 9], '#ffffff', [FX + 1, Y - 0.1, FZ + 16.5], { tex: 'soil', rough: 1.0 })
+/* CROP_S, not NAT. The bed grid is terrain-scale — a 3.4m row is a row you can
+ * walk between — but the plants are not terrain. At NAT the corn came out 4.25m
+ * tall and the pumpkins were a metre across. */
+const CROP_S = 1.35
 
 /*
  * A cottage from the town kit. The kit is a 1-unit grid and a wall piece is a
@@ -224,37 +236,80 @@ function cottage(cx, cz, w, d, rot, wood, storeys) {
        [cx, storeys * S / 2, cz], { rotY: rot, physics: 'static', opacity: 0 })
 }
 
-cottage(FX - 15, FZ - 11, 2, 2,  0.0,        false, 1)
-cottage(FX -  3, FZ - 13, 2, 3,  Math.PI/2,  true,  1)
-cottage(FX + 11, FZ - 10, 2, 2, -0.35,       false, 2)
-cottage(FX + 14, FZ +  6, 3, 2,  Math.PI,    true,  1)
-cottage(FX - 17, FZ +  8, 2, 2,  0.4,        true,  1)
+/* the street itself, and the square at its head */
+prim('box', [ST_W, 0.22, 46], '#ffffff', [FX, Y - 0.11, FZ], { tex: 'paving', rough: 1.0 })
+prim('box', [ST_W + 1.6, 0.06, 46], STONE_D, [FX, Y - 0.02, FZ])
+prim('box', [26, 0.22, 15], '#ffffff', [FX, Y - 0.11, FZ + 15], { tex: 'paving', rough: 1.0 })
+for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
+  prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 22 + i * 4])
+}
 
-/* the mill on the water channel, and a windmill on the rise behind */
-prim('box', [5.5, 0.3, 26], WATER, [FX + 1, Y + 0.06, FZ + 2], { rough: 0.15, metal: 0.35 })
-prim('box', [6.6, 0.24, 26], STONE_D, [FX + 1, Y - 0.02, FZ + 2])
-model('t_watermill', [FX + 4.2, 0, FZ + 2], 0, TOWN * 0.85)
-model('t_windmill',  [FX - 21, 0, FZ - 3], 0.6, TOWN * 0.95)
-for (let i = 0; i < 5; i++) model('n_lily', [FX + rr(-1.6, 1.6), 0.2, FZ - 9 + i * 4.6], rr(0, 6.28), NAT * 0.9)
+/*
+ * Houses along both sides. cottage() puts the door on the +X face of its own
+ * frame, so the west row faces the street at rot 0 and the east row at rot PI.
+ * Depths and storeys vary along the row — a street where every house is the
+ * same is a corridor.
+ */
+const WEST = [[-16, 2, 2, 1], [-9, 2, 3, 2], [-1, 2, 2, 1], [7, 3, 2, 1], [15, 2, 3, 2]]
+const EAST = [[-18, 2, 3, 2], [-10, 3, 2, 1], [-2, 2, 2, 1], [6, 2, 3, 2], [14, 2, 2, 1]]
+for (let i = 0; i < WEST.length; i++) {
+  const [dz, w, d, st] = WEST[i]
+  cottage(FX - ST_W / 2 - 1 - (w * TOWN) / 2, FZ + dz, w, d, 0, i % 2 === 1, st)
+}
+for (let i = 0; i < EAST.length; i++) {
+  const [dz, w, d, st] = EAST[i]
+  cottage(FX + ST_W / 2 + 1 + (w * TOWN) / 2, FZ + dz, w, d, Math.PI, i % 2 === 0, st)
+}
 
-/* the crop plots — fenced, planted, at four different stages so the field
- * reads as worked rather than decorated */
-/* CROP_S, not NAT. The bed grid is terrain-scale — a 3.4m row is a row you
- * can walk between — but the *plants* are not terrain. At NAT the corn came
- * out 4.25m tall and the pumpkins were a metre across; the camera could not
- * get far enough back to see a field because it was standing inside a
- * cornstalk the size of a tree. */
-const CROP_S = 1.35
+/* lamps and hedging down the street, so the frontage reads as kept */
+for (let i = 0; i < 6; i++) {
+  const z = FZ - 20 + i * 8
+  model('t_lantern', [FX - ST_W / 2 - 0.6, 0, z], 0, TOWN)
+  model('t_lantern', [FX + ST_W / 2 + 0.6, 0, z], 0, TOWN)
+}
+for (let i = 0; i < 22; i++) {
+  const z = FZ - 23 + i * 2.1
+  if (Math.abs(z - (FZ + 15)) < 8) continue      // leave the square open
+  model('t_hedge', [FX - ST_W / 2 - 1.4, 0, z], 0, TOWN * 0.8)
+  model('t_hedge', [FX + ST_W / 2 + 1.4, 0, z], 0, TOWN * 0.8)
+}
+
+/* the market square at the head of the street */
+const MKT = [['t_stallGrn', -7], ['t_stallRed', -2.5], ['t_stall', 2], ['t_stallGrn', 6.5]]
+for (let i = 0; i < MKT.length; i++) {
+  model(MKT[i][0], [FX + MKT[i][1], 0, FZ + 19.5], Math.PI, TOWN)
+  model('t_stallBnch', [FX + MKT[i][1], 0, FZ + 17.8], Math.PI, TOWN)
+  if (i % 2 === 0) model('t_bannerGrn', [FX + MKT[i][1] - 1.9, 0, FZ + 20.2], Math.PI, TOWN)
+}
+ob('well',   [FX,      0, FZ + 12.5], 0.3, 2.4)
+model('t_cart',     [FX + 9, 0, FZ + 17], 0.8, TOWN)
+model('t_cartHigh', [FX - 9, 0, FZ + 16], -0.4, TOWN)
+for (let i = 0; i < 6; i++) ob('sack', [FX - 4 + i * 1.2, 0, FZ + 18.6], rr(0, 6.28), 0.85)
+for (let i = 0; i < 5; i++) ob('crate', [FX + 8 + rr(-2, 2), 0, FZ + 20 + rr(-1.5, 1.5)], rr(0, 6.28), 1.0)
+for (let i = 0; i < 4; i++) ob('barrel', [FX - 10 + rr(-1.5, 1.5), 0, FZ + 20 + rr(-1.5, 1.5)], rr(0, 6.28), 1.05)
+
+/* the mill, on the water at the east edge */
+prim('box', [5.5, 0.3, 40], WATER, [CHAN_X, Y + 0.06, FZ], { rough: 0.45, metal: 0.05 })
+prim('box', [6.8, 0.24, 40], STONE_D, [CHAN_X, Y - 0.02, FZ])
+model('t_watermill', [CHAN_X - 3.2, 0, FZ - 2], 0, TOWN * 0.85)
+model('n_bridge', [CHAN_X, 0, FZ + 8], Math.PI / 2, NAT)
+for (let i = 0; i < 6; i++) model('n_lily', [CHAN_X + rr(-1.6, 1.6), 0.2, FZ - 14 + i * 5], rr(0, 6.28), NAT * 0.9)
+model('t_windmill', [FX - 26, 0, FZ - 6], 0.6, TOWN * 0.95)
+
+/*
+ * Crofts behind the houses: each one fenced, planted, and at a different
+ * stage, so the back of the village is worked ground rather than lawn.
+ */
 function plot(px, pz, cols, rows, crop) {
   const S = NAT
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = px + (c - (cols - 1) / 2) * S, z = pz + (r - (rows - 1) / 2) * S
       model('n_dirtRow', [x, 0, z], 0, S)
-      if (crop) for (let k = -1; k <= 1; k++) model(crop, [x + k * S * 0.3, 0.14, z + rr(-0.5, 0.5)], rr(0, 6.28), CROP_S * rr(0.85, 1.05))
+      if (crop) for (let k = -1; k <= 1; k++)
+        model(crop, [x + k * S * 0.3, 0.14, z + rr(-0.5, 0.5)], rr(0, 6.28), CROP_S * rr(0.85, 1.05))
     }
   }
-  // fence the plot
   const hw = cols * S / 2 + S * 0.4, hd = rows * S / 2 + S * 0.4
   for (let c = 0; c <= cols; c++) {
     const x = px + (c - cols / 2) * S
@@ -267,47 +322,30 @@ function plot(px, pz, cols, rows, crop) {
     model('n_fence', [px + hw, 0, z], Math.PI / 2, S)
   }
 }
-plot(FX - 15, FZ + 8,  3, 2, 'n_wheatB')
-plot(FX -  2, FZ + 11, 3, 2, 'n_cornD')
-plot(FX + 11, FZ + 15, 2, 2, 'n_pumpkin')
-plot(FX - 16, FZ - 2,  2, 2, 'n_carrot')
+plot(FX - 22, FZ - 14, 3, 2, 'n_wheatB')
+plot(FX - 22, FZ -  1, 3, 2, 'n_cornD')
+plot(FX - 21, FZ + 11, 2, 2, 'n_pumpkin')
+plot(FX + 22, FZ - 16, 2, 2, 'n_carrot')
+plot(FX + 23, FZ -  4, 3, 2, 'n_wheatA')
+plot(FX + 22, FZ +  9, 2, 2, 'n_melon')
 
-/* The board at the field gate. The Homestead building at [-22,0,0] is the deed
- * office and these are the plots it sells; without something saying so, the
- * office is a menu in a shed and the fields are scenery, and neither explains
- * the other. Prices match PLOTS in homestead.js. */
-const fb = panel(4.4, 3.0, 0.0052, [FX - 1, 2.7, FZ + 20.4], Math.PI,
-                 'rgba(14,20,14,0.93)', '#7ac14a')
-text(fb, 'THE FIELDS', 46, '#7ac14a', 800)
-text(fb, 'Deeds and plots at the Homestead,', 22, CREAM, 400, 10)
-text(fb, 'back down the road on the plaza.', 22, CREAM, 400, 2)
-text(fb, 'Smallholding    2 beds      40,000', 21, DIM, 400, 14)
-text(fb, 'Farmstead       4 beds     120,000', 21, DIM, 400, 3)
-text(fb, 'Estate          6 beds     320,000', 21, DIM, 400, 3)
-text(fb, 'Beds set the harvest. Buildings wear', 20, CREAM, 400, 12)
-text(fb, 'out the same way gear does.', 20, CREAM, 400, 2)
-text(fb, 'Land burns $CASHCATSLLC. Nothing here pays any back.', 19, '#c9a94e', 700, 10)
-model('n_sign', [FX - 4.2, 0, FZ + 20.0], Math.PI, NAT * 1.1)
+/* the working end: troughs, hay, tools, a paddock */
+ob('trough',   [FX - 15, 0, FZ + 6.5], 0.0, 0.8)
+ob('haystack', [FX - 19, 0, FZ + 5.0], 0.7, 2.3)
+ob('haystack', [FX - 17, 0, FZ + 3.2], 1.9, 1.8)
+ob('toolRack', [FX + 16, 0, FZ + 3.0], -Math.PI / 2, 2.0)
+ob('fence',    [FX + 15, 0, FZ + 6.0], 0.0, 1.2)
+for (let i = 0; i < 9; i++) model('n_fenceHigh', [FX - 26 + i * NAT, 0, FZ + 8], 0, NAT)
 
-/* the market row — where produce actually goes */
-const MKT = [['t_stallGrn', -6], ['t_stallRed', 0], ['t_stall', 6], ['t_stallGrn', 12]]
-for (let i = 0; i < MKT.length; i++) {
-  model(MKT[i][0], [FX + MKT[i][1], 0, FZ + 17], Math.PI, TOWN)
-  model('t_stallBnch', [FX + MKT[i][1], 0, FZ + 15.4], Math.PI, TOWN)
-  if (i % 2 === 0) model('t_bannerGrn', [FX + MKT[i][1] - 2.4, 0, FZ + 17.6], Math.PI, TOWN)
-}
-model('t_cart',     [FX + 17, 0, FZ + 16], 0.8, TOWN)
-model('t_cartHigh', [FX - 11, 0, FZ + 18], -0.4, TOWN)
-
-/* hedges, lanterns and the odd tree so the yard is not a car park */
-for (let i = 0; i < 10; i++) model('t_hedge', [FX - 22 + i * 1.0 * TOWN, 0, FZ + 19.5], 0, TOWN)
-for (let i = 0; i < 4; i++) model('t_lantern', [FX - 12 + i * 8, 0, FZ + 13], 0, TOWN)
-for (let i = 0; i < 14; i++)
+/* trees and rough ground around the edges so the village sits in something */
+for (let i = 0; i < 18; i++) {
+  const side = i % 2 ? 1 : -1
   model(pick(['n_oak', 'n_fat', 'n_pineA', 'n_blocks']),
-        [FX + rr(-23, 23), 0, FZ + rr(-19, 19)], rr(0, 6.28), NAT * rr(0.85, 1.25))
-for (let i = 0; i < 18; i++)
-  model(pick(['n_bushL', 'n_bushS', 'n_grassLeaf', 'n_potLarge']),
-        [FX + rr(-22, 22), 0, FZ + rr(-18, 18)], rr(0, 6.28), NAT * rr(0.7, 1.1))
+        [FX + side * rr(28, 38), 0, FZ + rr(-24, 24)], rr(0, 6.28), NAT * rr(0.9, 1.3))
+}
+for (let i = 0; i < 20; i++)
+  model(pick(['n_bushL', 'n_bushS', 'n_grassLeaf', 'n_potLarge', 'n_stump']),
+        [FX + rr(-30, 30), 0, FZ + rr(-25, 25)], rr(0, 6.28), NAT * rr(0.6, 1.0))
 
 /* ------------------------------------------------------------------ *
  * THE DOCKS — the lake                                                *
@@ -425,41 +463,36 @@ prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
 /* a cliff face across the back, stepped so it reads as a worked quarry rather
  * than a wall. The nature kit cliff block is a 1m cube at 1 unit; at 3.4 each
  * course is 3.4m, so three courses give a ten-metre face. */
-/*
- * The quarry face, built from prims rather than from the kit.
- *
- * Both nature-kit rock sets are near-white: cliff_*_rock and rock_* carry an
- * unassigned `_defaultMat` at pure white for the body, and the stone_* set's
- * own colour is #b7e2e7, a pale blue. Neither is something I can fix from
- * outside the asset, and forty metres of either reads as a snowdrift with a
- * mine door in it. There is no darker variant in the kit.
- *
- * So the face is prims — colour and texture I actually control — stepped back
- * as it rises, jittered along its length so the top line wanders, and warm
- * enough to sit beside the tan of the cave-kit arch.
- */
-// Lighter than they look on paper: the soil texture multiplies these down, and
-// the first cut came out near-black against a grey floor. Paving reads as cut
-// stone, which is what a worked face is.
 const ROCK = '#b3a289', ROCK_D = '#9c8b74', ROCK_L = '#c4b49c'
-for (let i = 0; i < 16; i++) {
-  const x = SX + (i - 7.5) * 3.0
-  const h = 2 + ((i * 5) % 3 === 0 ? 1 : 0)      // a ragged skyline to the rock
-  for (let c = 0; c < h; c++) {
-    const w = 3.0 + rr(-0.3, 0.5)
-    const d = 3.4 + rr(-0.4, 0.6)
-    const z = SZ - 12.5 - c * 1.9 + rr(-0.4, 0.4)
-    prim('box', [w, 3.5, d], c === 0 ? ROCK : (c === 1 ? ROCK_L : ROCK_D),
-         [x + rr(-0.35, 0.35), c * 3.2 + 1.75, z],
-         { tex: 'paving', rough: 1.0, rotY: rr(-0.09, 0.09), physics: 'static' })
-  }
+
+/*
+ * The quarry face, from the cave kit rather than from boxes.
+ *
+ * The first version of this was prim boxes, because nature-kit's rock is white
+ * and I wanted a colour I controlled. It worked and it looked exactly like what
+ * it was: a row of boxes. modular-cave-kit is the right answer and I should
+ * have reached for it first — its wall modules are proper sculpted rock, they
+ * are already at metre scale (4.0 x 4.05 x 2.16 each), and they carry a real
+ * texture, so the colour problem that sent me to prims does not exist here.
+ *
+ * Two courses stepped back, capped along the top, with the corner pieces
+ * closing the ends so the face does not stop in mid-air.
+ */
+const FACE_W = 4.0
+for (let i = 0; i < 12; i++) {
+  const x = SX + (i - 5.5) * FACE_W
+  model('c_wall', [x, 0, SZ - 12.5], 0, 1.0)
+  // the upper course steps back and skips a bay here and there, so the top
+  // line is broken rather than ruled
+  if (i % 5 !== 2) model('c_wall', [x, 4.05, SZ - 14.4], 0, 1.0)
+  if (i % 5 !== 2) model('c_wallTop', [x, 8.1, SZ - 15.2], 0, 1.0)
 }
-// spoil banked against the foot of the face, so rock does not meet floor at a
-// ruler line
-for (let i = 0; i < 14; i++)
-  prim('box', [rr(2.0, 3.6), rr(1.0, 2.2), rr(1.8, 3.0)], i % 2 ? ROCK_D : ROCK,
-       [SX + rr(-22, 22), rr(0.4, 0.9), SZ - 9.5 + rr(-1.2, 1.6)],
-       { tex: 'paving', rough: 1.0, rotY: rr(0, 6.28) })
+model('c_wallCnr', [SX - 6.4 * FACE_W, 0, SZ - 12.5], 0, 1.0)
+model('c_wallCnr', [SX + 6.4 * FACE_W, 0, SZ - 12.5], 0, 1.0)
+// a floor of the same rock under the working face, so the ground reads as cut
+for (let i = 0; i < 10; i++)
+  for (let k = 0; k < 2; k++)
+    model('c_floor', [SX + (i - 4.5) * FACE_W, 0.02, SZ - 9.5 + k * FACE_W], 0, 1.0)
 
 /* the mine mouth, and the head-frame over it */
 model('c_gateRock', [SX, 0, SZ - 9.4], 0, 1.6)

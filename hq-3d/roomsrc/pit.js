@@ -58,6 +58,7 @@ function prim(type,size,color,pos,opts){
   if(opts.rough!==undefined) n.roughness=opts.rough
   if(opts.metal!==undefined) n.metalness=opts.metal
   if(opts.physics) n.physics=opts.physics
+  if(opts.opacity!==undefined) n.opacity=opts.opacity
   app.add(n); return n
 }
 function panel(w,h,size,pos,rotY,bg,border){
@@ -436,33 +437,58 @@ for(let i=0;i<4;i++){
   model('t_pillarS',[-6.2,0,z],0,3.4)
   model('t_pillarS',[ 6.2,0,z],0,3.4)
 }
-/* the arch over the mouth */
-prim('box',[1.5,7.5,1.5],'#cfc9b8',[-5.0,3.75,APR+0.5],{tex:'paving',rough:.9,physics:'static'})
-prim('box',[1.5,7.5,1.5],'#cfc9b8',[ 5.0,3.75,APR+0.5],{tex:'paving',rough:.9,physics:'static'})
-prim('box',[11.5,1.5,1.8],'#cfc9b8',[0,8.2,APR+0.5],{tex:'paving',rough:.9})
-prim('box',[9.0,0.5,2.0],GOLD,[0,7.3,APR+0.5],{metal:.85,rough:.3})
-const arch = panel(760,150,0.0052,[0,8.2,APR-0.42],Math.PI,'rgba(14,20,17,0.0)','rgba(0,0,0,0)')
+/* the gate — real stone, not four boxes in the shape of a gate */
+/*
+ * This was two prim uprights and a prim lintel, which is a goalpost. The town
+ * kit has actual carved stone: pillar-stone is a slender fluted column, block
+ * is a dressed ashlar, and overhang is a cornice with a moulding on it. Built
+ * out of those it reads as masonry from any angle instead of only in
+ * silhouette.
+ */
+const PS = 6.4                    // pillar height
+for(const sx of [-1, 1]){
+  const x = sx * 5.2
+  // stepped plinth
+  model('t_block',[x, 0, APR+0.5], 0, 1.7)
+  model('t_block',[x, 1.7, APR+0.5], 0, 1.45)
+  // the column itself, then a capital
+  model('t_pillarS',[x, 3.1, APR+0.5], 0, PS)
+  model('t_block',[x, 3.1+PS, APR+0.5], 0, 1.3)
+}
+// the lintel: dressed blocks across, with a cornice under it
+for(let i=0;i<7;i++){
+  const x = -5.2 + i*(10.4/6)
+  model('t_block',[x, 3.1+PS+1.3, APR+0.5], 0, 1.5)
+  model('t_overhang',[x, 3.1+PS+0.6, APR+0.9], Math.PI, 1.5)
+}
+prim('box',[11.6,0.35,1.9],GOLD,[0,3.1+PS+1.15,APR+0.5],{metal:.85,rough:.3})
+const arch = panel(760,150,0.0052,[0,3.1+PS+2.1,APR-0.5],Math.PI,'rgba(14,20,17,0.0)','rgba(0,0,0,0)')
 arch.borderWidth = 0
 arch.alignItems = 'center'
+arch.res = 1
 text(arch,'THE PIT',86,GOLD_L,800)
 
 /* two Cash Cats on plinths, flanking */
 for(const sx of [-1, 1]){
   const x = sx * 9.2, z = APR + 3.5
-  prim('box',[4.4,0.5,4.4],'#cfc9b8',[x,0.25,z],{tex:'paving',rough:.9,physics:'static'})
-  prim('box',[3.6,4.6,3.6],'#cfc9b8',[x,2.8,z],{tex:'marbleFloor',rough:.55,physics:'static'})
-  prim('box',[4.2,0.4,4.2],GOLD,[x,5.3,z],{metal:.85,rough:.3})
+  // dressed blocks, stepped, rather than one tall box with a texture on it
+  model('t_block',[x, 0,   z], 0, 4.2)
+  model('t_block',[x, 4.2, z], 0, 3.4)
+  for(let k=0;k<4;k++) model('t_overhang',[x, 7.0, z], k*Math.PI/2, 3.4)
+  prim('box',[4.0,0.35,4.0],GOLD,[x,7.6,z],{metal:.85,rough:.3})
+  // the body a player actually stands against
+  prim('box',[4.2,7.6,4.2],'#ffffff',[x,3.8,z],{physics:'static',opacity:0})
   const url = props.avCash && props.avCash.url
   if(url){
     const st = app.create('avatar')
     st.src = url
-    st.position.set(OX+x, 5.5, OZ+z)
+    st.position.set(OX+x, 7.8, OZ+z)
     st.rotation.y = Math.PI          // avatars face -Z; turn them down the walk
     st.scale.set(2.5,2.5,2.5)
     app.add(st)
   } else {
     // no model is better than a wrong one, but the plinth should still read
-    model('n_statBlock',[x,5.5,z],Math.PI,3.0)
+    model('n_statBlock',[x,7.8,z],Math.PI,3.0)
   }
   model('n_statRing',[x,0,z+3.0],0,2.2)
 }

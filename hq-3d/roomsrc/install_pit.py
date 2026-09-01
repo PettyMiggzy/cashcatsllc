@@ -46,7 +46,7 @@ bp = {'id': BP, 'version': 1, 'name': 'The Pit', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
       # the Roman approach needs columns and the Cash Cat statue model
       'props': dict(texprops.props(['paving', 'marbleFloor', 'wood']),
-                    **texprops.models(['t_pillarS', 'n_statBlock', 'n_statRing']),
+                    **texprops.models(['t_pillarS', 't_block', 't_overhang', 'n_statBlock', 'n_statRing']),
                     **texprops.avatars(['avCash'])),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
