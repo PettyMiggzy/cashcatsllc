@@ -41,14 +41,14 @@ function prim(type,size,color,pos,opts={}){
 }
 function wall(size,pos){
   const [w,h,d]=size, upper=h-WAINSCOT
-  prim('box',[w,upper,d],'#ffffff',[pos[0],WAINSCOT+upper/2,pos[2]],{tex:'plaster',rough:0.95})
-  prim('box',[w,WAINSCOT,d],'#ffffff',[pos[0],WAINSCOT/2,pos[2]],{tex:'wainscot',rough:0.6})
+  prim('box',[w,upper,d],'#cfc6b2',[pos[0],WAINSCOT+upper/2,pos[2]],{tex:'plaster',rough:0.95})
+  prim('box',[w,WAINSCOT,d],'#b9ad93',[pos[0],WAINSCOT/2,pos[2]],{tex:'wainscot',rough:0.6})
   prim('box',[w>d?w:w+0.04,0.07,w>d?d+0.04:d],GOLD,[pos[0],WAINSCOT+0.035,pos[2]],{metal:0.85,rough:0.3})
 }
 
 /* shell. hyperfy has no light nodes — lighting comes only from the sky, so a
  * sealed room renders black. hence the open beam roof and emissive strips. */
-prim('box',[W,0.3,D],'#ffffff',[0,FLOOR_Y-0.15,0],{tex:'pavingRoom',rough:0.9})
+prim('box',[W,0.3,D],'#c4bda9',[0,FLOOR_Y-0.15,0],{tex:'pavingRoom',rough:0.9})
 wall([W,H,T],[0,0,-D/2]); wall([T,H,D],[-W/2,0,0]); wall([T,H,D],[W/2,0,0])
 wall([(W-3)/2,H,T],[-(W+3)/4,0,D/2]); wall([(W-3)/2,H,T],[(W+3)/4,0,D/2])
 prim('box',[3,H-3,T],PAPER,[0,H-(H-3)/2,D/2])
@@ -56,8 +56,8 @@ for(let i=-2;i<=2;i++) prim('box',[W,0.22,0.32],'#d8d0b8',[0,H+0.1,i*(D/5)])
 for(let i=-2;i<=2;i++) prim('box',[W-1.6,0.06,0.12],'#fff6d8',[0,H-0.2,i*(D/5)],{emissive:'#fff0c0'})
 
 /* workbench */
-prim('box',[8.4,0.95,1.3],'#ffffff',[0,FLOOR_Y+0.475,-3.1],{tex:'wood',rough:0.75})
-prim('box',[8.6,0.12,1.5],'#ffffff',[0,FLOOR_Y+1.0,-3.1],{tex:'wood',rough:0.6})
+prim('box',[8.4,0.95,1.3],'#b79a72',[0,FLOOR_Y+0.475,-3.1],{tex:'wood',rough:0.75})
+prim('box',[8.6,0.12,1.5],'#b79a72',[0,FLOOR_Y+1.0,-3.1],{tex:'wood',rough:0.6})
 prim('box',[8.6,0.05,1.55],GOLD,[0,FLOOR_Y+1.07,-3.1],{metal:0.85,rough:0.3})
 for(const x of [-2.7,-0.9,0.9,2.7]) prim('box',[0.1,0.9,1.32],WOOD_L,[x,FLOOR_Y+0.48,-3.1])
 
@@ -365,7 +365,7 @@ text(cast,'The cat you pick decides what you bring.',22,'#c9bfa6',400,2)
 // in on this app's model (roomsrc/cats.glb, built by roomsrc/mkcats.py);
 // picking a cat just toggles which node is active.
 const STATUE_X = RIGHT_X - 1.05, STATUE_Z = 0.8
-prim('box',[1.9,0.32,1.9],'#ffffff',[STATUE_X,FLOOR_Y+0.16,STATUE_Z],{tex:'pavingRoom',rough:0.9})
+prim('box',[1.9,0.32,1.9],'#c4bda9',[STATUE_X,FLOOR_Y+0.16,STATUE_Z],{tex:'pavingRoom',rough:0.9})
 prim('box',[1.75,0.05,1.75],GOLD,[STATUE_X,FLOOR_Y+0.34,STATUE_Z],{metal:0.8,rough:0.35})
 
 const NODE_OF = {

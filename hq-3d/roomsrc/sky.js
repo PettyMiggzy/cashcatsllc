@@ -40,7 +40,11 @@ const STATES = {
     // 1.6 clipped every pale surface in the world to white — the quarry face,
     // the nature-kit stone, the trees. This is a pure-sky HDRI with no ground
     // bounce, so it is already flat and bright before the sun is added.
-    sun: [-0.4, -0.8, -0.5], intensity: 1.15, sunColor: '#ffeecb',
+        // 1.15 was still hot against pale render — the top halves of buildings,
+    // which catch the most sky, were clipping to white. The walls carry a real
+    // colour now instead of pure white, so this can come down with them rather
+    // than being asked to fix a material problem on its own.
+    sun: [-0.4, -0.8, -0.5], intensity: 0.95, sunColor: '#ffeed2',
     fogNear: 60, fogFar: 380, fogColor: '#cfd8d0',
   },
 }

@@ -55,14 +55,14 @@ function text(parent,val,sizePx,color,weight,mt){
 }
 
 /* ---------------- shell: black marble and gold ---------------- */
-prim('box',[W,0.3,D],'#ffffff',[0,FLOOR_Y-0.15,0],{tex:'marbleFloor',rough:0.22,metal:0.1})
+prim('box',[W,0.3,D],'#bdb7ab',[0,FLOOR_Y-0.15,0],{tex:'marbleFloor',rough:0.22,metal:0.1})
 // an inlaid gold border on the floor
 prim('box',[W-1.4,0.04,D-1.4],GOLD_D,[0,FLOOR_Y+0.01,0])
 prim('box',[W-1.8,0.05,D-1.8],BLACK,[0,FLOOR_Y+0.02,0])
 
 function wall(size,pos){
   const [w,h,d]=size
-  prim('box',[w,h,d],'#ffffff',[pos[0],h/2,pos[2]],{tex:'marbleWall',rough:0.3,metal:0.05})
+  prim('box',[w,h,d],'#c9c3b6',[pos[0],h/2,pos[2]],{tex:'marbleWall',rough:0.3,metal:0.05})
   prim('box',[w>d?w:w+0.05,0.09,w>d?d+0.05:d],GOLD,[pos[0],1.5,pos[2]],{metal:0.92,rough:0.24})
   prim('box',[w>d?w:w+0.05,0.06,w>d?d+0.05:d],GOLD_D,[pos[0],3.4,pos[2]],{metal:0.92,rough:0.24})
 }
@@ -80,7 +80,7 @@ for(const x of [-W/2+0.3, W/2-0.3])
 
 /* ---------------- the golden cat on a plinth ---------------- */
 prim('cylinder',[1.15,1.25,0.35],GOLD_D,[0,FLOOR_Y+0.18,3.2],{metal:0.9,rough:0.26})
-prim('cylinder',[0.95,1.0,0.9],'#ffffff',[0,FLOOR_Y+0.8,3.2],{tex:'marbleWall',rough:0.25})
+prim('cylinder',[0.95,1.0,0.9],'#c9c3b6',[0,FLOOR_Y+0.8,3.2],{tex:'marbleWall',rough:0.25})
 prim('cylinder',[1.1,1.05,0.14],GOLD,[0,FLOOR_Y+1.32,3.2],{metal:0.95,rough:0.2})
 
 const cat = app.create('image')

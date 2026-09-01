@@ -68,14 +68,14 @@ function text(parent,val,sizePx,color,weight,mt){
 }
 
 /* ---------------- the plaza ---------------- */
-prim('box',[64,0.3,17],'#ffffff',[-1,Y-0.15,16.5],{tex:'paving',rough:0.9})
+prim('box',[64,0.3,17],'#c8c1ae',[-1,Y-0.15,16.5],{tex:'paving',rough:0.9})
 // banding so the slab does not read as one flat sheet
 for(let i=0;i<4;i++) prim('box',[64,0.04,0.3],STONE_D,[-1,Y+0.01,9.5+i*4.2])
 
 /* ---------------- paths from the plaza to each door ---------------- */
 function path(x, fromZ, toZ, w){
   const len = fromZ - toZ
-  prim('box',[w,0.3,len],'#ffffff',[x,Y-0.15,toZ+len/2],{tex:'paving',rough:0.9})
+  prim('box',[w,0.3,len],'#c8c1ae',[x,Y-0.15,toZ+len/2],{tex:'paving',rough:0.9})
   prim('box',[w+0.5,0.06,len],STONE_D,[x,Y-0.02,toZ+len/2])
 }
 path(-22, 9.0, 5.5, 4)        // to the Homestead
@@ -218,7 +218,7 @@ const CAST = [
 ]
 for (const c of CAST) {
   const z = 11.4
-  prim('box',[2.4,0.35,2.0],'#ffffff',[c.x,Y+0.18,z],{tex:'paving',rough:0.9})
+  prim('box',[2.4,0.35,2.0],'#c8c1ae',[c.x,Y+0.18,z],{tex:'paving',rough:0.9})
   prim('box',[2.2,0.06,1.8],GOLD_D,[c.x,Y+0.37,z],{metal:0.8,rough:0.35})
 
   // The real character model, not a sculpt of one. These were marching-cubes
@@ -289,7 +289,7 @@ prim('box',[7.4,0.2,0.26],GOLD,[0,Y+0.12,GZ],{metal:0.9,rough:0.28})
 prim('box',[7.4,0.14,0.24],GOLD_D,[0,Y+2.6,GZ])
 
 /* the path beyond, so the gate reads as leading somewhere */
-prim('box',[6,0.3,2.0],'#ffffff',[0,Y-0.15,25.6],{tex:'paving',rough:0.9})
+prim('box',[6,0.3,2.0],'#c8c1ae',[0,Y-0.15,25.6],{tex:'paving',rough:0.9})
 
 /* ------------------------------------------------------------------ *
  * The city around the campus.

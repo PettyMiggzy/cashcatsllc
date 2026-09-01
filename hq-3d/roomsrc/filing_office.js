@@ -46,16 +46,16 @@ const WAINSCOT = 1.3
 // the world terrain sits at y=0, so the floor slab is raised a few cm to
 // render above it instead of z-fighting with the meadow
 const FLOOR_Y = 0.06
-prim('box', [W, 0.3, D], '#ffffff', [0, FLOOR_Y - 0.15, 0], { tex: 'pavingRoom', rough: 0.9 })  // floor
+prim('box', [W, 0.3, D], '#c4bda9', [0, FLOOR_Y - 0.15, 0], { tex: 'pavingRoom', rough: 0.9 })  // floor
 
 function wall(size, pos, opts) {
   // paper upper + green wainscot lower, built as two slabs
   const [w, h, d] = size
   const horizontal = w > d
   const upperH = h - WAINSCOT
-  prim('box', [w, upperH, d], '#ffffff',
+  prim('box', [w, upperH, d], '#cfc6b2',
        [pos[0], WAINSCOT + upperH / 2, pos[2]], { ...opts, tex: 'plaster', rough: 0.95 })
-  prim('box', [w, WAINSCOT, d], '#ffffff',
+  prim('box', [w, WAINSCOT, d], '#b9ad93',
        [pos[0], WAINSCOT / 2, pos[2]], { ...opts, tex: 'wainscot', rough: 0.6 })
   // gold chair rail
   const railD = horizontal ? [w, 0.07, d + 0.04] : [w + 0.04, 0.07, d]

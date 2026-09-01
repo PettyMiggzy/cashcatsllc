@@ -145,7 +145,7 @@ function road(x1, z1, x2, z2, w) {
   const dx = x2 - x1, dz = z2 - z1
   const len = Math.sqrt(dx * dx + dz * dz)
   const ang = Math.atan2(dx, dz)
-  prim('box', [w, 0.26, len], '#ffffff', [(x1 + x2) / 2, Y - 0.13, (z1 + z2) / 2],
+  prim('box', [w, 0.26, len], '#c8c1ae', [(x1 + x2) / 2, Y - 0.13, (z1 + z2) / 2],
        { tex: 'paving', rough: 0.95, rotY: ang })
   prim('box', [w + 0.7, 0.05, len], STONE_D, [(x1 + x2) / 2, Y - 0.015, (z1 + z2) / 2], { rotY: ang })
   // stones scattered along the verge so the edge is not a ruler line
@@ -238,9 +238,9 @@ function cottage(cx, cz, w, d, rot, wood, storeys) {
 }
 
 /* the street itself, and the square at its head */
-prim('box', [ST_W, 0.22, 46], '#ffffff', [FX, Y - 0.11, FZ], { tex: 'paving', rough: 1.0 })
+prim('box', [ST_W, 0.22, 46], '#c8c1ae', [FX, Y - 0.11, FZ], { tex: 'paving', rough: 1.0 })
 prim('box', [ST_W + 1.6, 0.06, 46], STONE_D, [FX, Y - 0.02, FZ])
-prim('box', [26, 0.22, 15], '#ffffff', [FX, Y - 0.11, FZ + 15], { tex: 'paving', rough: 1.0 })
+prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y - 0.11, FZ + 15], { tex: 'paving', rough: 1.0 })
 for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
   prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 22 + i * 4])
 }
@@ -354,7 +354,7 @@ for (let i = 0; i < 20; i++)
 const DX = -47, DZ = 54
 const SHORE_Z = DZ - 16          // sand ends, water begins
 
-prim('box', [56, 0.2, 14], '#ffffff', [DX, Y - 0.1, SHORE_Z - 7], { tex: 'paving', rough: 1.0 })
+prim('box', [56, 0.2, 14], '#c8c1ae', [DX, Y - 0.1, SHORE_Z - 7], { tex: 'paving', rough: 1.0 })
 prim('box', [56, 0.26, 12], SAND, [DX, Y - 0.05, SHORE_Z - 1], { rough: 1.0 })
 // the lake. Low roughness with a little metalness is what reads as water on a
 // prim — there is no transparency to lean on.
@@ -458,7 +458,7 @@ model('n_bridge', [GX - 20, 0, GZ + 16], 0.3, NAT)
  * ------------------------------------------------------------------ */
 const SX = 47, SZ = -27
 
-prim('box', [44, 0.22, 34], '#ffffff', [SX, Y - 0.11, SZ], { tex: 'paving', rough: 1.0 })
+prim('box', [44, 0.22, 34], '#c8c1ae', [SX, Y - 0.11, SZ], { tex: 'paving', rough: 1.0 })
 prim('box', [30, 0.2, 20], '#6e6455', [SX, Y - 0.04, SZ - 2], { rough: 1.0 })
 
 /* a cliff face across the back, stepped so it reads as a worked quarry rather
@@ -678,7 +678,7 @@ for (let i = 0; i < 44; i++) {
  */
 const PX = 0, PZ = 56
 
-prim('box', [46, 0.22, 38], '#ffffff', [PX, Y - 0.11, PZ], { tex: 'paving', rough: 1.0 })
+prim('box', [46, 0.22, 38], '#c8c1ae', [PX, Y - 0.11, PZ], { tex: 'paving', rough: 1.0 })
 for (let i = 0; i < 5; i++) prim('box', [46, 0.04, 0.3], STONE_D, [PX, Y + 0.01, PZ - 16 + i * 8])
 
 /* the gate in from the Vault side */
