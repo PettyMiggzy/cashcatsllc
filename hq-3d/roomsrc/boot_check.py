@@ -48,6 +48,7 @@ ROOMS = {
     'lands.js':         'cashcats-lands',
     'trades.js':        'cashcats-trades',
     'campus.js':        'cashcats-campus',
+    'pets.js':          'cashcats-pets',
 }
 
 

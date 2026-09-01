@@ -110,6 +110,24 @@ def avatars(names=None):
 # Keyed m_<name> so a script can say props.m_towerA.url without knowing which
 # pack it came from or what the file is called.
 MODELS = {
+    # The bestiary. cube-pets is a set of chunky low-poly animals, which is
+    # exactly the shape Ahmad's spec wants: a boss is one of these at scale,
+    # and its chibi is the same model small. "The chibification of the boss
+    # itself" is not a second asset, it is the same creature you just beat,
+    # shrunk — so a pet always looks like what it came off.
+    'p_lion':     'cube-pets/animal-lion.glb',
+    'p_tiger':    'cube-pets/animal-tiger.glb',
+    'p_elephant': 'cube-pets/animal-elephant.glb',
+    'p_polar':    'cube-pets/animal-polar.glb',
+    'p_panda':    'cube-pets/animal-panda.glb',
+    'p_fox':      'cube-pets/animal-fox.glb',
+    'p_deer':     'cube-pets/animal-deer.glb',
+    'p_hog':      'cube-pets/animal-hog.glb',
+    'p_crab':     'cube-pets/animal-crab.glb',
+    'p_monkey':   'cube-pets/animal-monkey.glb',
+    'p_koala':    'cube-pets/animal-koala.glb',
+    'p_parrot':   'cube-pets/animal-parrot.glb',
+
     # the city that surrounds the campus
     'm_bldA':   'city-kit-commercial/building-a.glb',
     'm_bldB':   'city-kit-commercial/building-c.glb',

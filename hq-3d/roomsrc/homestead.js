@@ -15,6 +15,10 @@
 const PAPER='#f4f0e3', INK='#16150f', GREEN='#1a7f4b', GREEN_D='#0f5c35'
 const GOLD='#a9812a', GOLD_L='#e8c25a', WOOD='#6b543a', WOOD_L='#8a6f4c'
 const DIM='#8fa39a', CREAM='#e8f2ec', RED='#c0392b', LIME='#2ecc71'
+// This panel is client-local demo state, with one exception: the house's
+// condition is published to the server so the Chibi Rating can be debuffed by
+// it. See publish() and the block above render().
+const isServer = world.isServer
 const SOIL='#5a4632', SOIL_D='#463526', CROP='#7ac14a'
 
 const W=15, D=12, H=4.5, T=0.25, FLOOR_Y=0.06, WAINSCOT=1.3
@@ -56,7 +60,38 @@ const HOUSE_COST  = 60      // timber to raise the house
 const HOUSE_WEAR  = 6       // per harvest — buildings wear, same as gear
 const FARM_WEAR   = 4
 const YIELD_PER_BED = 8     // produce per bed per harvest
-const REPAIR_RATE = 1.4     // produce per durability point
+const REPAIR_RATE = 1.4     // produce per durability point (farm only, now)
+
+/*
+ * UPKEEP — from the dev, verbatim:
+ *
+ *   Once you build your house on the land you purchased, there will be
+ *   upkeep. If your house maintenance falls below 80%, the Chibi Rating and
+ *   the time to yield crops will have a 5% debuff, meaning the CashCats'
+ *   stats will be lowered and it will take 5% longer to yield crops.
+ *
+ *   To upkeep, you either pay with Gold Cash Cat (the items, not the contract
+ *   token) or directly with CashCats LLC.
+ *
+ * Two things worth being exact about.
+ *
+ * The line is a cliff, not a slope. At 80% you are fine and at 79% you are
+ * not; the spec gives one threshold and one figure, so this gives one
+ * threshold and one figure rather than inventing a curve he did not ask for.
+ *
+ * "Gold Cash Cat (the items, not the contract token)" matters. The Gold Cash
+ * Cat is the ultra-rare thing you fish out of the lake — an item you own.
+ * $CASHCATSLLC is the contract. They are different, they are easy to confuse,
+ * and the parenthesis exists because he expected them to be confused. So the
+ * two upkeep routes here are: spend one held item, or burn tokens. House
+ * repair no longer takes produce — the spec says "either... or", which is a
+ * closed list, and produce is not on it.
+ */
+const UPKEEP_LINE   = 80    // maintenance % — below this the debuff bites
+const UPKEEP_DEBUFF = 0.05  // 5%, on Chibi Rating and on time-to-yield
+const UPKEEP_GCC    = 1     // Gold Cash Cat items for a full restore
+const UPKEEP_TOKENS = 40000 // ...or pay in $CASHCATSLLC
+const HARVEST_MS    = 20000 // base time to yield. the debuff lengthens this
 const BOOST_COST  = 120     // produce for a temporary stat boost
 const TIMBER_RATE = 3       // produce -> timber
 // The yard sells timber for tokens. Without it the loop deadlocks: harvesting
@@ -85,6 +120,7 @@ const s = {
   gcc: 3,        // Gold Cash Cats on hand (earned from bosses in the Workshop)
   vault: 0,      // ...and how many are stacked in the House Vault
   level: 6,      // the cat's level, which caps what the vault can give
+  readyAt: 0,    // when the crop is next ready — the debuff pushes this out
 }
 
 const beds      = () => s.plot < 0 ? 0 : PLOTS[s.plot].beds
@@ -92,6 +128,30 @@ const vaultMult = () => 1 + VAULT_YIELD * s.vault
 const vaultCos  = () => Math.min(VAULT_COS * s.vault, s.level * 5)   // level caps it
 const yieldPer  = () => s.house ? Math.round(beds() * YIELD_PER_BED * vaultMult()) : 0
 const repairCost= (dur) => Math.round((100 - dur) * REPAIR_RATE)
+// One predicate, used by everything that cares. Reading `s.houseDur < 80` in
+// four places is how a threshold ends up being 80 in three of them.
+/*
+ * Telling the rest of the world about this house.
+ *
+ * The debuff crosses an app boundary: the Chibi Rating lives in pets.js and
+ * the house lives here, so pets.js reads `ccl.house.v1` out of shared server
+ * storage and this is what writes it.
+ *
+ * BE HONEST ABOUT WHAT THIS IS. Every other number on this panel is
+ * client-local demo state — there is no isServer block, nothing persists, and
+ * `gcc: 3` is a freebie so the loop can be walked through. So the condition
+ * published here is whatever the client says it is, and a player who wanted
+ * to dodge the debuff could simply claim 100%. That is fine for a demo panel
+ * and is NOT fine the moment houses are real.
+ *
+ * This is the seam where that changes. When the Homestead becomes
+ * authoritative the server owns `houseDur`, decays it on its own clock, and
+ * this function goes away — pets.js does not change at all, because it only
+ * ever reads the store. Keeping the boundary here rather than letting pets.js
+ * reach into homestead state is what makes that a one-file job later.
+ */
+const upkeepBad = () => s.house && s.houseDur < UPKEEP_LINE
+const yieldMs   = () => Math.round(HARVEST_MS * (upkeepBad() ? 1 + UPKEEP_DEBUFF : 1))
 
 const commas = n => {          // no Intl in the app sandbox
   const d = String(n), out = []
@@ -176,6 +236,7 @@ const vFD    = row(hold,'Farm condition',30,12)
 const bFD    = indented(hold,30,LIME,2)
 const lRepH  = text(hold,'',24,DIM,400,18)
 const lRepF  = text(hold,'',24,DIM,400,4)
+const lUpkeep= text(hold,'',24,DIM,400,10)
 
 /* ---- the barn ---- */
 const barn = panel(760,660,0.0044,[3.5,2.75,BACK_Z],0,'#0e1f18',GOLD)
@@ -298,10 +359,20 @@ const aBuild = action('',[-4.6,BY,5.6],()=>{
 const aHarvest = action('Work the farm',[0,BY,-0.6],()=>{
   if(!s.house){ lYield.value = 'Raise a house before the farm produces.'; return }
   if(s.houseDur <= 0 || s.farmDur <= 0){ lRepF.value = 'Repair before harvesting.'; return }
+  // the crop has to be ready. this is where "5% longer to yield" is actually
+  // spent — without a timer the debuff would be a line of text and nothing else
+  const t = Date.now()
+  if(t < s.readyAt){
+    lYield.value = 'Not ready — ' + Math.ceil((s.readyAt - t)/1000) + 's to go' +
+                   (upkeepBad() ? '  (+5%: house below ' + UPKEEP_LINE + '%)' : '')
+    return
+  }
+  s.readyAt = t + yieldMs()
   s.produce += yieldPer()                       // counted, never rolled
   s.houseDur = Math.max(0, s.houseDur - HOUSE_WEAR)
   s.farmDur  = Math.max(0, s.farmDur  - FARM_WEAR)
   s.harvests++
+  publish()
   render()
 })
 
@@ -310,11 +381,24 @@ const aMill = action('Mill produce into timber',[3.2,BY,-0.6],()=>{
   s.produce -= TIMBER_RATE; s.timber++; render()
 })
 
-const aFixH = action('Repair the house',[-3.2,BY,-0.6],()=>{
-  const c = repairCost(s.houseDur)
-  if(c === 0) return
-  if(s.produce < c){ lRepH.value = 'Repair house: '+c+' produce (not enough)'; return }
-  s.produce -= c; s.houseDur = 100; render()
+/* the two upkeep routes, and only these two */
+const aFixH = action('Upkeep: pay a Gold Cash Cat',[-3.2,BY,-0.6],()=>{
+  if(!s.house){ lRepH.value = 'No house to maintain.'; return }
+  if(s.houseDur >= 100) return
+  if(s.gcc < UPKEEP_GCC){
+    lRepH.value = 'Upkeep: '+UPKEEP_GCC+' Gold Cash Cat (you hold '+s.gcc+')'
+    return
+  }
+  s.gcc -= UPKEEP_GCC; s.houseDur = 100; publish(); render()
+})
+
+const aFixH2 = action('Upkeep: pay in $CASHCATSLLC',[-3.2,BY,-2.2],()=>{
+  if(!s.house){ lRepH.value = 'No house to maintain.'; return }
+  if(s.houseDur >= 100) return
+  // demo build: the burn is counted, nothing is minted and no wallet is
+  // connected. The Premium Shop the dev described runs on this same rail.
+  s.burned += UPKEEP_TOKENS
+  s.houseDur = 100; publish(); render()
 })
 
 const aFixF = action('Repair the farm',[1.6,BY,-0.6],()=>{
@@ -335,6 +419,27 @@ const aBoost = action('',[RIGHT_X-1.5,BY,-1.0],()=>{
   s.produce -= BOOST_COST; s.boosts++; render()
 },3.2)
 
+/* ---- the seam: condition out to shared storage, for the Chibi debuff ---- */
+function publish(){
+  if(isServer) return
+  app.send('house', { c: s.houseDur, h: s.house })
+}
+
+if(isServer){
+  const KEY = 'ccl.house.v1'
+  const book = () => world.get(KEY) || {}
+  app.on('house', (d, pid) => {
+    const p = world.getPlayer(pid); if(!p) return
+    const b = book()
+    const uid = p.userId || p.id
+    // clamped, because a client sending 4000% would hand itself a debuff-proof
+    // house forever. It cannot be trusted, but it can at least be bounded.
+    const c = Math.max(0, Math.min(100, Number(d && d.c)))
+    b[uid] = { cond: (c === c ? c : 100), house: !!(d && d.h), at: Date.now() }
+    world.set(KEY, b)
+  })
+}
+
 /* =========================== render =========================== */
 function render(){
   vPlot.value  = s.plot < 0 ? 'none yet' : PLOTS[s.plot].name
@@ -348,8 +453,18 @@ function render(){
   vFD.value    = s.farmDur + '%'
   bFD.value    = bar(s.farmDur)
   bFD.color    = s.farmDur > 50 ? LIME : (s.farmDur > 20 ? GOLD_L : RED)
-  lRepH.value  = 'Repair house: ' + repairCost(s.houseDur) + ' produce'
+  lRepH.value  = s.houseDur >= 100
+      ? 'House fully maintained.'
+      : ('Upkeep: ' + UPKEEP_GCC + ' Gold Cash Cat, or ' +
+         commas(UPKEEP_TOKENS) + ' $CASHCATSLLC')
   lRepF.value  = 'Repair farm: '  + repairCost(s.farmDur)  + ' produce'
+  // the debuff, named and costed, on the line it applies to
+  lUpkeep.value = upkeepBad()
+      ? ('BELOW ' + UPKEEP_LINE + '% — Chibi Rating -5%, crops take 5% longer (' +
+         (yieldMs()/1000).toFixed(1) + 's)')
+      : ('Above ' + UPKEEP_LINE + '% — no debuff. Crops yield every ' +
+         (yieldMs()/1000).toFixed(1) + 's.')
+  lUpkeep.color = upkeepBad() ? RED : DIM
 
   vProd.value  = String(s.produce)
   vTimb.value  = String(s.timber)
