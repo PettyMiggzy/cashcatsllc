@@ -299,13 +299,26 @@ def tone_bands(src, bands):
     return buf.getvalue()
 
 
+def _pixels(im):
+    """
+    Every RGB pixel, on any Pillow anyone is likely to have.
+
+    get_flattened_data() is new and getdata() is deprecated, so using either
+    directly picks a fight with half the installs: this checkout has Pillow
+    12.3 and Ubuntu 24.04 ships 10.2, and the deploy died on exactly that gap.
+    tobytes() has been there forever and is faster than both.
+    """
+    b = im.tobytes()
+    return [(b[i], b[i + 1], b[i + 2]) for i in range(0, len(b), 3)]
+
+
 def retint_atlas(src, target):
     """Scale a colormap's channels so its non-black mean lands on target."""
     from PIL import Image
     import io as _io
     im = Image.open(_io.BytesIO(src)).convert('RGBA')
     rgb = im.convert('RGB')
-    px = [c for c in rgb.get_flattened_data() if sum(c) > 24]
+    px = [c for c in _pixels(rgb) if sum(c) > 24]
     if not px:
         return src
     mean = [sum(c[i] for c in px) / len(px) / 255.0 for i in range(3)]
