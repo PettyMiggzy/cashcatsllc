@@ -78,7 +78,7 @@ AVATARS = {
 }
 
 
-def avatars():
+def avatars(names=None):
     """
     Wearable versions of the cast, keyed the same way as the portraits.
 
@@ -89,6 +89,8 @@ def avatars():
     """
     out = {}
     for key, fname in AVATARS.items():
+        if names and key not in names:
+            continue
         path = os.path.join(ROOT, 'cast_vrm', fname)
         if not os.path.exists(path):
             continue
@@ -212,6 +214,11 @@ MODELS = {
     'n_sign':      'nature-kit/sign.glb',
     'n_obelisk':   'nature-kit/statue_obelisk.glb',
     'n_column':    'nature-kit/statue_column.glb',
+    'n_columnDmg': 'nature-kit/statue_columnDamaged.glb',
+    'n_statBlock': 'nature-kit/statue_block.glb',
+    'n_statRing':  'nature-kit/statue_ring.glb',
+    't_pillarS':   'fantasy-town-kit/pillar-stone.glb',
+    't_archTop':   'fantasy-town-kit/wall-arch-top-detail.glb',
     'n_pathStone': 'nature-kit/path_stone.glb',
     'n_platStone': 'nature-kit/platform_stone.glb',
     'n_bridge':    'nature-kit/bridge_wood.glb',

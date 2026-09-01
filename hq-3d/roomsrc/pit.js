@@ -124,10 +124,14 @@ for(let s=0;s<STEPS;s++){
   const y = DECK_Y + 0.4 + s*0.9
   const w = GRID_C*CELL + inset*2
   const d = GRID_R*CELL + inset*2
-  prim('box',[w,0.5,1.4],'#d8d0b8',[0,y,-(d/2)],{tex:'paving',rough:.95})
-  prim('box',[w,0.5,1.4],'#d8d0b8',[0,y, (d/2)],{tex:'paving',rough:.95})
-  prim('box',[1.4,0.5,d],'#d8d0b8',[-(w/2),y,0],{tex:'paving',rough:.95})
-  prim('box',[1.4,0.5,d],'#d8d0b8',[ (w/2),y,0],{tex:'paving',rough:.95})
+  // physics:'static' — a prim has no collider until you ask for one, and the
+  // eliminated are teleported onto these. Without it they arrived on the
+  // stands, fell straight through, dropped fourteen metres to the meadow and
+  // were never brought back for the next round.
+  prim('box',[w,0.5,1.4],'#d8d0b8',[0,y,-(d/2)],{tex:'paving',rough:.95,physics:'static'})
+  prim('box',[w,0.5,1.4],'#d8d0b8',[0,y, (d/2)],{tex:'paving',rough:.95,physics:'static'})
+  prim('box',[1.4,0.5,d],'#d8d0b8',[-(w/2),y,0],{tex:'paving',rough:.95,physics:'static'})
+  prim('box',[1.4,0.5,d],'#d8d0b8',[ (w/2),y,0],{tex:'paving',rough:.95,physics:'static'})
   // The crowd, on the front two tiers only and spaced out. Filling every seat
   // on every tier came to a hundred and eighty separate meshes for scenery
   // nobody looks at, and the frame rate went with it.
@@ -267,15 +271,37 @@ if(isServer){
     if(s.aliveN===0){
       // nobody stepped on. Hold the doors rather than ringing the bell on an
       // empty floor and spinning through rounds nobody is in.
+      //
+      // Returning false matters: the caller used to write s.t=0 unconditionally
+      // after this, which wiped the hold. The result was that openBell ran on
+      // every single frame of an empty arena — re-scanning every player and
+      // broadcasting the full board sixty times a second — and the moment one
+      // player stepped on, the bell rang on the very next frame. The lobby
+      // countdown was never observed by anyone, so nobody could ever join a
+      // round in progress and every round was a solo round.
       s.t = T_LOBBY
-      dirty = true
-      return
+      return false
     }
     s.started = s.aliveN
     s.phase='open'
     s.results=[]
+    s.seated=0
     dirty=true
+    return true
   }
+
+  /*
+   * A player who closes the tab is gone from world.getPlayers(), so the
+   * position scan that eliminates people never sees them again — they stayed
+   * in s.alive forever, aliveN never reached the round-over threshold, and the
+   * arena deadlocked in 'open' until the process restarted. Two players
+   * disconnecting from a two-player round was enough to brick it.
+   */
+  world.on('leave', e => {
+    const id = e && e.playerId
+    if(!id || !s.alive[id]) return
+    fell(id, s.alive[id])
+  })
 
   const fell = (id,name) => {
     if(!s.alive[id]) return
@@ -283,7 +309,10 @@ if(isServer){
     const place = s.aliveN
     s.aliveN--
     s.results.unshift({name:name||'a cat', place})
+    // the board shows eight; the seating does not, and taking the seat index
+    // from a capped list sat everyone from the eighth out onward in one spot
     if(s.results.length>8) s.results.length=8
+    s.seated = (s.seated||0) + 1
     dirty=true
   }
 
@@ -311,7 +340,7 @@ if(isServer){
     s.t -= dt
 
     if(s.phase==='lobby'){
-      if(s.t<=0){ openBell(); s.t=0 }
+      if(s.t<=0 && openBell()) s.t=0
     } else if(s.phase==='open'){
       s.since += dt
       s.dump  += dt
@@ -335,7 +364,7 @@ if(isServer){
       for(const p of world.getPlayers()){
         if(s.alive[p.id] && p.position.y < DECK_Y - 2.5){
           fell(p.id, p.name)
-          p.teleport(seat(s.results.length), 0)
+          p.teleport(seat(s.seated), 0)
         }
       }
       const over = s.started > 1 ? s.aliveN <= 1 : s.aliveN === 0
@@ -365,6 +394,82 @@ if(isServer){
     acc += dt
     if(dirty || acc>0.5){ acc=0; dirty=false; label(); push() }
   })
+}
+
+/* ------------------------------------------------------------------ */
+/* the approach — a Roman front, because that is what this is           */
+/*
+ * The arena is a last-cat-standing floor over a drop, and it was reached by
+ * walking across bare meadow to an invisible action. It gets an entrance: a
+ * sand apron, a colonnade down both sides of the walk, an arch over the mouth,
+ * and two Cash Cats up on plinths flanking it like gods over a temple door.
+ *
+ * The statues are the real character models, the same VRMs the plaza uses, at
+ * two and a half times height. Their textures went from 2048 to 512 this
+ * morning, which is the only reason putting five more of them in the world is
+ * affordable at all.
+ */
+function model(key, pos, rotY, scale, opts){
+  const prop = props[key]
+  if(!prop || !prop.url) return
+  opts = opts || {}
+  const g = app.create('group')
+  g.position.set(OX+pos[0], pos[1], OZ+pos[2])
+  if(rotY) g.rotation.y = rotY
+  app.add(g)
+  world.load('model', prop.url).then(n => {
+    const k = scale===undefined ? 1 : scale
+    n.scale.set(k,k,k)
+    g.add(n)
+  }).catch(() => {})
+}
+
+const APR = HALF_Z + 4          // where the apron starts
+prim('box',[30,0.3,22],'#d9c89a',[0,-0.14,APR+7],{rough:1,physics:'static'})
+prim('box',[9,0.32,22],'#cfc9b8',[0,-0.11,APR+7],{tex:'paving',rough:.95,physics:'static'})
+
+/* the colonnade */
+for(let i=0;i<5;i++){
+  const z = APR + 2 + i*4.4
+  model('t_pillarS',[-6.2,0,z],0,3.4)
+  model('t_pillarS',[ 6.2,0,z],0,3.4)
+}
+/* the arch over the mouth */
+prim('box',[1.5,7.5,1.5],'#cfc9b8',[-5.0,3.75,APR+0.5],{tex:'paving',rough:.9,physics:'static'})
+prim('box',[1.5,7.5,1.5],'#cfc9b8',[ 5.0,3.75,APR+0.5],{tex:'paving',rough:.9,physics:'static'})
+prim('box',[11.5,1.5,1.8],'#cfc9b8',[0,8.2,APR+0.5],{tex:'paving',rough:.9})
+prim('box',[9.0,0.5,2.0],GOLD,[0,7.3,APR+0.5],{metal:.85,rough:.3})
+const arch = panel(760,150,0.0052,[0,8.2,APR-0.42],Math.PI,'rgba(14,20,17,0.0)','rgba(0,0,0,0)')
+arch.borderWidth = 0
+arch.alignItems = 'center'
+text(arch,'THE PIT',86,GOLD_L,800)
+
+/* two Cash Cats on plinths, flanking */
+for(const sx of [-1, 1]){
+  const x = sx * 9.2, z = APR + 3.5
+  prim('box',[4.4,0.5,4.4],'#cfc9b8',[x,0.25,z],{tex:'paving',rough:.9,physics:'static'})
+  prim('box',[3.6,4.6,3.6],'#cfc9b8',[x,2.8,z],{tex:'marbleFloor',rough:.55,physics:'static'})
+  prim('box',[4.2,0.4,4.2],GOLD,[x,5.3,z],{metal:.85,rough:.3})
+  const url = props.avCash && props.avCash.url
+  if(url){
+    const st = app.create('avatar')
+    st.src = url
+    st.position.set(OX+x, 5.5, OZ+z)
+    st.rotation.y = Math.PI          // avatars face -Z; turn them down the walk
+    st.scale.set(2.5,2.5,2.5)
+    app.add(st)
+  } else {
+    // no model is better than a wrong one, but the plinth should still read
+    model('n_statBlock',[x,5.5,z],Math.PI,3.0)
+  }
+  model('n_statRing',[x,0,z+3.0],0,2.2)
+}
+
+/* braziers either side of the walk */
+for(const sx of [-1,1]){
+  const x = sx*3.4
+  prim('cylinder',[0.5,0.7,1.4],'#4a4034',[x,0.7,APR+2.5],{rough:.9})
+  prim('cone',[0.55,1.1],'#ff7a2a',[x,1.9,APR+2.5],{emissive:'#ff9a3a',rough:.4})
 }
 
 /* ------------------------------------------------------------------ */

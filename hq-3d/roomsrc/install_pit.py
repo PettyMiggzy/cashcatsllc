@@ -44,7 +44,10 @@ model = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 BP = 'cashcats-pit'
 bp = {'id': BP, 'version': 1, 'name': 'The Pit', 'image': None, 'author': None,
       'url': None, 'desc': None, 'model': model, 'script': script,
-      'props': texprops.props(['paving', 'marbleFloor', 'wood']),
+      # the Roman approach needs columns and the Cash Cat statue model
+      'props': dict(texprops.props(['paving', 'marbleFloor', 'wood']),
+                    **texprops.models(['t_pillarS', 'n_statBlock', 'n_statRing']),
+                    **texprops.avatars(['avCash'])),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
