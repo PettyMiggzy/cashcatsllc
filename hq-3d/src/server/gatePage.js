@@ -100,7 +100,13 @@ btn.onclick = async () => {
       throw new Error(out.reason.replace(/_/g, ' '))
     }
 
-    localStorage.setItem('cashcatsPass', out.pass)
+    // Written through JSON.stringify because that is how it is read back:
+    // ClientNetwork does storage.get('cashcatsPass'), and core/storage.js
+    // JSON.parses whatever it finds. A bare JWT is not valid JSON, so the
+    // parse threw, the pass was discarded, and a holder who had just passed
+    // the balance check arrived in the world as a non-holder. With the gate
+    // off everyone gets into the Vault; with it on, nobody did.
+    localStorage.setItem('cashcatsPass', JSON.stringify(out.pass))
     const held = (BigInt(out.balance) / (10n ** 18n)).toLocaleString('en-US')
     say('In. ' + held + ' $CASHCATSLLC, tier ' + out.tier + '. Loading the world…', 'ok')
     setTimeout(() => { location.href = '/' }, 900)

@@ -28,10 +28,15 @@ const errs = []
 // FAIL because the server was restarted underneath them, and a test that
 // cannot tell "broken" from "unplugged" will eventually make the opposite
 // mistake and call a real failure a blip.
+// Narrowly: only the game socket. The first cut also matched
+// ERR_CONNECTION_RESET, which in this sandbox is the Vault board failing to
+// reach the chain — an unrelated blocked fetch — so a run in which all three
+// trades filed correctly was reported as inconclusive. Over-broad detection is
+// the same failure as none, pointed the other way.
 let disconnected = false
 page.on('console', m => {
   const t = m.text()
-  if (/WebSocket is already in (CLOSING|CLOSED)|disconnected|ERR_CONNECTION_(RESET|REFUSED)/i.test(t)) disconnected = true
+  if (/WebSocket is already in (CLOSING|CLOSED)/i.test(t)) disconnected = true
   if (m.type() === 'error') errs.push(t.slice(0, 160))
 })
 page.on('websocket', ws => ws.on('close', () => { disconnected = true }))
@@ -144,8 +149,9 @@ if (after.g <= before.g) fails.push('no forage was filed')
 if (after.o <= before.o && !mLabels.length) fails.push('no mine actions existed')
 if (errs.length) console.log('\npage errors:\n  ' + [...new Set(errs)].slice(0, 8).join('\n  '))
 
-const alive = await page.evaluate(() => !!window.world?.network?.socket &&
-  window.world.network.socket.readyState === 1).catch(() => false)
+// ClientNetwork holds the socket as `ws` (ClientNetwork.js:20), not `socket`
+const alive = await page.evaluate(() => window.world?.network?.ws?.readyState === 1)
+  .catch(() => false)
 await browser.close()
 
 if (disconnected || !alive) {

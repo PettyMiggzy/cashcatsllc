@@ -47,6 +47,13 @@ function prim(type,size,color,pos,opts={}){
 function panel(w,h,size,pos,rotY,bg,border){
   const u=app.create('ui')
   u.space='world'; u.width=w; u.height=h; u.size=size
+  // res 1, not the engine default of 2. res multiplies the canvas in BOTH
+  // axes, so a board that is 1038 px wide allocates 2076x1538 = 3.2M pixels —
+  // 12.8 MB of canvas backing store and as much again on the GPU — for signage
+  // read from three metres away. Across the 44 panels in this world that was
+  // most of half a gigabyte spent on supersampling text nobody stands close
+  // enough to see the edges of.
+  u.res = 1
   u.backgroundColor=bg; u.borderColor=border; u.borderWidth=6; u.borderRadius=12
   u.padding=24; u.flexDirection='column'; u.lit=false; u.doubleside=false
   u.position.set(pos[0],pos[1],pos[2]); if(rotY) u.rotation.y=rotY

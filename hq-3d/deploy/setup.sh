@@ -77,6 +77,10 @@ echo "==> config"
 NEW_ENV=0
 if [ ! -f .env ]; then
   cp .env.example .env
+  # This file holds JWT_SECRET and ADMIN_CODE. Root's default umask leaves it
+  # world-readable, and this box runs other people's services — anyone able to
+  # read it can forge a holder pass into the Vault and hand themselves admin.
+  chmod 600 .env
   # A blank ADMIN_CODE makes every visitor an admin, and the stock JWT secret
   # would let anyone forge a holder pass into the Vault. Generate both.
   ADMIN=$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | head -c 24)
@@ -87,6 +91,7 @@ if [ ! -f .env ]; then
   NEW_ENV=1
 fi
 
+chmod 600 .env 2>/dev/null || true
 sed -i "s|^PORT=.*|PORT=$PORT|" .env
 # the domain can change between runs; the secrets must not
 sed -i "s|^PUBLIC_WS_URL=.*|PUBLIC_WS_URL=wss://$DOMAIN/ws|"      .env
