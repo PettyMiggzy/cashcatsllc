@@ -59,7 +59,9 @@ bp = {'id': BP, 'version': 1, 'name': 'World of CashCats — the Sky',
       'image': None, 'author': None, 'url': None, 'desc': None,
       'model': model, 'script': script,
       # every sky the world can be under, so a weather change is not a download
-      'props': dict(texprops.props(list(texprops.TEXTURES))),
+      # only the two it lights with — asking for every texture pulled the six
+      # ground sheets into the preload, nine megabytes the sky never touches
+      'props': dict(texprops.props(list(texprops.SKY))),
       'preload': True, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con.execute('insert or replace into blueprints (id,data,createdAt,updatedAt) values (?,?,?,?)',
