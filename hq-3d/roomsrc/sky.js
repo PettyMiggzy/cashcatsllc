@@ -37,15 +37,20 @@ const isServer = world.isServer
 const STATES = {
   clear: {
     bg: 'skyBg', hdr: 'skyHdr',
-    // 1.6 clipped every pale surface in the world to white — the quarry face,
-    // the nature-kit stone, the trees. This is a pure-sky HDRI with no ground
-    // bounce, so it is already flat and bright before the sun is added.
-        // Down from 1.6 in three steps. Most of the glare was never the sun: the
-    // walls were pure white multiplying their texture by 1.0, so the top
-    // halves — which catch the most sky — clipped with no detail left. Fixing
-    // the material did the work; this took the last of the edge off. It is one
-    // number in one file now, so if it still reads hot in the world rather
-    // than in a render, it is a one-line change and a restart.
+    // intensity does not light anything. It steers the sky shader and the
+    // shadow direction, exactly as the header says, and I proved it the slow
+    // way: dropping it from 0.88 to 0.55 moved the render by one value out of
+    // 255. Every surface in this world is lit by the HDRI below and by nothing
+    // else, so the HDRI is the exposure control and this is a sky dial.
+    //
+    // Which is why the sky changed. belfast_sunset_puresky is a pure sky — no
+    // ground in the capture — so it lights the world from the whole hemisphere
+    // with nothing occluding from below and nothing bouncing back up. That is
+    // flat by construction: no contact shadow, no directional falloff, every
+    // albedo washed a stop or two toward white. It is why the village walls
+    // rendered as pale peach when their texture is a perfectly good #c27f5f
+    // terracotta, and why chasing it through the materials never worked.
+    // kloofendal_43d_clear has ground in it. Same brightness, real contrast.
     sun: [-0.4, -0.8, -0.5], intensity: 0.88, sunColor: '#ffeed2',
     fogNear: 60, fogFar: 380, fogColor: '#cfd8d0',
   },

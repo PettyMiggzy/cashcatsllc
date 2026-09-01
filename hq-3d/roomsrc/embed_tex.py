@@ -204,6 +204,70 @@ def fix_materials(js):
 ATLAS = {'modular-cave-kit': '#8a8279'}
 
 
+# The shared Kenney palette, moved off neon.
+#
+# The town and pirate kits paint from the same atlas, so one table covers
+# both. The first attempt at this matched exact palette swatches and moved the
+# image by six values out of 255, because the flat swatches are only part of
+# the sheet — the walls sample a gradient strip around #c27f5f, not a cell.
+# So this works in hue bands instead, which is where the problem actually is.
+#
+# Measured over the atlas, ignoring its black padding: 40% of it sits at hue
+# 10-30 (the terracotta walls and timber, which are fine), 18% at 210-220
+# (windows and roof lead, also fine), 12% at 130-170 — the mint roofs — and 6%
+# at 250-310, a violet and a magenta that belong in no village. Only the last
+# two move.
+#
+# It is a shift, not a repaint. The village stays a bright village; a memecoin
+# world has no business being drab. It just stops glowing.
+BANDS = [
+    # (hue from, hue to, hue pulled toward, blend, saturation x, value x)
+    (125, 172, 105, 0.55, 0.82, 0.86),   # mint roofs -> a leafier green
+    (245, 320, 285, 0.30, 0.55, 0.90),   # neon violet and magenta, muted
+]
+SWATCH_KITS = ('fantasy-town-kit', 'pirate-kit')
+
+
+def tone_bands(src, bands):
+    """
+    Move whole hue ranges of a colormap, leaving everything else alone.
+
+    Done through a cache of distinct colours rather than per pixel: these
+    atlases hold under two thousand of them across a quarter-million pixels.
+    """
+    import colorsys, io as _io
+    from PIL import Image
+    im = Image.open(_io.BytesIO(src)).convert('RGBA')
+    px = im.load()
+    w, h = im.size
+    cache = {}
+
+    def move(c):
+        if c in cache:
+            return cache[c]
+        hh, ss, vv = colorsys.rgb_to_hsv(*[x / 255 for x in c])
+        deg = hh * 360
+        out = c
+        for lo, hi, toward, blend, ks, kv in bands:
+            if lo <= deg <= hi and ss > 0.12:
+                deg = deg + (toward - deg) * blend
+                r, g, b = colorsys.hsv_to_rgb(deg / 360, min(1, ss * ks), min(1, vv * kv))
+                out = (int(r * 255), int(g * 255), int(b * 255))
+                break
+        cache[c] = out
+        return out
+
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if r + g + b < 24:
+                continue
+            px[x, y] = move((r, g, b)) + (a,)
+    buf = _io.BytesIO()
+    im.save(buf, 'PNG', optimize=True)
+    return buf.getvalue()
+
+
 def retint_atlas(src, target):
     """Scale a colormap's channels so its non-black mean lands on target."""
     from PIL import Image
@@ -244,8 +308,11 @@ def embed(path, cache):
         if src not in cache:
             data = open(src, 'rb').read()
             kit = os.path.basename(os.path.dirname(path))
-            if kit in ATLAS and src.lower().endswith('.png'):
-                data = retint_atlas(data, ATLAS[kit])
+            if src.lower().endswith('.png'):
+                if kit in ATLAS:
+                    data = retint_atlas(data, ATLAS[kit])
+                elif kit in SWATCH_KITS:
+                    data = tone_bands(data, BANDS)
             cache[src] = data
         png = cache[src]
         # bin chunk offsets must stay 4-aligned for the accessors that follow
