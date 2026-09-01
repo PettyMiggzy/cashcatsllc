@@ -136,6 +136,38 @@ const FORAGE = [
   { key:'n_bushS',    name:'Sweetberry', r:RARE,     v:14 },
   { key:'n_mushTall', name:'Embercap',   r:ULTRA,    v:70 },
 ]
+/*
+ * The Cat Park. The one ground that is not a trade.
+ *
+ * Everything else in this world pays for labour. This pays for doing what cats
+ * do, which is the joke and also the point — a world of cats where the only
+ * verbs are mine, forage and fish is missing something. It pays less than the
+ * trades, deliberately: it is a thing to enjoy, not a better grind.
+ *
+ * A box is claimed for as long as you are in it, so the yard behaves like a
+ * yard — nine boxes, and if someone is in the one you want you take another.
+ */
+const PARK_X = 0, PARK_Z = 56
+const BOX_PAY = 4, BOX_HOLD = 25000      // ms a box stays yours after sitting
+const SUN_PAY = 6, SUN_MOVE = 180000     // the sunbeams move every three minutes
+const KNOCK_PAY = 3, KNOCK_BACK = 20000
+
+const BOXES = []
+for (let i = 0; i < 9; i++)
+  BOXES.push({ x: PARK_X - 17 + (i % 3) * 3.6, z: PARK_Z - 8 + Math.floor(i / 3) * 3.6 })
+
+// where a sunbeam can fall. Which three are lit rotates on the clock.
+const SUNSPOTS = []
+for (let i = 0; i < 8; i++) {
+  const a = i * 0.7854 + 0.4
+  SUNSPOTS.push({ x: PARK_X + Math.cos(a) * 12, z: PARK_Z + Math.sin(a) * 9 })
+}
+const SUN_LIT = 3
+
+const SHELF_X = PARK_X + 15, SHELF_Z = PARK_Z - 2
+const KNOCKS = []
+for (let i = 0; i < 5; i++) KNOCKS.push({ x: SHELF_X - 2.6 + i * 1.3, y: 9.9, z: SHELF_Z })
+
 const REGROW = 40000          // ms before a gathered node comes back
 const BUNDLE = 15             // bonus for filing one of every kind
 
@@ -295,7 +327,7 @@ if (isServer) {
   // leaderboard. `coin` is the spendable balance and does. Keeping them apart
   // means buying bait does not cost you your place on the board.
   const blank = () => ({ name:'?', fish:0, catches:{}, forage:0, kinds:{}, ore:0,
-                         best:0, filed:0, coin:0, gold:0, rods:1, shovel:0, pick:0,
+                         best:0, filed:0, coin:0, gold:0, rods:1, shovel:0, pick:0, park:0, napAt:0,
                          // bait is a bag now: kind -> how many, plus what is on the line
                          bait:{}, onLine:null })
   const grant = (L, n) => { L.filed += n; L.coin += n }
@@ -425,7 +457,11 @@ if (isServer) {
     const nb = [], vb = []
     for (let i = 0; i < NODES.length; i++) nb.push((nodeBack[i] || 0) > now() ? 0 : 1)
     for (let i = 0; i < VEINS.length; i++) vb.push(veinState[i].backAt > now() ? 0 : veinState[i].left)
-    app.send('world', { n: nb.join(''), v: vb.join(''), top: top() })
+    const bb = [], kk = []
+    for (let i = 0; i < BOXES.length; i++) bb.push((boxHold[i] && boxHold[i].until > now()) ? 0 : 1)
+    for (let i = 0; i < KNOCKS.length; i++) kk.push((knockBack[i] || 0) > now() ? 0 : 1)
+    app.send('world', { n: nb.join(''), v: vb.join(''), top: top(),
+                        b: bb.join(''), k: kk.join(''), sun: sunLit.join(',') })
   }
   const pushYou = (pid, L) => {
     app.sendTo(pid, 'you', {
@@ -551,6 +587,79 @@ if (isServer) {
     dirty = true
   })
 
+  /* ---- the Cat Park ---- */
+  const boxHold = {}          // box index -> { until, who }
+  const knockBack = {}        // pot index -> ms when it comes back
+  let sunAt = 0, sunLit = []
+  const rollSun = () => {
+    sunLit = []
+    // deterministic from the clock, so every client lights the same three
+    const seed = Math.floor(now() / SUN_MOVE)
+    for (let k = 0; k < SUN_LIT; k++) sunLit.push((seed * 7 + k * 3) % SUNSPOTS.length)
+    sunAt = now() + SUN_MOVE
+  }
+  rollSun()
+
+  const near = (p, o, r) => Math.abs(p.position.x - o.x) < r && Math.abs(p.position.z - o.z) < r
+
+  app.on('sit', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const i = d && d.i | 0
+    const b = BOXES[i]; if (!b || !near(p, b, 3.2)) return
+    const h = boxHold[i]
+    if (h && h.until > now() && h.who !== pid) {
+      app.sendTo(pid, 'shop', { msg: 'Occupied. There are eight other boxes.' })
+      return
+    }
+    if (h && h.who === pid && h.until > now()) {
+      app.sendTo(pid, 'shop', { msg: 'You are already in this box.' })
+      return
+    }
+    boxHold[i] = { until: now() + BOX_HOLD, who: pid }
+    const L = ledgerFor(p)
+    L.park = (L.park || 0) + 1
+    grant(L, BOX_PAY)
+    touch()
+    app.sendTo(pid, 'shop', { msg: 'In the box. +' + BOX_PAY + ' CashCoin.' })
+    pushYou(pid, L); dirty = true
+  })
+
+  app.on('nap', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const i = d && d.i | 0
+    if (sunLit.indexOf(i) === -1) {
+      app.sendTo(pid, 'shop', { msg: 'The sun has moved off this one.' })
+      return
+    }
+    const spot = SUNSPOTS[i]; if (!spot || !near(p, spot, 3.0)) return
+    const L = ledgerFor(p)
+    if ((L.napAt || 0) > now()) {
+      app.sendTo(pid, 'shop', { msg: 'Still stretching. Give it a moment.' })
+      return
+    }
+    L.napAt = now() + 20000
+    L.park = (L.park || 0) + 1
+    grant(L, SUN_PAY)
+    touch()
+    app.sendTo(pid, 'shop', { msg: 'Warm. +' + SUN_PAY + ' CashCoin.' })
+    pushYou(pid, L); dirty = true
+  })
+
+  app.on('knock', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const i = d && d.i | 0
+    const k = KNOCKS[i]; if (!k) return
+    if ((knockBack[i] || 0) > now()) return
+    if (Math.abs(p.position.x - k.x) > 4 || Math.abs(p.position.z - k.z) > 4) return
+    knockBack[i] = now() + KNOCK_BACK
+    const L = ledgerFor(p)
+    L.park = (L.park || 0) + 1
+    grant(L, KNOCK_PAY)
+    touch()
+    app.sendTo(pid, 'shop', { msg: 'It fell off. +' + KNOCK_PAY + ' CashCoin.' })
+    pushYou(pid, L); dirty = true
+  })
+
   /* ---- the shop ----
    * Bait costs CashCoin, which is only earned by playing. The Silver Rod is
    * crafted out of what the other two trades produce, so fishing better means
@@ -627,6 +736,7 @@ if (isServer) {
         app.sendTo(pid, 'missed', { why: 'It took the bait and left.' })
       }
     }
+    if (now() > sunAt) { rollSun(); dirty = true }
     acc += dt
     if (acc >= 1.0) {
       acc = 0
@@ -774,6 +884,42 @@ if (!isServer) {
   action('Craft the next Pickaxe', [SX - 6, 1.2, SZ - 4.4], 3.4, 0.6,
          () => app.send('buy', { what: 'pick' }))
 
+  /* ---------------- the Cat Park ---------------- */
+  const boxVis = [], sunVis = [], knockVis = []
+
+  const parkSign = panel(3.6, 2.2, 0.005, [PARK_X, 2.7, PARK_Z - 15], Math.PI,
+                         'rgba(14,26,20,0.92)', LIME)
+  text(parkSign, 'THE CAT PARK', 44, LIME, 800)
+  text(parkSign, 'Sit in a box. Nap in the sun.', 22, CREAM, 400, 10)
+  text(parkSign, 'Knock things off the high shelf.', 22, CREAM, 400, 2)
+  text(parkSign, 'It pays less than working. That is fine.', 20, DIM, 400, 12)
+
+  /* the boxes */
+  for (let i = 0; i < BOXES.length; i++) {
+    const b = BOXES[i]
+    const g = model('crate', [b.x, 0, b.z], (i % 4) * 0.4, 1.35)
+    boxVis.push(g)
+    action('Sit in the box', [b.x, 0.9, b.z], 3.0, 0.7, () => app.send('sit', { i }))
+  }
+
+  /* the sunbeams — a warm disc that only shows where the sun currently is */
+  for (let i = 0; i < SUNSPOTS.length; i++) {
+    const sp = SUNSPOTS[i]
+    const g = prim('cylinder', [2.1, 2.1, 0.05], '#ffe9a8',
+                   [sp.x, 0.06, sp.z], { emissive: '#ffdd7a', rough: 0.6 })
+    g.active = false
+    sunVis.push(g)
+    action('Nap in the sun', [sp.x, 0.8, sp.z], 3.0, 1.1, () => app.send('nap', { i }))
+  }
+
+  /* the high shelf, and the things on it */
+  for (let i = 0; i < KNOCKS.length; i++) {
+    const k = KNOCKS[i]
+    const g = model('n_potLarge', [k.x, k.y, k.z], i * 0.9, 1.6)
+    knockVis.push(g)
+    action('Knock it off', [k.x, k.y + 0.5, k.z], 2.4, 0.3, () => app.send('knock', { i }))
+  }
+
   /* ---------------- the register on the plaza ---------------- */
   /* Beside the Filing Office door, because filing is what this is. */
   const BX = 9.5, BZ = 8.6
@@ -860,6 +1006,21 @@ if (!isServer) {
     for (let i = 0; i < nodeVis.length; i++) {
       const on = d.n.charCodeAt(i) !== 48
       if (nodeVis[i] && nodeVis[i].active !== on) nodeVis[i].active = on
+    }
+    if (d.b) for (let i = 0; i < boxVis.length; i++) {
+      const free = d.b.charCodeAt(i) !== 48
+      if (boxVis[i] && boxVis[i].active !== free) boxVis[i].active = free
+    }
+    if (d.k) for (let i = 0; i < knockVis.length; i++) {
+      const there = d.k.charCodeAt(i) !== 48
+      if (knockVis[i] && knockVis[i].active !== there) knockVis[i].active = there
+    }
+    if (d.sun !== undefined) {
+      const lit = String(d.sun).split(',').map(Number)
+      for (let i = 0; i < sunVis.length; i++) {
+        const on = lit.indexOf(i) !== -1
+        if (sunVis[i] && sunVis[i].active !== on) sunVis[i].active = on
+      }
     }
     for (let i = 0; i < veinVis.length; i++) {
       const left = d.v.charCodeAt(i) - 48

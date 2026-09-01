@@ -27,7 +27,7 @@ import texprops
 
 # only the props this room actually places — a room that carries all 41
 # makes every one of them part of its download for no reason
-GEAR = ['fishPerch', 'fishCarp', 'fishTrout', 'fishBass', 'fishEel', 'fishTuna', 'fishGold', 'rodWood', 'rodSilver', 'rodGold', 'pickaxe', 'basket', 'oreChunk', 'barrel']
+GEAR = ['fishPerch', 'fishCarp', 'fishTrout', 'fishBass', 'fishEel', 'fishTuna', 'fishGold', 'rodWood', 'rodSilver', 'rodGold', 'pickaxe', 'basket', 'oreChunk', 'barrel', 'crate']
 con = sqlite3.connect(DB)
 
 check_js(os.path.join(ROOT, 'trades.js'))
