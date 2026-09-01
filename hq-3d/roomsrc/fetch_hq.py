@@ -45,8 +45,20 @@ WANT = [
     'WoodenTable_02', 'WoodenChair_01', 'Shelf_01', 'ArmChair_01',
     'GothicCabinet_01', 'ClassicConsole_01', 'SchoolDesk_01',
     # PLANTING
-    'fir_tree_01', 'fir_sapling_medium', 'dead_tree_trunk', 'fern_02',
+    # fir_tree_01 is a 470MB download that never completes, and the sapling
+    # thinned to 7.7MB for one tree we have twenty Kenney versions of.
+    'dead_tree_trunk', 'fern_02',
     'potted_plant_02', 'dandelion_01',
+    # ARCHITECTURE
+    #
+    # Everything above is a prop. The buildings in this world are Kenney panels
+    # at 286 triangles carrying a palette swatch and no normal map, which is
+    # exactly why they read as cardboard standing next to a photoscanned barrel
+    # in the same frame. These are the first real structures — the same PBR
+    # path the rocks take, pointed at the things people actually look at.
+    'modular_urban_apartments_facade', 'modular_factory_facade', 'modular_fort_01',
+    'modular_wooden_pier', 'large_iron_gate', 'large_castle_door',
+    'dutch_ship_medium', 'modular_fire_escape', 'modular_street_seating',
 ]
 
 

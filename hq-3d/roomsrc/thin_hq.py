@@ -27,6 +27,14 @@ RATIO = [
     ('cliff', 0.020), ('coast', 0.020), ('rocks', 0.03), ('boulder', 0.06),
     ('rock', 0.06), ('trunk', 0.06), ('dandelion', 0.12), ('fern', 0.15),
     ('plant', 0.15), ('crate', 0.25), ('barrel', 0.35), ('box', 0.35),
+    # Architecture cuts hardest of all. A building facade is mostly flat
+    # surfaces with mouldings on them, and the mouldings are in the normal
+    # map — 270,000 triangles of window reveal buy nothing you can see from
+    # the street. The apartment block at 6% still carries every course,
+    # cornice and sill, because those were never geometry to begin with.
+    ('facade', 0.06), ('fort', 0.14), ('pier', 0.12), ('ship', 0.18),
+    ('gate', 0.22), ('door', 0.22), ('escape', 0.28), ('seating', 0.28),
+    ('sapling', 0.10), ('fir', 0.10),
 ]
 DEFAULT = 0.45
 FLOOR = 900          # never take a prop below this many triangles

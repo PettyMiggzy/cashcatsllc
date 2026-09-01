@@ -662,7 +662,26 @@ model('p_shovel', [DX - 4,  0, SHORE_Z - 7], 1.2, PIR)
 model('m_boat',  [DX - 11.5, 0.1, SHORE_Z + 9],  0.25, PIR)
 model('p_boatL', [DX + 4.5,  0.1, SHORE_Z + 15], -0.4, PIR)
 model('m_boat',  [DX + 20,   0.1, SHORE_Z + 6],  1.9,  PIR)
-model('p_ship',  [DX - 24,   0.1, SHORE_Z + 30], 0.7,  PIR * 1.2)
+/*
+ * The ship, and why it is not the Kenney one any more.
+ *
+ * p_ship is 72 triangles carrying a palette swatch — no normal map, no
+ * roughness — so under this HDRI it is a flat salmon wedge. dutch_ship_medium
+ * is a photogrammetry-grade hull with albedo, normal and roughness, and it
+ * costs 31k triangles and 1.1MB after decimation.
+ *
+ * That trade is the whole argument about detail in this build. The engine was
+ * never the limit: glbToNodes wires normalMap and always has, which is why a
+ * photoscanned barrel reads as real in the same frame where a Kenney wall
+ * reads as cardboard. What was missing was assets that carry the maps.
+ *
+ * It is 24 metres long as authored, so no scaling — it is already the size a
+ * ship should be next to a 20-metre jetty.
+ */
+// x=-73 put her seven metres past the west bank — the lake was narrowed to 38
+// to keep it out of the Cat Park and the ship never moved with it. Water runs
+// x -66..-28, so she sits at -58 with room to swing.
+model('hq_dutch_ship_medium', [DX - 11, -0.6, SHORE_Z + 28], 0.55, 1.0)
 model('p_wreck', [DX + 25,   0.0, SHORE_Z + 33], -1.1, PIR * 1.2)
 for (let i = 0; i < 9; i++)
   model(i % 2 ? 'm_palm' : 'p_palmBend',
