@@ -235,6 +235,26 @@ text(board, 'THE CHIBI RATING', 40, LIME, 800)
 const bdRule = text(board, '', 24, CREAM, 400, 10)
 const bdYou  = text(board, '', 26, GOLD_L, 700, 10)
 const bdList = text(board, '', 22, DIM, 400, 8)
+const bdSix  = text(board, '', 20, DIM, 400, 12)
+
+/*
+ * The six. Ahmad: "Equipment, Cosmetic, Side-Quest, Mini-games, Chibi and
+ * Flora." Only two of them exist — Chibi here and Cosmetic on the Homestead's
+ * House Vault — and Flora has been announced with "more details soon".
+ *
+ * They are listed anyway, and marked honestly, because a player looking at
+ * one rating should be able to see it is one of six rather than discovering
+ * the other five later. Nothing here invents a number for a rating that has
+ * not been specified: unspecified says unspecified.
+ */
+bdSix.value =
+  'One of six ratings\n' +
+  '  Chibi ....... here\n' +
+  '  Cosmetic .... the House Vault, at the Homestead\n' +
+  '  Equipment ... awaiting spec\n' +
+  '  Side-Quest .. awaiting spec\n' +
+  '  Mini-games .. awaiting spec\n' +
+  '  Flora ....... awaiting spec'
 
 bdRule.value =
   'Swing at a boss even once and you are on the list.\n' +
