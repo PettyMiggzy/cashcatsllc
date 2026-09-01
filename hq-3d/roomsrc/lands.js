@@ -527,7 +527,7 @@ for (let i = 0; i < 5; i++) ob('crate', [FX + 8 + rr(-2, 2), 0, FZ + 20 + rr(-1.
 for (let i = 0; i < 4; i++) ob('barrel', [FX - 10 + rr(-1.5, 1.5), 0, FZ + 20 + rr(-1.5, 1.5)], rr(0, 6.28), 1.05)
 
 /* the mill, on the water at the east edge */
-prim('box', [5.5, 0.3, 40], WATER, [CHAN_X, Y + 0.06, FZ], { rough: 0.45, metal: 0.05 })
+prim('box', [5.5, 0.3, 40], '#8fd4e8', [CHAN_X, Y + 0.06, FZ], { tex: 'water', rough: 0.06, metal: 0.32 })
 prim('box', [6.8, 0.24, 40], STONE_D, [CHAN_X, Y - 0.02, FZ])
 model('t_watermill', [CHAN_X - 3.2, 0, FZ - 2], 0, TOWN * 0.85)
 model('n_bridge', [CHAN_X, 0, FZ + 8], Math.PI / 2, NAT)
@@ -619,8 +619,22 @@ ground(DX, SHORE_Z - 1, 56, 12, Y - 0.05, 'sand', WHITE, { cell: 9 })
 // at x=-29 — so fourteen metres of open water lay across the park with a
 // row of sitting-boxes in it. 38 stops the lake just past the East Jetty at
 // x=-28.9, which is the furthest thing that actually has to float.
-prim('box', [38, 0.5, 44], WATER, [DX, Y - 0.18, SHORE_Z + 20], { rough: 0.45, metal: 0.05 })
-prim('box', [40, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.4 })
+/*
+ * Water, which is a material problem and not a texture one.
+ *
+ * It was a flat cyan slab at roughness 0.45 — matte, so it returned the same
+ * value from every angle and read as painted card. Everything in this world is
+ * lit by the HDRI, which means a smooth surface reflects the actual sky: drop
+ * roughness to 0.06 and put a little metalness on it and the lake picks up the
+ * clouds and the sun for free, no shader and no animation.
+ *
+ * The ripple texture is faint on purpose. Its job is to break the reflection
+ * up — a perfect mirror at this scale reads as glass — not to look like a
+ * photograph of water, which at one albedo map and no normals it could not.
+ */
+prim('box', [38, 0.5, 44], '#8fd4e8', [DX, Y - 0.18, SHORE_Z + 20],
+     { tex: 'water', rough: 0.06, metal: 0.32 })
+prim('box', [40, 0.3, 46], WATER_D, [DX, Y - 0.3, SHORE_Z + 20], { rough: 0.35, metal: 0.2 })
 
 /* three jetties out over the water. The kit dock is scenery; the plank deck
  * under it is what carries a player, so it is a static prim. */
@@ -647,6 +661,25 @@ jetty(DX,      28, 5.0)
 jetty(DX + 16, 16, 4.2)
 
 /* the fish shack at the head of the middle jetty */
+/*
+ * The harbour front.
+ *
+ * modular_urban_apartments_facade is not a building, it is a kit — 175 meshes
+ * laid out across 51 metres, the way an asset pack presents its parts. Which
+ * is also, exactly, what a waterfront is: a row of frontages side by side. So
+ * it goes in as authored rather than being split up and reassembled, and one
+ * model load buys the whole terrace.
+ *
+ * This is the first real architecture standing where a player actually is. The
+ * Kenney city ring stays where it is, out at 125 metres, because at that
+ * distance nothing it lacks is visible and it costs almost nothing.
+ */
+// Measured, not eyeballed: the kit's bbox runs y -2..15 and z -6.2..0.4, so
+// its origin is two metres above its own footing and it builds backwards from
+// there. At y=0 it stood sunk to the shins; at y=2 it sits on the ground with
+// its frontage on z, facing the water the way a quayside terrace does.
+model('hq_modular_urban_apartments_facade', [DX, 2.0, SHORE_Z - 8], 0, 1.0)
+
 model('p_towerBase', [DX + 8.5, 0, SHORE_Z - 4], -0.3, PIR)
 model('p_towerRoof', [DX + 8.5, 4.6, SHORE_Z - 4], -0.3, PIR)
 model('p_flag',      [DX + 12.5, 0, SHORE_Z - 5], -0.3, PIR)
@@ -878,8 +911,10 @@ for (let i = 0; i < 16; i++)
   model('t_block', [DX - 26 + i * 3.6, 0, QUAY_Z + 1.6], 0, 2.4)
 
 /* the warehouse behind it */
-cottage(DX - 15, QUAY_Z - 6, 4, 3, Math.PI, true, 2)
-cottage(DX + 14, QUAY_Z - 5, 3, 2, Math.PI, true, 1)
+// The two Kenney cottages that used to stand here are gone: the real terrace
+// went in behind them and they were the thing blocking it. Keeping both would
+// be putting the flat version in front of the detailed one.
+
 
 /* the watchtower at the head of the quay */
 model('p_towerBase', [DX + 23, 0, QUAY_Z - 1], -0.3, PIR)

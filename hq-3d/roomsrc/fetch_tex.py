@@ -108,9 +108,49 @@ def bake(src, n, out, target=None):
     sheet.save(out, quality=88, optimize=True)
 
 
+def make_water(out, px=1024, tiles=6):
+    """
+    A seamless ripple, generated rather than downloaded.
+
+    Poly Haven has no water texture and there is no need for one. Water in this
+    engine does not need a picture of water — prims carry metalness and
+    roughness, and every surface here is lit by the HDRI, so a low-roughness
+    plane reflects the actual sky and that is most of the way there. What the
+    texture adds is break-up: without it the reflection is one flat mirror and
+    the eye reads a sheet of plastic.
+
+    So this is deliberately faint. Sum a few sine waves at whole-number
+    frequencies, which makes it tile exactly, and keep the amplitude low enough
+    that it reads as surface rather than as pattern.
+    """
+    import math
+    im = Image.new('RGB', (px, px))
+    q = im.load()
+    W = [(3, 5, 1.0, 0.0), (7, 2, 0.6, 1.1), (2, 9, 0.5, 2.3), (11, 6, 0.3, 0.7)]
+    base = (0x3f, 0x8f, 0xb4)
+    for y in range(px):
+        v = y / px * 2 * math.pi * tiles
+        for x in range(px):
+            u = x / px * 2 * math.pi * tiles
+            a = 0.0
+            for fx, fy, amp, ph in W:
+                a += amp * math.sin(u * fx + v * fy + ph)
+            a /= sum(w[2] for w in W)                 # -1..1
+            k = 1.0 + a * 0.085                       # a whisper, not a pattern
+            q[x, y] = tuple(min(255, int(c * k)) for c in base)
+    im.save(out, quality=92)
+
+
 def main():
     force = '--force' in sys.argv
     os.makedirs(RAW, exist_ok=True)
+    w = os.path.join(TEX, 't_water.jpg')
+    if force or not os.path.exists(w):
+        make_water(w)
+        print('  %-10s %-20s generated  %4dKB' % ('t_water', '(sine ripple)', os.path.getsize(w) // 1024))
+    else:
+        print('  %-10s have' % 't_water')
+
     for name, (slug, n, target) in sorted(GROUNDS.items()):
         out = os.path.join(TEX, name + '.jpg')
         if os.path.exists(out) and not force:

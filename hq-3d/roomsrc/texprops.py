@@ -30,6 +30,7 @@ TEXTURES = {
     'forest':      ('t_forest.jpg',       'image'),
     'field':       ('t_field.jpg',        'image'),
     'path':        ('t_path.jpg',         'image'),
+    'water':       ('t_water.jpg',        'image'),
     'skyBg':       ('sky_bg.jpg',         'image'),
     'skyHdr':      ('sky_env.hdr',        'hdr'),
 }
