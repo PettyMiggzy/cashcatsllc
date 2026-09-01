@@ -72,6 +72,25 @@ PROPS = {
     'coinPile':   'a small pile of gold coins',
     'safe':       'a heavy iron safe with a dial',
     'pedestal':   'a short marble display pedestal',
+
+    # the catch table. Ahmad's spec wants rarity tiers you can tell apart at a
+    # glance, so each one is a different silhouette as well as a different
+    # colour — a player should know what they landed before reading the label.
+    'fishPerch':  'a small round river perch fish, coppery brown, side view',
+    'fishCarp':   'a plump carp fish with large scales, dull bronze',
+    'fishTrout':  'a speckled trout fish, long and slender, pale grey',
+    'fishBass':   'a broad silver bass fish, bright polished scales',
+    'fishEel':    'a long thin eel, dark green, curved body',
+    'fishTuna':   'a large deep-blue tuna fish, streamlined, forked tail',
+    'fishGold':   'a solid gold fish shaped like a cat, gleaming metal trophy',
+
+    # the tools the three trades run on
+    'rodWood':    'a simple wooden fishing rod with a line and float',
+    'rodSilver':  'a fishing rod with a silver reel and polished handle',
+    'rodGold':    'an ornate golden fishing rod with a jewelled reel',
+    'pickaxe':    'an iron pickaxe with a worn wooden handle',
+    'basket':     'a woven wicker gathering basket with a handle',
+    'oreChunk':   'a chunk of rock with bright gold ore veins running through it',
 }
 
 KEY = os.environ.get('TRIPO_KEY')

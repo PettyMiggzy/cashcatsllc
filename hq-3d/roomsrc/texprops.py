@@ -118,11 +118,129 @@ MODELS = {
     'm_bush':   'nature-kit/plant_bushLarge.glb',
     'm_rock':   'nature-kit/rock_largeA.glb',
     'm_grass':  'nature-kit/grass_large.glb',
-    # the fishing spot
+
+    # ---------------------------------------------------------------- lands
+    # Everything below dresses the four grounds off the plaza. The engine
+    # batches identical geometry into an InstancedMesh, so a hundred copies of
+    # one fence cost about one draw call — repeats are cheap, variety is not.
+    # Grid: fantasy-town-kit and nature-kit are both 1-unit kits, placed at
+    # 3.6 and 3.4 respectively; the cave kit is already metres.
+
+    # the Homestead Fields — cottages (fantasy-town-kit, x3.6)
+    't_wall':      'fantasy-town-kit/wall.glb',
+    't_wallDoor':  'fantasy-town-kit/wall-door.glb',
+    't_wallWin':   'fantasy-town-kit/wall-window-shutters.glb',
+    't_wallWood':  'fantasy-town-kit/wall-wood.glb',
+    't_wallWoodD': 'fantasy-town-kit/wall-wood-door.glb',
+    't_wallWoodW': 'fantasy-town-kit/wall-wood-window-shutters.glb',
+    't_roof':      'fantasy-town-kit/roof.glb',
+    't_roofGable': 'fantasy-town-kit/roof-gable.glb',
+    't_roofGEnd':  'fantasy-town-kit/roof-gable-end.glb',
+    't_roofGTop':  'fantasy-town-kit/roof-gable-top.glb',
+    't_roofPoint': 'fantasy-town-kit/roof-point.glb',
+    't_chimney':   'fantasy-town-kit/chimney.glb',
+    't_watermill': 'fantasy-town-kit/watermill.glb',
+    't_windmill':  'fantasy-town-kit/windmill.glb',
+    't_stall':     'fantasy-town-kit/stall.glb',
+    't_stallGrn':  'fantasy-town-kit/stall-green.glb',
+    't_stallRed':  'fantasy-town-kit/stall-red.glb',
+    't_stallBnch': 'fantasy-town-kit/stall-bench.glb',
+    't_cart':      'fantasy-town-kit/cart.glb',
+    't_cartHigh':  'fantasy-town-kit/cart-high.glb',
+    't_hedge':     'fantasy-town-kit/hedge.glb',
+    't_lantern':   'fantasy-town-kit/lantern.glb',
+    't_pillarW':   'fantasy-town-kit/pillar-wood.glb',
+    't_bannerGrn': 'fantasy-town-kit/banner-green.glb',
+    't_planks':    'fantasy-town-kit/planks.glb',
+
+    # the farm itself (nature-kit, x3.4)
+    'n_dirtRow':   'nature-kit/crops_dirtRow.glb',
+    'n_dirtEnd':   'nature-kit/crops_dirtRowEnd.glb',
+    'n_wheatA':    'nature-kit/crops_wheatStageA.glb',
+    'n_wheatB':    'nature-kit/crops_wheatStageB.glb',
+    'n_cornC':     'nature-kit/crops_cornStageC.glb',
+    'n_cornD':     'nature-kit/crops_cornStageD.glb',
+    'n_pumpkin':   'nature-kit/crop_pumpkin.glb',
+    'n_melon':     'nature-kit/crop_melon.glb',
+    'n_carrot':    'nature-kit/crop_carrot.glb',
+    'n_fence':     'nature-kit/fence_simple.glb',
+    'n_fenceHigh': 'nature-kit/fence_simpleHigh.glb',
+    'n_fenceGate': 'nature-kit/fence_gate.glb',
+    'n_potLarge':  'nature-kit/pot_large.glb',
+
+    # the Grove — foraging (nature-kit, x3.4)
+    'n_mushRed':   'nature-kit/mushroom_redGroup.glb',
+    'n_mushTan':   'nature-kit/mushroom_tanGroup.glb',
+    'n_mushTall':  'nature-kit/mushroom_redTall.glb',
+    'n_flowerY':   'nature-kit/flower_yellowA.glb',
+    'n_flowerP':   'nature-kit/flower_purpleB.glb',
+    'n_flowerR':   'nature-kit/flower_redC.glb',
+    'n_bushL':     'nature-kit/plant_bushLarge.glb',
+    'n_bushS':     'nature-kit/plant_bushSmall.glb',
+    'n_logStack':  'nature-kit/log_stack.glb',
+    'n_log':       'nature-kit/log.glb',
+    'n_stump':     'nature-kit/stump_round.glb',
+    'n_tent':      'nature-kit/tent_detailedOpen.glb',
+    'n_tentSm':    'nature-kit/tent_smallClosed.glb',
+    'n_campfire':  'nature-kit/campfire_logs.glb',
+    'n_oak':       'nature-kit/tree_oak.glb',
+    'n_fat':       'nature-kit/tree_fat.glb',
+    'n_pineA':     'nature-kit/tree_pineRoundC.glb',
+    'n_pineB':     'nature-kit/tree_pineDefaultB.glb',
+    'n_blocks':    'nature-kit/tree_blocks.glb',
+
+    # the Seam — mining (nature-kit cliffs, x3.4; cave kit is already metres)
+    'n_cliff':     'nature-kit/cliff_block_rock.glb',
+    'n_cliffHalf': 'nature-kit/cliff_blockHalf_rock.glb',
+    'n_cliffSlope':'nature-kit/cliff_blockSlope_rock.glb',
+    'n_cliffCave': 'nature-kit/cliff_cave_rock.glb',
+    'n_cliffCnr':  'nature-kit/cliff_corner_rock.glb',
+    'n_rockTallA': 'nature-kit/rock_tallA.glb',
+    'n_rockTallD': 'nature-kit/rock_tallD.glb',
+    'n_rockLgB':   'nature-kit/rock_largeB.glb',
+    'n_stoneLgA':  'nature-kit/stone_largeA.glb',
+    'n_stoneTall': 'nature-kit/stone_tallC.glb',
+    'c_gateRock':  'modular-cave-kit/gate-rock.glb',
+    'c_gateBars':  'modular-cave-kit/gate-metal-bars.glb',
+    'c_ladder':    'modular-cave-kit/ladder.glb',
+
+    # signage, paths and water dressing (nature-kit, x3.4)
+    'n_sign':      'nature-kit/sign.glb',
+    'n_obelisk':   'nature-kit/statue_obelisk.glb',
+    'n_column':    'nature-kit/statue_column.glb',
+    'n_pathStone': 'nature-kit/path_stone.glb',
+    'n_platStone': 'nature-kit/platform_stone.glb',
+    'n_bridge':    'nature-kit/bridge_wood.glb',
+    'n_lily':      'nature-kit/lily_large.glb',
+    'n_lilySm':    'nature-kit/lily_small.glb',
+    'n_grassLeaf': 'nature-kit/grass_leafsLarge.glb',
+
+    # the Docks — fishing (pirate-kit, x1.5; barrels and crates x0.65)
     'm_dock':   'pirate-kit/tower-base.glb',
     'm_boat':   'pirate-kit/boat-row-small.glb',
     'm_palm':   'pirate-kit/palm-detailed-straight.glb',
     'm_barrel': 'pirate-kit/barrel.glb',
+    'p_dock':      'pirate-kit/structure-platform-dock.glb',
+    'p_dockSm':    'pirate-kit/structure-platform-dock-small.glb',
+    'p_platform':  'pirate-kit/structure-platform.glb',
+    'p_planks':    'pirate-kit/platform-planks.glb',
+    'p_boatL':     'pirate-kit/boat-row-large.glb',
+    'p_ship':      'pirate-kit/ship-small.glb',
+    'p_wreck':     'pirate-kit/ship-wreck.glb',
+    'p_crate':     'pirate-kit/crate.glb',
+    'p_crateBtl':  'pirate-kit/crate-bottles.glb',
+    'p_chest':     'pirate-kit/chest.glb',
+    'p_palmBend':  'pirate-kit/palm-detailed-bend.glb',
+    'p_tower':     'pirate-kit/tower-watch.glb',
+    'p_towerBase': 'pirate-kit/tower-base.glb',
+    'p_towerRoof': 'pirate-kit/tower-roof.glb',
+    'p_flag':      'pirate-kit/flag.glb',
+    'p_patchSand': 'pirate-kit/patch-sand.glb',
+    'p_rocksSand': 'pirate-kit/rocks-sand-a.glb',
+    'p_shovel':    'pirate-kit/tool-shovel.glb',
+    'p_fence':     'pirate-kit/structure-fence.glb',
+    'p_roof':      'pirate-kit/structure-roof.glb',
+    'p_structure': 'pirate-kit/structure.glb',
 }
 
 
@@ -142,4 +260,30 @@ def models(names=None):
             continue
         out[key] = {'type': 'model', 'name': os.path.basename(rel),
                     'url': put(path, 'glb')}
+    return out
+
+
+# Meshes generated by tripo_props.py and thinned by thin_props.py. Unlike the
+# packs these are keyed by their bare name, because the prompt that made them
+# is the name: props.fishGold, props.rodWood, props.anvil.
+def gear(names=None):
+    """
+    The generated props, as model props.
+
+    Missing files are skipped rather than fatal, the same as the packs: they
+    are generated and gitignored, so a fresh clone has the prompts and not yet
+    the meshes, and a jetty with no rod leaning on it beats an install that
+    refuses to run.
+    """
+    out = {}
+    d = os.path.join(ROOT, 'props')
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        if not f.endswith('.glb') or f.endswith('_raw.glb'):
+            continue
+        key = f[:-4]
+        if names and key not in names:
+            continue
+        out[key] = {'type': 'model', 'name': f, 'url': put(os.path.join(d, f), 'glb')}
     return out

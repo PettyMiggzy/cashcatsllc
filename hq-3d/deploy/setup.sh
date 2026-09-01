@@ -161,13 +161,31 @@ echo "==> assets"
 # installs with no skyline, no trees and no lamps, and nothing says why.
 python3 roomsrc/fetch_packs.py 2>&1 | tail -12 || echo "    packs unavailable — the world still installs, just barer"
 python3 roomsrc/fetch_sky.py   2>&1 | tail -3  || echo "    sky unavailable — the committed one is used"
+# Kenney's kits point at a shared Textures/colormap.png by relative path, which
+# stops existing the moment a model is content-addressed into the asset store —
+# every building, dock and cliff then renders untextured white and the only
+# complaint is one loader warning per model. Embed the texture, and while we
+# are in there drop metallicFactor from the export default of 1, which is what
+# was making every tree and rock come out dark and faintly wet.
+python3 roomsrc/embed_tex.py 2>&1 | tail -3 || echo "    could not correct pack materials"
 
 echo "==> world"
 # The scripts are the source of truth for every room; the database is
 # disposable. Re-running refreshes each room in place.
-for s in install install_workshop install_homestead install_vault install_pit install_campus install_brand; do
+for s in install install_workshop install_homestead install_vault install_pit \
+         install_lands install_trades install_campus install_brand; do
   python3 "roomsrc/$s.py" >/dev/null && echo "    $s"
 done
+
+# node --check proves a script parses; it does not prove it runs, and both
+# faults that actually shipped in this build were runtime — a room installed
+# with model=None, and app.load() for what is really world.load(). Each one
+# killed a script outright and the world still came up, just with a hole in
+# it. Boot the thing and look before pointing a domain at it.
+if ! BOOT_CHECK_PORT=3199 python3 roomsrc/boot_check.py; then
+  echo "    a room is broken — refusing to publish it"
+  exit 1
+fi
 
 # blueprints are cached at boot, so the rooms just written need a restart
 systemctl restart cashcats

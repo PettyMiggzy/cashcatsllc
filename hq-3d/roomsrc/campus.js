@@ -251,7 +251,11 @@ const TREE_S = 3.4
 function model(key, pos, rotY, scale) {
   const prop = props[key]
   if (!prop || !prop.url) return
-  app.load('model', prop.url)
+  // world.load, not app.load. app has no loader — calling one threw on the
+  // very first tower and took the rest of the script with it, so the skyline,
+  // the trees, the lamps and the statues were all simply absent and nothing
+  // in the world said so. boot_check.py now fails an install that crashes.
+  world.load('model', prop.url)
     .then(node => {
       node.position.set(pos[0], pos[1], pos[2])
       if (rotY) node.rotation.y = rotY
