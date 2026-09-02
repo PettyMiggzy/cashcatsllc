@@ -1239,7 +1239,9 @@ if (!isServer) {
   // hold-to-lift this whole game is played with. The panel would have sat
   // exactly where the player is looking and eaten its own input.
   fightUI.pointerEvents = false
-  fightUI.backgroundColor = 'rgba(8,20,26,0.86)'
+  // Nearly opaque on purpose. At 0.86 the Register board behind it read
+  // straight through the header and the panel looked like a printing error.
+  fightUI.backgroundColor = 'rgba(7,17,23,0.96)'
   fightUI.borderRadius = 14
   fightUI.padding = 14
   fightUI.flexDirection = 'column'
@@ -1258,14 +1260,14 @@ if (!isServer) {
   const CELLS = 26
   const track = app.create('uiview')
   track.flexDirection = 'column'; track.width = 92; track.height = 300
-  track.backgroundColor = 'rgba(0,0,0,0.45)'; track.borderRadius = 10
+  track.backgroundColor = 'rgba(0,0,0,0.62)'; track.borderRadius = 10
   track.margin = [10, 0, 0, 0]
   fightUI.add(track)
   const cells = []
   for (let i = 0; i < CELLS; i++) {
     const c = app.create('uiview')
     c.width = 92; c.height = 300 / CELLS
-    c.backgroundColor = 'rgba(0,0,0,0)'
+    c.backgroundColor = 'rgba(0,0,0,0)'   // repainted every frame below
     track.add(c); cells.push(c)
   }
   const tension = app.create('uiview')
@@ -1282,7 +1284,7 @@ if (!isServer) {
       const inHook = Math.abs(v - F.hook) <= hookHalf
       cells[i].backgroundColor = i === fishCell
         ? (inHook ? '#eaf7a1' : '#f2b34a')          // the fish, lit when held
-        : (inHook ? 'rgba(46,204,113,0.55)' : 'rgba(0,0,0,0)')
+        : (inHook ? 'rgba(46,204,113,0.62)' : 'rgba(255,255,255,0.04)')
     }
     tension.width = Math.max(6, Math.round(260 * F.tension))
     tension.backgroundColor = F.tension > 0.55 ? LIME : (F.tension > 0.25 ? GOLD_L : '#e0553f')
