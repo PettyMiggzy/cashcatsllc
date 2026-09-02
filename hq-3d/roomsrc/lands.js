@@ -434,8 +434,8 @@ function cottage(cx, cz, w, d, rot, wood, storeys, open) {
 }
 
 /* the street itself, and the square at its head */
-prim('box', [ST_W, 0.22, 46], '#c8c1ae', [FX, Y + 0.02, FZ], { tex: 'paving', rough: 1.0 })
-prim('box', [ST_W + 1.6, 0.06, 46], STONE_D, [FX, Y - 0.02, FZ])
+prim('box', [ST_W, 0.22, 58], '#c8c1ae', [FX, Y + 0.02, FZ], { tex: 'paving', rough: 1.0 })
+prim('box', [ST_W + 1.6, 0.06, 58], STONE_D, [FX, Y - 0.02, FZ])
 prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y + 0.02, FZ + 15], { tex: 'paving', rough: 1.0 })
 // worked ground around the village, so the farm stands in soil rather than on lawn
 // 62x44 left the village standing on a green sheet the moment you looked at
@@ -443,8 +443,8 @@ prim('box', [26, 0.22, 15], '#c8c1ae', [FX, Y + 0.02, FZ + 15], { tex: 'paving',
 // so the farm reads as the middle of something rather than a rectangle.
 ground(FX, FZ - 2, 96, 76, Y - 0.05, 'grass', WHITE, { cell: 12 })
 ground(FX, FZ - 4, 62, 44, Y - 0.04, 'field', WHITE)
-for (let i = 0; i < 12; i++) {        // cobble banding so it is not one sheet
-  prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 22 + i * 4])
+for (let i = 0; i < 15; i++) {        // cobble banding so it is not one sheet
+  prim('box', [ST_W, 0.03, 0.35], STONE_D, [FX, Y + 0.01, FZ - 28 + i * 4])
 }
 
 /*
@@ -490,32 +490,44 @@ for (let i = 0; i < 16; i++) {
 }
 prim('box', [6.0, 0.22, 22], '#c8c1ae', [GRN_X + 8, Y + 0.02, GRN_Z - 2], { tex: 'paving', rough: 1.0 })
 
+/*
+ * Thirteen houses, not twenty, and no two of them touching.
+ *
+ * Measured on the old layout: one 10x10 metre square held 120 props -- about
+ * four cottages inside a space the size of a small room. A cottage is w cells
+ * at TOWN scale, so a 2-cell house is 5.4 metres deep, and the green cluster
+ * had centres 5 and 6 metres apart. They were not close together, they were
+ * overlapping, which is why the village read as one lump of roofs rather than
+ * as houses.
+ *
+ * Centres are now 12 metres apart at the tightest, which leaves a real gap you
+ * can walk down between neighbours. Seven cottages came out to pay for it --
+ * about 160 fewer props -- and the street is 10 metres longer to hold the rest
+ * without bunching. Fewer, further apart, reads as more village, not less.
+ *
+ * Each row is [dx, dz, w, d, storeys, rot, wood]. Positions are hand-placed
+ * rather than generated -- a village is the one thing a loop is bad at,
+ * because what makes it read is the irregularity and a loop has none.
+ */
 const HOUSES = [
-  // fronting the main street, west side — setbacks vary so the frontage is
-  // not a drawn line
-  [-11.0, -20, 2, 2, 1,  0.00, 1],
-  [-12.4, -14, 2, 3, 2,  0.12, 0],
-  [-10.6,   1, 3, 2, 1, -0.10, 1],
-  [-11.8,   8, 2, 2, 1,  0.00, 0],
-  [-12.6,  16, 2, 3, 2,  0.14, 1],
-  // east side
-  [ 11.2, -19, 2, 3, 2,  Math.PI,        0],
-  [ 10.4, -13, 3, 2, 1,  Math.PI - 0.12, 1],
-  [ 11.6,  -2, 2, 2, 1,  Math.PI,        0],
-  [ 10.8,   6, 2, 3, 2,  Math.PI + 0.10, 1],
-  [ 12.0,  15, 2, 2, 1,  Math.PI,        0],
-  // turning the corner onto the lane — these face the lane, not the street
-  [ -6.0, -15.5, 2, 2, 1, -Math.PI / 2, 0],
-  [  3.5, -15.5, 3, 2, 1, -Math.PI / 2, 1],
-  [ 15.5, -15.0, 2, 2, 1, -Math.PI / 2, 0],
-  [ -6.5,  -3.0, 2, 2, 1,  Math.PI / 2, 1],
-  [  5.0,  -3.2, 2, 3, 2,  Math.PI / 2, 0],
-  // round the green, three sides of it, backs to the fields
-  [-24.0,  -2.0, 2, 2, 1,  Math.PI / 2, 1],
-  [-24.5,   3.0, 3, 2, 1,  Math.PI / 2, 0],
-  [-23.5,   9.0, 2, 2, 1,  Math.PI / 2, 1],
-  [-13.0,  13.5, 2, 2, 1,  Math.PI,     0],
-  [-21.0,  13.0, 2, 3, 2,  Math.PI,     1],
+  // west side of the street. Setbacks still vary, so the frontage is not a
+  // drawn line -- but the spacing along it is deliberate now.
+  [-11.0, -21, 2, 2, 1,  0.00, 1],
+  [-12.6,  -8, 2, 3, 2,  0.12, 0],
+  [-10.6,   5, 3, 2, 1, -0.10, 1],
+  [-12.2,  18, 2, 3, 2,  0.14, 0],
+  // east side, offset from the west so the street is not a mirror
+  [ 11.2, -15, 2, 3, 2,  Math.PI,        0],
+  [ 10.4,  -2, 3, 2, 1,  Math.PI - 0.12, 1],
+  [ 11.8,  11, 2, 2, 1,  Math.PI,        0],
+  [ 10.8,  24, 2, 3, 2,  Math.PI + 0.10, 1],
+  // the corner onto the lane -- these face the lane, not the street
+  [ -7.0, -16.0, 2, 2, 1, -Math.PI / 2, 0],
+  [  6.0, -16.0, 3, 2, 1, -Math.PI / 2, 1],
+  // round the green, backs to the fields
+  [-25.0,  -4.0, 2, 2, 1,  Math.PI / 2, 1],
+  [-25.0,   8.0, 3, 2, 1,  Math.PI / 2, 0],
+  [-14.0,  15.0, 2, 3, 2,  Math.PI,     1],
 ]
 for (const [dx, dz, w, d, st, rot, wood] of HOUSES) {
   cottage(FX + dx, FZ + dz, w, d, rot, !!wood, st)
@@ -682,16 +694,28 @@ function plot(px, pz, cols, rows, crop) {
         model(crop, [x + k * S * 0.3, 0.14, z + rr(-0.5, 0.5)], rr(0, 6.28), CROP_S * rr(0.85, 1.05))
     }
   }
+  // Fenced front and back, open at the sides.
+  //
+  // Fencing all four edges of every plot was 84 fence pieces across the six
+  // plots, and fence was the single most-placed prop in the world -- more of
+  // it than roof, more than wall. It also fought the crops for attention: a
+  // picket every 3.4 metres all the way round reads as a pen, and six pens in
+  // a row is what "clustered" looks like. The runs that stay are the ones you
+  // actually walk past; the sides open onto the next plot, which is what a
+  // real allotment does anyway. Corner posts keep the line from looking cut.
   const hw = cols * S / 2 + S * 0.4, hd = rows * S / 2 + S * 0.4
   for (let c = 0; c <= cols; c++) {
     const x = px + (c - cols / 2) * S
     model('n_fence', [x, 0, pz - hd], 0, S)
     model(c === Math.floor(cols / 2) ? 'n_fenceGate' : 'n_fence', [x, 0, pz + hd], 0, S)
   }
-  for (let r = 0; r <= rows; r++) {
-    const z = pz + (r - rows / 2) * S
-    model('n_fence', [px - hw, 0, z], Math.PI / 2, S)
-    model('n_fence', [px + hw, 0, z], Math.PI / 2, S)
+  // One short return at each end so the run stops rather than just ending.
+  // There is no post model in this kit -- n_fence, n_fenceHigh and n_fenceGate
+  // are all of it -- and model() returns silently on a key it does not know,
+  // so a post here would have been four invisible nothings per plot.
+  for (const sx of [-1, 1]) {
+    model('n_fence', [px + sx * hw, 0, pz - hd + S * 0.5], Math.PI / 2, S)
+    model('n_fence', [px + sx * hw, 0, pz + hd - S * 0.5], Math.PI / 2, S)
   }
 }
 plot(FX - 22, FZ - 14, 3, 2, 'n_wheatB')

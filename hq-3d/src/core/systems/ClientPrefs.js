@@ -31,12 +31,26 @@ export class ClientPrefs extends System {
       data.v = 4
       data.shadows = null
     }
+    // v5: desktop drops to one shadow cascade.
+    //
+    // 'med' is three cascades, and a cascade is the whole scene submitted
+    // again into a shadow map -- so the world was being drawn four times a
+    // frame, once for the camera and three times for the sun. In a world that
+    // puts a thousand props around you that is most of the frame, and this
+    // art is flat-lit cartoon under an HDRI where the shadow is doing very
+    // little of the work. 'low' is one cascade at 2048, which keeps a real
+    // contact shadow under things and halves the geometry the GPU sees.
+    // Anyone who wants the old look can set it back in settings.
+    if (data.v < 5) {
+      data.v = 5
+      data.shadows = null
+    }
 
     this.ui = isNumber(data.ui) ? data.ui : isTouch ? 0.9 : 1
     this.actions = isBoolean(data.actions) ? data.actions : true
     this.stats = isBoolean(data.stats) ? data.stats : false
     this.dpr = isNumber(data.dpr) ? data.dpr : 1
-    this.shadows = data.shadows ? data.shadows : isTouch ? 'low' : 'med' // none, low=1, med=2048cascade, high=4096cascade
+    this.shadows = data.shadows ? data.shadows : 'low' // none, low=1 cascade, med=3, high=3 @2048
     this.postprocessing = isBoolean(data.postprocessing) ? data.postprocessing : true
     this.bloom = isBoolean(data.bloom) ? data.bloom : true
     this.ao = isBoolean(data.ao) ? data.ao : true

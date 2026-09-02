@@ -700,7 +700,12 @@ export class PlayerLocal extends Entity {
 
       // apply move force, projected onto ground normal
       if (this.moving) {
-        let moveSpeed = (this.running ? 6 : 3) * this.mass // run
+        // 3 m/s was a stroll, and this world is 250 metres across -- the
+        // plaza to the village is 55m, which is eighteen seconds of holding W
+        // looking at nothing. A walk is now 5, a run 10, which puts the same
+        // trip at 5.5 seconds and makes the far side of the map reachable
+        // rather than a commitment. Shift runs; see the hint on the plaza.
+        let moveSpeed = (this.running ? 10 : 5) * this.mass
         moveSpeed *= 1 - snare
         const slopeRotation = q1.setFromUnitVectors(UP, this.groundNormal)
         const moveForce = v1.copy(this.moveDir).multiplyScalar(moveSpeed * 10).applyQuaternion(slopeRotation) // prettier-ignore
