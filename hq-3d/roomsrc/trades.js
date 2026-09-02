@@ -6,7 +6,7 @@
  * "get loot", you file a return, and the board on the plaza is the register of
  * who has filed the most.
  *
- *   FISHING  at the Docks   a timing check — cast, wait for the bite, strike
+ *   FISHING  at the Docks   cast, then fight what takes it — hold to lift
  *                           inside the window. Skill, not a countdown.
  *   FORAGING at the Grove   walk the clearing, gather nodes, they regrow
  *   MINING   at the Seam    veins take several swings; better picks take fewer
@@ -168,6 +168,13 @@ const SHELF_X = PARK_X + 15, SHELF_Z = PARK_Z - 2
 const KNOCKS = []
 for (let i = 0; i < 5; i++) KNOCKS.push({ x: SHELF_X - 2.6 + i * 1.3, y: 9.9, z: SHELF_Z })
 
+// How long a fight may run, and the shortest one that can be believed. The
+// floor is what stops a forged "landed" arriving the instant the fish bites.
+const FIGHT_MAX = 40000
+// The floor has to sit UNDER the fastest honest catch or it rejects real ones.
+// Tension runs 0.35 to 1.0 and the quickest fill is the common's 0.70/sec, so
+// a perfect fight is 0.93s and nothing legitimate lands sooner.
+const FIGHT_MIN = 500
 const REGROW = 40000          // ms before a gathered node comes back
 const BUNDLE = 15             // bonus for filing one of every kind
 
@@ -518,35 +525,27 @@ if (isServer) {
     app.sendTo(pid, 'cast', { spot: spot.name })
   })
 
-  app.on('strike', (d, pid) => {
-    const c = casts[pid]
-    const p = world.getPlayer(pid)
-    if (!c || !p) return
-    if (c.phase !== 'bite') {          // struck early — the fish is gone
-      delete casts[pid]
-      app.sendTo(pid, 'missed', { why: c.phase === 'wait' ? 'Too early — you spooked it.' : 'Gone.' })
-      return
-    }
-    delete casts[pid]
+  /*
+   * A bite is the start of a fight, not a reaction test.
+   *
+   * It used to be: wait, then press E inside a window. That is a metronome,
+   * not a game. Now the bite puts a fish on the line with a difficulty and the
+   * player has to actually land it -- see the fight loop on the client.
+   *
+   * The fish is rolled HERE, at the bite, not when it lands. Two reasons: the
+   * difficulty being fought has to belong to the fish that is actually on the
+   * line, and bait is spent because something took it, which is this moment.
+   */
+  const beginFight = (pid, p, c, t) => {
     const L = ledgerFor(p)
-    // bait is spent on the strike, not on the cast — a cast that never bit
-    // should not cost you anything
-    // whichever bait is on the line is what gets spent, and only on a strike
     let bait = null
     if (L.onLine && (L.bait[L.onLine] || 0) > 0) {
       bait = baitByKey(L.onLine)
       L.bait[L.onLine] -= 1
-      // Clear the pointer with the last one, or it keeps naming a bait you no
-      // longer own. `if (!L.onLine)` is what puts the next purchase on the
-      // line, so a stale pointer means buying a different kind silently does
-      // nothing — and since the bait branch never runs again, the flat 0.5%
-      // Gold Cash Cat roll the spec promises quietly stops happening too.
       if (L.bait[L.onLine] <= 0) {
         delete L.bait[L.onLine]
         // Move to whatever else is in the box rather than leaving the line
-        // bare. Clearing to null was right for the pointer but wrong for the
-        // player: with worms still in the box the next strike rolled unbaited,
-        // and the flat Gold Cash Cat chance needs a baited line.
+        // bare -- the flat Gold Cash Cat chance needs a baited line.
         L.onLine = Object.keys(L.bait)[0] || null
         app.sendTo(pid, 'shop', { msg: L.onLine
           ? 'Last one gone — ' + baitByKey(L.onLine).name + ' on the line now.'
@@ -554,6 +553,70 @@ if (isServer) {
       }
     }
     const f = rollFish(rodTier(L), bait)
+    c.phase = 'fight'
+    c.fish = f
+    c.startedAt = t
+    c.endAt = t + FIGHT_MAX
+    touch()
+    app.sendTo(pid, 'bite', { name: f.name, r: f.r, d: fightDifficulty(f, rodTier(L)) })
+    pushYou(pid, L)
+  }
+
+  /*
+   * How hard a fish is to land.
+   *
+   * Rarity sets it and the rod softens it. `hook` is the share of the track
+   * your bar covers, `speed` is how fast the fish swims and `jitter` is how
+   * often it changes its mind -- a Penny Perch drifts, a Gold Cash Cat will
+   * not sit still for a second. A better rod widens the hook rather than
+   * slowing the fish, so gear makes you steadier without making it boring.
+   */
+  const fightDifficulty = (f, tier) => {
+    const byRarity = {}
+    // Tuned against a simulated player, not by feel. The first pass landed an
+    // Ultra Rare 1% of the time, which -- on top of the 0.5% chance of hooking
+    // one at all -- made the Gold Cash Cat a lottery inside a lottery. The
+    // fight is meant to be the fun part, not a second gate.
+    //
+    // Where it sits now, over 400 simulated fights each, wooden rod:
+    //   common 84%   uncommon 86%   rare 74%   ultra 50%
+    // and with the Gold Rod's wider hook, ultra goes 50% -> 79%. So gear is
+    // worth having, every fish can be landed, and the hard ones are a fight.
+    byRarity[COMMON]   = { hook: 0.33, speed: 0.38, jitter: 0.9, fill: 0.70, drain: 0.27 }
+    byRarity[UNCOMMON] = { hook: 0.32, speed: 0.46, jitter: 1.1, fill: 0.66, drain: 0.28 }
+    byRarity[RARE]     = { hook: 0.28, speed: 0.58, jitter: 1.5, fill: 0.58, drain: 0.32 }
+    byRarity[ULTRA]    = { hook: 0.25, speed: 0.70, jitter: 1.9, fill: 0.52, drain: 0.36 }
+    const b = byRarity[f.r] || byRarity[COMMON]
+    return { hook: Math.min(0.42, b.hook + tier * 0.035), speed: b.speed,
+             jitter: b.jitter, fill: b.fill, drain: b.drain }
+  }
+
+  /*
+   * The client reports whether it landed the fish.
+   *
+   * It cannot be trusted to say yes, so the two things a forged message would
+   * get wrong are checked: a fight has to be in progress, and it has to have
+   * lasted long enough to have been fought. Everything of value -- which fish,
+   * what it pays -- was decided on the server at the bite and is not in this
+   * message, so the worst a liar gets is the fish they already hooked.
+   */
+  app.on('land', (d, pid) => {
+    const c = casts[pid]
+    const p = world.getPlayer(pid)
+    if (!c || !p) return
+    if (c.phase !== 'fight') {
+      delete casts[pid]
+      app.sendTo(pid, 'missed', { why: 'Too early — you spooked it.' })
+      return
+    }
+    const held = now() - c.startedAt
+    delete casts[pid]
+    if (!(d && d.ok) || held < FIGHT_MIN) {
+      app.sendTo(pid, 'missed', { why: held < FIGHT_MIN ? 'It shook the hook.' : 'It got away.' })
+      return
+    }
+    const L = ledgerFor(p)
+    const f = c.fish
     L.fish += 1
     L.catches[f.key] = (L.catches[f.key] || 0) + 1
     grant(L, f.v)
@@ -797,12 +860,10 @@ if (isServer) {
       if (c.phase === 'wait' && t >= c.biteAt) {
         const p = world.getPlayer(pid)
         if (!p) { delete casts[pid]; continue }
-        const w = RODS[rodTier(ledgerFor(p))].window
-        c.phase = 'bite'; c.endAt = t + w
-        app.sendTo(pid, 'bite', { ms: w })
-      } else if (c.phase === 'bite' && t >= c.endAt) {
+        beginFight(pid, p, c, t)
+      } else if (c.phase === 'fight' && t >= c.endAt) {
         delete casts[pid]
-        app.sendTo(pid, 'missed', { why: 'It took the bait and left.' })
+        app.sendTo(pid, 'missed', { why: 'You lost it. The line went slack.' })
       }
     }
     if (now() > sunAt) { rollSun(); dirty = true }
@@ -838,14 +899,14 @@ if (!isServer) {
     text(u, s.name, 40, BLUE, 800)
     const st = text(u, 'Press E to cast', 26, CREAM, 400, 8)
     spotUI.push(st)
-    // one action, two meanings: cast when idle, strike when something is on.
-    // duration 0.08 keeps the strike a tap rather than a hold, which is the
-    // whole point of the timing check.
-    spotAct.push(action('Cast', [s.x, s.y + 1.2, s.z], 4.5, 0.08, () => {
-      // one action, two meanings. Striking early is a real mistake with a real
-      // cost, so an early press is sent as a strike rather than swallowed.
-      if (fishing === i && phase !== 'idle') app.send('strike', {})
-      else { fishing = i; app.send('cast', { s: i }) }
+    // Cast, and nothing else. The fight that follows is played with the mouse,
+    // not with this -- pressing E mid-fight used to send a 'strike' the server
+    // no longer has a handler for, which would have been a dead key and a
+    // silent nothing. During a fight the action stands down.
+    spotAct.push(action('Cast', [s.x, s.y + 1.2, s.z], 4.5, 0.35, () => {
+      if (phase !== 'idle') return
+      fishing = i
+      app.send('cast', { s: i })
     }))
     model('m_barrel', [s.x + 1.7, s.y, s.z - 2.4], 0.4, 1.0)
   }
@@ -1014,8 +1075,10 @@ if (!isServer) {
   /* a sheet at each ground, so the rules are posted where you play */
   const dk = panel(3.8, 5.0, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
   text(dk, 'THE DOCKS', 42, BLUE, 800)
-  text(dk, 'Cast, wait for the bite, strike inside', 21, CREAM, 400, 10)
-  text(dk, 'the window. Early spooks it.', 21, CREAM, 400, 2)
+  text(dk, 'Cast. When it bites, HOLD to lift your line', 21, CREAM, 400, 10)
+  text(dk, 'and let go to drop it. Keep the bar on the', 21, CREAM, 400, 2)
+  text(dk, 'fish to tighten it. Lose the tension and', 21, CREAM, 400, 2)
+  text(dk, 'it is gone. Rarer fish fight harder.', 21, CREAM, 400, 2)
   // The numbers here are the ones the roll actually uses, not the raw table
   // weights. The ordinary fish are shares of their own table, which sums to 99
   // and renormalises, and the two Ultra Rares are flat independent rolls made
@@ -1135,13 +1198,155 @@ if (!isServer) {
   })
 
   const say = (i, msg) => { if (spotUI[i]) spotUI[i].value = msg }
+
+  /* ================================================================== *
+   * THE FIGHT — the actual fishing game                                 *
+   * ==================================================================
+   *
+   * A vertical track. The fish swims up and down it. You hold the left mouse
+   * button to lift your hook and let go to drop it, and while the hook is over
+   * the fish the line tightens; while it is not, the fish works itself loose.
+   * Fill the tension bar and it is yours, empty it and it is gone.
+   *
+   * WHY THIS INPUT. app.control() can bind mouseLeft and touchA and nothing
+   * else -- the keyboard line in ClientControls' controlTypes is commented
+   * out, so no app can claim a key. Hold-and-release is therefore the only
+   * gesture available, and it happens to be exactly the right one: it works
+   * unchanged on a phone, and holding is a continuous choice rather than a
+   * reaction test, which is what the old press-E-in-a-window was.
+   *
+   * The hook has weight. Lift is an acceleration, not a position, so it
+   * overshoots and has to be caught -- that is the whole skill, and it is why
+   * a nervous fish is hard even though the hook is not small.
+   */
+  const F = {
+    on: false, name: '', hook: 0.5, vel: 0, fish: 0.5, target: 0.5,
+    tension: 0.35, d: null, nextJitter: 0, ctl: null,
+  }
+  const LIFT = 2.2          // upward acceleration while held
+  const GRAV = 1.7          // downward when not
+  const DAMP = 0.86         // so it settles instead of oscillating forever
+
+  // screen-space, right of centre, out of the way of the world
+  const fightUI = app.create('ui')
+  fightUI.space = 'screen'
+  fightUI.width = 300; fightUI.height = 420
+  fightUI.size = 1
+  fightUI.pivot = 'center-right'
+  fightUI.position.set(0.93, 0.5, 0)
+  // MUST be off. A screen-space UI mounts a real DOM canvas, and with pointer
+  // events on it swallows every click that lands on it -- including the
+  // hold-to-lift this whole game is played with. The panel would have sat
+  // exactly where the player is looking and eaten its own input.
+  fightUI.pointerEvents = false
+  fightUI.backgroundColor = 'rgba(8,20,26,0.86)'
+  fightUI.borderRadius = 14
+  fightUI.padding = 14
+  fightUI.flexDirection = 'column'
+  fightUI.alignItems = 'center'
+  fightUI.active = false
+  app.add(fightUI)
+
+  const fName = app.create('uitext')
+  fName.fontSize = 22; fName.color = BLUE; fName.fontWeight = 700
+  fightUI.add(fName)
+  const fHint = app.create('uitext')
+  fHint.fontSize = 15; fHint.color = DIM; fHint.value = 'hold to lift'
+  fightUI.add(fHint)
+
+  // the track, drawn as stacked cells so a bar can be built without a shader
+  const CELLS = 26
+  const track = app.create('uiview')
+  track.flexDirection = 'column'; track.width = 92; track.height = 300
+  track.backgroundColor = 'rgba(0,0,0,0.45)'; track.borderRadius = 10
+  track.margin = [10, 0, 0, 0]
+  fightUI.add(track)
+  const cells = []
+  for (let i = 0; i < CELLS; i++) {
+    const c = app.create('uiview')
+    c.width = 92; c.height = 300 / CELLS
+    c.backgroundColor = 'rgba(0,0,0,0)'
+    track.add(c); cells.push(c)
+  }
+  const tension = app.create('uiview')
+  tension.width = 260; tension.height = 16
+  tension.backgroundColor = LIME; tension.borderRadius = 8
+  tension.margin = [12, 0, 0, 0]
+  fightUI.add(tension)
+
+  const paintFight = () => {
+    const hookHalf = (F.d ? F.d.hook : 0.3) / 2
+    const fishCell = Math.round((1 - F.fish) * (CELLS - 1))
+    for (let i = 0; i < CELLS; i++) {
+      const v = 1 - i / (CELLS - 1)
+      const inHook = Math.abs(v - F.hook) <= hookHalf
+      cells[i].backgroundColor = i === fishCell
+        ? (inHook ? '#eaf7a1' : '#f2b34a')          // the fish, lit when held
+        : (inHook ? 'rgba(46,204,113,0.55)' : 'rgba(0,0,0,0)')
+    }
+    tension.width = Math.max(6, Math.round(260 * F.tension))
+    tension.backgroundColor = F.tension > 0.55 ? LIME : (F.tension > 0.25 ? GOLD_L : '#e0553f')
+  }
+
+  const endFight = ok => {
+    if (!F.on) return
+    F.on = false
+    fightUI.active = false
+    if (F.ctl) { F.ctl.release(); F.ctl = null }
+    app.send('land', { ok: !!ok })
+  }
+
+  const startFight = d => {
+    F.on = true
+    F.name = d.name || 'Something'
+    F.d = d.d || { hook: 0.3, speed: 0.5, jitter: 1.2, fill: 0.6, drain: 0.35 }
+    F.hook = 0.35; F.vel = 0; F.fish = 0.6; F.target = 0.6
+    F.tension = 0.35; F.nextJitter = 0
+    fName.value = F.name
+    fHint.value = 'hold  ·  keep the bar on it'
+    fightUI.active = true
+    // Claimed only for the length of the fight. A permanent claim on the mouse
+    // would eat every click in the world, including the ones that open doors.
+    F.ctl = app.control({ mouseLeft: true })
+    paintFight()
+  }
+
+  app.on('update', dt => {
+    if (!F.on) return
+    const d = F.d
+    const held = !!(F.ctl && F.ctl.mouseLeft && F.ctl.mouseLeft.down)
+    // hook: an acceleration, so it overshoots and has to be caught
+    F.vel += (held ? LIFT : -GRAV) * dt
+    F.vel *= Math.pow(DAMP, dt * 60)
+    F.hook += F.vel * dt
+    if (F.hook < 0) { F.hook = 0; F.vel = Math.max(0, F.vel) }
+    if (F.hook > 1) { F.hook = 1; F.vel = Math.min(0, F.vel) }
+    // fish: swims toward a target it keeps changing its mind about
+    F.nextJitter -= dt
+    if (F.nextJitter <= 0) {
+      F.nextJitter = 0.25 + Math.random() * (1.6 / d.jitter)
+      F.target = Math.random()
+    }
+    const step = d.speed * dt
+    F.fish += Math.max(-step, Math.min(step, F.target - F.fish))
+    F.fish = Math.max(0, Math.min(1, F.fish))
+    // tension
+    const on = Math.abs(F.fish - F.hook) <= d.hook / 2
+    F.tension += (on ? d.fill : -d.drain) * dt
+    paintFight()
+    if (F.tension >= 1) { F.tension = 1; endFight(true) }
+    else if (F.tension <= 0) { F.tension = 0; endFight(false) }
+  })
+
   app.on('cast',   d => { phase = 'wait'; if (fishing >= 0) say(fishing, 'Line out — wait for it…') })
   app.on('bite',   d => {
-    phase = 'bite'; biteEnds = now() + d.ms
-    if (fishing >= 0) { say(fishing, 'STRIKE!  press E'); if (spotAct[fishing]) spotAct[fishing].label = 'STRIKE!' }
+    phase = 'fight'
+    if (fishing >= 0) { say(fishing, 'ON! — hold to fight it'); if (spotAct[fishing]) spotAct[fishing].label = 'Fighting…' }
+    startFight(d)
   })
   app.on('missed', d => {
     phase = 'idle'
+    if (F.on) { F.on = false; fightUI.active = false; if (F.ctl) { F.ctl.release(); F.ctl = null } }
     if (fishing >= 0) { say(fishing, d.why + '  Press E to cast'); if (spotAct[fishing]) spotAct[fishing].label = 'Cast' }
     fishing = -1
   })
