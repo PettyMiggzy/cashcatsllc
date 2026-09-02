@@ -134,22 +134,53 @@ function ground(cx, cz, w, d, y, tex, color, opts) {
 const LAZY = []
 function whenNear(cx, cz, r, fn) {
   if (isServer) return fn()
-  LAZY.push({ cx, cz, r2: r * r, fn })
+  // out2 is the radius at which it comes back out of the scene again. It is
+  // deliberately wider than the one that puts it in: with a single radius,
+  // standing on the boundary builds and tears down the same cottage ten times
+  // a second.
+  LAZY.push({ cx, cz, r2: r * r, out2: (r * 1.6) * (r * 1.6), fn, held: null })
 }
+// How many props may be built in one pass.
+//
+// Proximity alone is not enough. Teleport into the village and nine hundred
+// things are suddenly in range at the same instant, and building them in one
+// tick is the same lock-up as building the whole world at boot, just later.
+// So the queue is metered: nearest first, a fixed number per pass, ten passes
+// a second. A ground fills in over about four seconds while you are still
+// turning around, and no single frame does more than a frame's worth of work.
+const BUILD_PER_PASS = 24
+
 if (!isServer) {
   let every = 0
   app.on('update', () => {
     if (!LAZY.length) return
-    if (++every % 15) return          // four times a second is plenty
+    if (++every % 6) return           // ten passes a second
     const p = world.getPlayer()
     if (!p) return
     const q = p.position
-    for (let i = LAZY.length - 1; i >= 0; i--) {
+    const due = []
+    for (let i = 0; i < LAZY.length; i++) {
       const L = LAZY[i]
       const dx = q.x - L.cx, dz = q.z - L.cz
-      if (dx * dx + dz * dz > L.r2) continue
-      LAZY.splice(i, 1)
-      L.fn()
+      const d2 = dx * dx + dz * dz
+      if (L.held) {
+        // far enough away to give the frame budget back
+        if (d2 > L.out2) { app.remove(L.held); L.held = null }
+        continue
+      }
+      if (d2 <= L.r2) due.push([d2, i])
+    }
+    if (!due.length) return
+    // nearest first, so what is in front of you arrives before what is behind
+    due.sort((a, b) => a[0] - b[0])
+    for (let k = 0; k < due.length && k < BUILD_PER_PASS; k++) {
+      const L = LAZY[due[k][1]]
+      L.held = L.fn() || null
+      // Nothing came back -- a missing prop, or a callback that builds
+      // straight into the scene and has no handle to give. There is nothing
+      // to remove later and nothing to rebuild, so retire it rather than
+      // letting it come up due on every pass forever.
+      if (!L.held) L.r2 = -1
     }
   })
 }
@@ -157,6 +188,21 @@ if (!isServer) {
 // world.load, not app.load — app has no loader. Getting that wrong threw on
 // the first model and took the whole script with it, which is how the campus
 // shipped with no skyline, no trees and no lamps and nothing said a word.
+// How close you have to be before a prop is built. Everything streams; this is
+// not an optimisation to reach for later, it is what makes the world runnable.
+//
+// world.load resolves to glb.toNodes(), which is node.clone(true) -- a deep
+// clone of the whole tree, per call, with its own draw call at the end of it.
+// This file asks for 1,495 of them. Built all at once that is a burst of
+// fifteen hundred tree clones on the main thread and then fifteen hundred
+// draw calls a frame forever after, and the tab locks up.
+//
+// 45m, measured: standing on the plaza that is 204 live instead of 1,463, and
+// walking to any ground brings its own scenery up within a quarter second. The
+// fog starts at 60m, so nothing is popping in where you could have seen it.
+const STREAM_R = 45
+let building = false
+
 function model(key, pos, rotY, scale, opts) {
   const prop = props[key]
   if (!prop || !prop.url) return
@@ -167,16 +213,31 @@ function model(key, pos, rotY, scale, opts) {
     for (const k in opts) if (k !== 'near') o[k] = opts[k]
     return whenNear(n[0], n[1], n[2], () => model(key, pos, rotY, scale, o))
   }
-  world.load('model', prop.url)
-    .then(node => {
-      node.position.set(pos[0], pos[1], pos[2])
-      if (rotY) node.rotation.y = rotY
-      if (opts.rotX) node.rotation.x = opts.rotX
-      const k = scale === undefined ? 1 : scale
-      node.scale.set(opts.sx || k, opts.sy || k, opts.sz || k)
-      app.add(node)
+  // `building` is the re-entry guard: the deferred call comes back through
+  // here and must not queue itself a second time.
+  if (!isServer && !building && !opts.eager) {
+    return whenNear(pos[0], pos[2], opts.r || STREAM_R, () => {
+      building = true
+      const holder = model(key, pos, rotY, scale, opts)
+      building = false
+      return holder    // handed back so the queue can take it out again
     })
+  }
+  // A holder created now, filled in when the file lands. The queue above needs
+  // something it can hand back and later remove, and the load is a promise --
+  // without the holder there is nothing to hold on to until it resolves, and
+  // nothing to take out of the scene when you walk away.
+  const holder = app.create('group')
+  holder.position.set(pos[0], pos[1], pos[2])
+  if (rotY) holder.rotation.y = rotY
+  if (opts.rotX) holder.rotation.x = opts.rotX
+  const k = scale === undefined ? 1 : scale
+  holder.scale.set(opts.sx || k, opts.sy || k, opts.sz || k)
+  app.add(holder)
+  world.load('model', prop.url)
+    .then(node => { holder.add(node) })
     .catch(() => {})   // one missing pack should cost a prop, not the ground
+  return holder
 }
 
 // A tiny deterministic generator. Math.random would scatter the world
@@ -322,7 +383,12 @@ function cottage(cx, cz, w, d, rot, wood, storeys, open) {
   const doorAt = { lx: null, lz: null }
   const place = (lx, lz, k, r, y) => {
     const wx = cx + lx * cos + lz * sin, wz = cz - lx * sin + lz * cos
-    model(k, [wx, y || 0, wz], rot + r, S)
+    // A tighter radius than the rest of the world. A cottage is sixteen wall
+    // pieces and seven roof pieces, and the village has twenty of them packed
+    // into thirty metres -- at the default radius standing anywhere in it
+    // builds every house at once, which is nine hundred objects and most of
+    // what makes the village the heaviest place to stand.
+    model(k, [wx, y || 0, wz], rot + r, S, { r: 30 })
     if (!open || y) return
     if (k === doorK) { doorAt.lx = lx; doorAt.lz = lz; return }   // leave the way in clear
     // the wall sits on the +X edge of its cell, so the body goes half a cell
@@ -525,7 +591,12 @@ function villager(x, z, rotY, cat, emote) {
   if (!prop || !prop.url) return
   // a VRM is 1.6MB and there are five of them; none is visible from the plaza
   if (!isServer && !villager.armed) {
-    return whenNear(x, z, 70, () => { villager.armed = 1; villager(x, z, rotY, cat, emote); villager.armed = 0 })
+    return whenNear(x, z, 70, () => {
+      villager.armed = 1
+      const av = villager(x, z, rotY, cat, emote)
+      villager.armed = 0
+      return av        // handed back so the queue can take it out again
+    })
   }
   const av = app.create('avatar')
   av.src = prop.url
@@ -1181,7 +1252,7 @@ lines(ded, ['robinlab.io'], 24, '#c9a94e', 700)
  * them to exactly one unit tall with its base on y=0, so the last argument
  * here is simply how many metres tall the thing should be.
  */
-function ob(key, pos, rotY, height) { model(key, pos, rotY, height) }
+function ob(key, pos, rotY, height) { return model(key, pos, rotY, height) }
 
 /* ---- the plaza: a centre worth standing in ---- */
 /* Spawn is at [0,0,17] facing the Filing Office, so the middle of the plaza is
