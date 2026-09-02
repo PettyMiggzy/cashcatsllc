@@ -33,9 +33,16 @@ function verifyInitData(initData) {
     .join('\n');
   const secret = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
   const check = crypto.createHmac('sha256', secret).update(dcs).digest('hex');
-  // constant-time compare
-  if (check.length !== hash.length ||
-      !crypto.timingSafeEqual(Buffer.from(check), Buffer.from(hash))) return null;
+  // Compare as hex bytes, not as text.
+  //
+  // The length guard was on the two STRINGS, and the buffers were built with
+  // no encoding, so a 64-character hash containing anything non-ASCII made a
+  // buffer longer than 32 bytes and timingSafeEqual threw a RangeError out of
+  // the handler. It failed closed, but as a 500 rather than a 403. Decoding as
+  // hex makes a malformed hash a short buffer and an ordinary rejection.
+  const a = Buffer.from(check, 'hex');
+  const b = Buffer.from(hash, 'hex');
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   const authDate = Number(params.get('auth_date') || 0);
   if (!authDate || (Date.now() / 1000 - authDate) > MAX_AGE) return null;
   try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
@@ -66,7 +73,8 @@ module.exports = async (req, res) => {
     res.statusCode = 400; res.end(JSON.stringify({ ok: false, error: 'missing img/initData' })); return;
   }
 
-  const user = verifyInitData(body.initData);
+  let user = null;
+  try { user = verifyInitData(body.initData); } catch { user = null; }
   if (!user || !user.id) {
     res.statusCode = 403; res.end(JSON.stringify({ ok: false, error: 'invalid Telegram session' })); return;
   }

@@ -113,6 +113,9 @@ export class ServerNetwork extends System {
     while (this.queue.length) {
       try {
         const [socket, method, data] = this.queue.shift()
+        // A socket can send before its player is spawned and after it is
+        // reaped; every handler below reads socket.player without checking.
+        if (!socket.player) continue
         this[method]?.(socket, data)
       } catch (err) {
         console.error(err)
@@ -208,6 +211,7 @@ export class ServerNetwork extends System {
   }
 
   async onConnection(ws, params) {
+    let socket = null
     try {
       // check player limit
       const playerLimit = this.world.settings.playerLimit
@@ -270,7 +274,7 @@ export class ServerNetwork extends System {
       const livekit = await this.world.livekit.serialize(user.id)
 
       // create socket
-      const socket = new Socket({ id: user.id, ws, network: this })
+      socket = new Socket({ id: user.id, ws, network: this })
 
       // spawn player
       socket.player = this.world.entities.add(
@@ -343,9 +347,41 @@ export class ServerNetwork extends System {
       // enter events on the server are sent after the snapshot.
       // on the client these are sent during PlayerRemote.js entity instantiation!
       this.world.events.emit('enter', { playerId: socket.player.data.id })
+
+      // The socket bound its close handler back when it was constructed, and
+      // there are awaits between there and here. A connection that dropped in
+      // that window ran onDisconnect against a socket this map never held and
+      // a player that may not have existed yet, so the entity stayed. Catch it
+      // up now that registration is done.
+      if (socket.closed) {
+        socket.disconnected = true
+        this.#reap(socket)
+      }
     } catch (err) {
       console.error(err)
+      // Half a connection is worse than none. The player entity is added
+      // several statements before the socket is registered, so a throw
+      // anywhere in between used to leave a body standing in the world with
+      // nothing driving it and nothing that would ever remove it.
+      this.#reap(socket)
     }
+  }
+
+  /*
+   * Take a connection out of the world, from whatever state it got to.
+   *
+   * Written to be safe to call twice and safe to call on a connection that
+   * never finished being set up — which is exactly when it is needed.
+   */
+  #reap(socket) {
+    if (!socket) return
+    try { this.world.livekit.clearModifiers(socket.id) } catch {}
+    try { socket.player?.destroy(true) } catch (err) { console.error(err) }
+    socket.player = null
+    this.sockets.delete(socket.id)
+    // Anything this socket had already queued refers to a connection that is
+    // gone; running it would hit the null player above.
+    this.queue = this.queue.filter(item => item[0] !== socket)
   }
 
   onChatAdded = async (socket, msg) => {
@@ -675,8 +711,6 @@ export class ServerNetwork extends System {
   }
 
   onDisconnect = (socket, code) => {
-    this.world.livekit.clearModifiers(socket.id)
-    socket.player.destroy(true)
-    this.sockets.delete(socket.id)
+    this.#reap(socket)
   }
 }

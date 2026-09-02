@@ -120,6 +120,17 @@ export class ClientNetwork extends System {
         }
         for (const value of Object.values(item.props || {})) {
           if (value === undefined || value === null || !value?.url || !value?.type) continue
+          // Not the avatars.
+          //
+          // A blueprint's avatar props are cast -- greeters, NPCs, costumes --
+          // and every one of them was in front of the loading screen. This
+          // world has five, at about 1.3MB each, so six and a half megabytes
+          // of standing-around cats had to arrive before anybody could move.
+          // They stream in a beat later instead, which is what a greeter is.
+          //
+          // The player's OWN avatar is preloaded further down and is untouched
+          // by this; that one does have to be there before they can move.
+          if (value.type === 'avatar') continue
           this.world.loader.preload(value.type, value.url)
         }
       }

@@ -74,7 +74,14 @@ def _save(url, dst):
 # deploy, so leaving the old default would have re-downloaded the pure sky over
 # the committed one and quietly undone the fix on the way to production.
 DEFAULT = 'kloofendal_43d_clear'
-RES = '2k'      # 4k is 17MB and every player downloads it; 2k lights the same
+RES = '1k'      # lighting only -- the VISIBLE sky is sky_bg.jpg, a separate
+                # 0.5MB panorama. This file never reaches a pixel directly: it
+                # goes into scene.environment, which three.js convolves down to
+                # low-frequency irradiance plus a roughness-blurred specular
+                # chain. Nothing in this world is a mirror -- every material
+                # here sits at 0.75 roughness or above -- so the extra octave 2k
+                # carries is thrown away before it lights anything, and it was
+                # 6.1MB of it, in front of the loading screen, for every player.
 
 
 def files(hid):

@@ -1,5 +1,5 @@
 import fs from 'fs-extra'
-import { cloneDeep, throttle } from 'lodash-es'
+import { throttle } from 'lodash-es'
 
 /*
  * The world's save file.
@@ -48,13 +48,59 @@ export class Storage {
     return this.data[key]
   }
 
+  /*
+   * Store the reference. Do NOT deep-clone here.
+   *
+   * This used to be `JSON.parse(JSON.stringify(value))` on every call, which
+   * is O(everything ever saved under that key) per player action. Every app
+   * here keeps one book of all players and re-sets the whole thing after each
+   * change, so one cat catching one fish cloned the entire fishing ledger,
+   * twice, synchronously, on the server's only busy thread. At the 37 players
+   * on the box today that is 8KB and free. At ten thousand it is 2.2MB a
+   * catch, and twenty people fishing stalls the world.
+   *
+   * The clone was there to stop later mutation of the caller's object leaking
+   * into the save. It never bought that: the caller holds the same book and
+   * mutates it again a moment later anyway, so the snapshot was stale before
+   * it was written. Persisting what the object looks like at write time is
+   * both cheaper and more current.
+   *
+   * The other thing the round-trip did was fail loudly on an unserialisable
+   * value. persist() below does that instead, per key, so one bad key cannot
+   * take every other key's save down with it.
+   */
   set(key, value) {
+    this.data[key] = value
+    this.save()
+  }
+
+  /*
+   * The save file as text, or null if it cannot be made.
+   *
+   * A cycle or a BigInt anywhere in the data made writeJson throw, which read
+   * as "failed to persist storage" once a second forever while every player's
+   * progress quietly stopped reaching disk. Now the bad key is named and
+   * dropped from that write, and everything else still saves.
+   */
+  #serialize() {
     try {
-      value = JSON.parse(JSON.stringify(value))
-      this.data[key] = value
-      this.save()
+      return JSON.stringify(this.data)
     } catch (err) {
-      console.error(err)
+      const safe = {}
+      for (const key in this.data) {
+        try {
+          JSON.stringify(this.data[key])
+          safe[key] = this.data[key]
+        } catch (e) {
+          console.error(`[storage] key "${key}" cannot be saved: ${e.message}`)
+        }
+      }
+      try {
+        return JSON.stringify(safe)
+      } catch (e) {
+        console.error('[storage] nothing could be serialised:', e.message)
+        return null
+      }
     }
   }
 
@@ -78,9 +124,11 @@ export class Storage {
     // filesystem, so a reader either sees the whole old file or the whole new
     // one — never the half-written middle.
     if (this.#closed) return
+    const text = this.#serialize()
+    if (text === null) return
     const tmp = this.#tmpName()
     try {
-      await fs.writeJson(tmp, this.data)
+      await fs.writeFile(tmp, text)
       // Checked again after the await, not just before it. flush() can land
       // while this write is in flight, and then this rename would drop an
       // older snapshot on top of the newer one flush just wrote — losing
@@ -104,8 +152,10 @@ export class Storage {
     try {
       this.#closed = true
       this.save.cancel()
+      const text = this.#serialize()
+      if (text === null) return
       const tmp = this.#tmpName()
-      fs.writeJsonSync(tmp, this.data)
+      fs.writeFileSync(tmp, text)
       fs.renameSync(tmp, this.file)
     } catch (err) {
       console.error('[storage] flush on shutdown failed:', err.message)
