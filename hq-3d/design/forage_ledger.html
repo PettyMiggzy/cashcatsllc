@@ -1,0 +1,488 @@
+<title>The Forager's Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --sage:#a9c4b6; --mint:#7ec8a9; --azure:#4fb3d9; --gold:#e8c25a;
+  --ink:#141c18; --ink-2:#3d4b44; --ink-3:#6b7a72;
+  --paper:#eceee8; --surface:#f6f7f3; --line:#cfd6cf; --line-2:#dfe4dd;
+  --accent:#8a6a12; --coin:#7a6212; --warn:#b4442c;
+  --tier:var(--sage);
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Source Sans 3",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e4ebe5; --ink-2:#a6b4ab; --ink-3:#7b8a81;
+  --paper:#0d1411; --surface:#151f1a; --line:#28352d; --line-2:#1e2a24;
+  --accent:#e8c25a; --coin:#e8c25a; --warn:#e8836a;
+}}
+:root[data-theme="dark"]{
+  --ink:#e4ebe5; --ink-2:#a6b4ab; --ink-3:#7b8a81;
+  --paper:#0d1411; --surface:#151f1a; --line:#28352d; --line-2:#1e2a24;
+  --accent:#e8c25a; --coin:#e8c25a; --warn:#e8836a;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:clamp(1.6rem,4vw,3.4rem) clamp(1.1rem,3vw,2.2rem) 5rem;
+  display:flex;flex-direction:column;gap:3.4rem}
+h1,h2,h3,h4{font-family:var(--display);text-wrap:balance;margin:0;font-weight:600}
+h1{font-size:clamp(2.3rem,5.4vw,3.5rem);line-height:1.04;letter-spacing:-.018em;font-weight:700}
+h2{font-size:clamp(1.45rem,2.7vw,1.95rem);letter-spacing:-.012em}
+h3{font-size:1.18rem;letter-spacing:-.006em}
+h4{font-size:1rem;font-weight:600}
+p{margin:0;max-width:66ch}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--ink-3);margin:0}
+.num,.coin{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.scroll{overflow-x:auto}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+/* masthead */
+.mast{display:flex;flex-direction:column;gap:1rem;
+  border-bottom:2px solid var(--ink);padding-bottom:1.6rem}
+.mast .sub{font-size:1.06rem;color:var(--ink-2);max-width:60ch}
+.anchor{font-family:var(--mono);font-size:.78rem;line-height:1.6;color:var(--ink-3);
+  border-left:2px solid var(--line);padding-left:.85rem;max-width:62ch}
+
+/* the finding */
+.finding{background:var(--surface);border:1px solid var(--line);
+  border-top:3px solid var(--warn);padding:clamp(1.2rem,3vw,2rem);
+  display:flex;flex-direction:column;gap:1.1rem}
+.finding h2{color:var(--warn)}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:.3rem}
+.verdict div{background:var(--surface);padding:.85rem .95rem;display:flex;flex-direction:column;gap:.15rem}
+.verdict dt{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.verdict dd{margin:0;font-family:var(--mono);font-size:1.5rem;font-weight:600;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.verdict .bad dd{color:var(--warn)}
+
+/* tier bands */
+.band{border:1px solid var(--line-2);border-left:4px solid var(--tier);background:var(--surface)}
+.bandhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:.85rem 1.6rem;
+  padding:.95rem 1.15rem;border-bottom:1px solid var(--line-2)}
+.bandhead h3{color:var(--ink);margin-right:auto}
+.stats{display:flex;flex-wrap:wrap;gap:0 1.3rem;margin:0}
+.stats div{display:flex;gap:.4rem;align-items:baseline}
+.stats dt{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.stats dd{margin:0;font-family:var(--mono);font-size:.9rem;font-weight:600;font-variant-numeric:tabular-nums}
+.gate{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--tier);color:var(--ink);padding:.2rem .55rem;white-space:nowrap}
+.gate.free{border-color:var(--line);color:var(--ink-3)}
+
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--line-2);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;white-space:nowrap}
+thead th:nth-child(4),thead th:nth-child(5){text-align:right}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+.guide th[scope=row]{font-weight:400;min-width:12rem}
+.sp{display:block;font-weight:600}
+.lat{font-family:var(--display);font-style:italic;font-size:.86rem;color:var(--ink-3)}
+.kind{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.hab{color:var(--ink-2);min-width:19rem}
+
+/* recipes */
+.recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr));gap:1px;background:var(--line-2)}
+.rec{background:var(--surface);padding:.85rem 1rem;display:flex;flex-direction:column;gap:.3rem}
+.rec h4{color:var(--ink)}
+.ing{font-family:var(--mono);font-size:.74rem;line-height:1.55;color:var(--ink-3)}
+
+/* generic sections */
+.sec{display:flex;flex-direction:column;gap:1.15rem}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.6rem;align-items:start}
+.panel{border:1px solid var(--line-2);background:var(--surface)}
+.panel > h3{padding:.85rem 1.15rem;border-bottom:1px solid var(--line-2);margin:0}
+.panel .scroll{max-height:26rem;overflow-y:auto}
+.panel table{font-size:.88rem}
+.panel th,.panel td{padding:.4rem .9rem}
+tr.mile td{background:color-mix(in srgb,var(--gold) 15%,transparent);font-weight:600}
+.coin{color:var(--coin);font-weight:600}
+.note{font-size:.88rem;color:var(--ink-2);max-width:64ch}
+ul{margin:0;padding-left:1.15rem;display:flex;flex-direction:column;gap:.45rem;max-width:64ch}
+li::marker{color:var(--tier,var(--ink-3))}
+.q{border-left:3px solid var(--gold);padding-left:1rem;display:flex;flex-direction:column;gap:.4rem}
+.q h4{font-size:1.02rem}
+footer{border-top:1px solid var(--line);padding-top:1.3rem;font-family:var(--mono);
+  font-size:.74rem;color:var(--ink-3);line-height:1.7}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">World of CashCats &middot; systems design</p>
+  <h1>The Forager&rsquo;s Ledger</h1>
+  <p class="sub">Foraging, Harvesting and Alchemy Mastery &mdash; twenty-four real species,
+  nineteen brews, and the arithmetic behind all three level curves.</p>
+  <p class="anchor">Anchored to the economy already running in <b>roomsrc/trades.js</b>:
+  Common&nbsp;3, Uncommon&nbsp;6, Rare&nbsp;14, Ultra&nbsp;70 CashCoin, shovel yields
+  &times;1.00&nbsp;/&nbsp;1.30&nbsp;/&nbsp;1.70&nbsp;/&nbsp;2.20. Every figure on this page is
+  computed by <b>design/forage_model.py</b> &mdash; change a constant there and the whole
+  document moves with it.</p>
+</header>
+
+<section class="finding">
+  <p class="eyebrow">Answer first</p>
+  <h2>You cannot max all three in a week &mdash; and you shouldn&rsquo;t want to</h2>
+  <p>The spec asks for two things that pull against each other: Energy that stops players
+  blitzing levels, <em>and</em> a full clear in seven days. Priced the obvious way &mdash; a
+  curve of 40&nbsp;&times;&nbsp;L<sup>1.55</sup> &mdash; maxing one skill takes
+  <b>575 days</b> of two-hour sessions, and a week gets you <b>1.22%</b> of the way.</p>
+  <dl class="verdict">
+    <div class="bad"><dt>First curve, days to max</dt><dd>575</dd></div>
+    <div class="bad"><dt>A week of that</dt><dd>1.22%</dd></div>
+    <div><dt>Curve now, days to max</dt><dd>41</dd></div>
+    <div><dt>Total XP, 1&nbsp;&rarr;&nbsp;100</dt><dd>139,850</dd></div>
+  </dl>
+  <p>So the curve is <b>8&nbsp;&times;&nbsp;L<sup>1.30</sup>&nbsp;+&nbsp;30</b>. Mastery is a
+  season-long goal rather than a weekend or a myth, and a first week is a real chunk of the
+  tree instead of a rounding error. If Ahmad genuinely wants seven days, the Energy gate has
+  to go &mdash; and then the content is finished in a week.</p>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">What a week actually buys</p>
+  <h2>Seven days, two hours a day</h2>
+  <p class="note">All three skills at once, energy split roughly 72/28 between foraging and
+  brewing, everything not brewed sold raw. Foraging gates the other two &mdash; it is the only
+  source of both seeds and brewing stock &mdash; which is why it trails them and why it is the
+  skill worth balancing around.</p>
+  <div class="two">
+    <div class="panel">
+      <h3>Day by day</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Day</th><th>Forage</th><th>Harvest</th><th>Alchemy</th><th>CashCoin</th></tr></thead>
+        <tbody><tr><td class="num">1</td><td class="num">13</td><td class="num">19</td><td class="num">15</td><td class="num coin">3,492</td></tr>
+<tr><td class="num">2</td><td class="num">18</td><td class="num">27</td><td class="num">22</td><td class="num coin">10,265</td></tr>
+<tr><td class="num">3</td><td class="num">22</td><td class="num">34</td><td class="num">26</td><td class="num coin">20,655</td></tr>
+<tr><td class="num">4</td><td class="num">25</td><td class="num">40</td><td class="num">31</td><td class="num coin">32,735</td></tr>
+<tr><td class="num">5</td><td class="num">27</td><td class="num">45</td><td class="num">34</td><td class="num coin">47,537</td></tr>
+<tr><td class="num">6</td><td class="num">30</td><td class="num">50</td><td class="num">38</td><td class="num coin">64,997</td></tr>
+<tr><td class="num">7</td><td class="num">32</td><td class="num">55</td><td class="num">41</td><td class="num coin">82,769</td></tr></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h3>The long run</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Week</th><th>Forage</th><th>Harvest</th><th>Alchemy</th><th>CashCoin</th></tr></thead>
+        <tbody><tr><td class="num">2</td><td class="num">44</td><td class="num">81</td><td class="num">57</td><td class="num coin">278,764</td></tr>
+<tr><td class="num">4</td><td class="num">60</td><td class="num">100</td><td class="num">80</td><td class="num coin">896,432</td></tr>
+<tr><td class="num">6</td><td class="num">71</td><td class="num">100</td><td class="num">97</td><td class="num coin">1,641,897</td></tr>
+<tr><td class="num">8</td><td class="num">81</td><td class="num">100</td><td class="num">100</td><td class="num coin">2,428,120</td></tr>
+<tr><td class="num">12</td><td class="num">97</td><td class="num">100</td><td class="num">100</td><td class="num coin">4,003,444</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <p class="note"><b>Week one ends at Forage 32, Harvest 55, Alchemy 41 and about 83,000
+  CashCoin.</b> Harvest and Alchemy finish around week four and week eight; foraging is still
+  climbing at week twelve. That ordering is deliberate &mdash; the skill that costs Energy
+  should be the one that takes the longest.</p>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">The field guide</p>
+  <h2>Twenty-four species</h2>
+  <p class="note">Real plants and fungi, with the habitats they actually grow in. Tier is set
+  by how hard the thing genuinely is to find: a blackberry is in every hedge; a white truffle
+  needs the right oak, the right soil and a trained animal. Prices sit either side of the live
+  tier values, which is the &ldquo;slight variation within their own tiers&rdquo; the spec asks
+  for. Grow times are minutes from planting to ready at Harvest&nbsp;1.</p>
+  
+<section class="band" style="--tier:var(--sage)">
+  <header class="bandhead">
+    <h3>Common</h3>
+    <dl class="stats">
+      <div><dt>Energy / pick</dt><dd>2</dd></div>
+      <div><dt>Forage XP</dt><dd>10</dd></div>
+      <div><dt>Harvest XP</dt><dd>4</dd></div>
+      <div><dt>Brew XP</dt><dd>18</dd></div>
+    </dl>
+    
+  </header>
+  <div class="scroll">
+  <table class="guide">
+    <thead><tr><th scope="col">Species</th><th scope="col">Kind</th>
+      <th scope="col">Where it grows</th><th scope="col">Sells</th><th scope="col">Grows in</th></tr></thead>
+    <tbody><tr><th scope="row"><span class="sp">Blackberry</span><em class="lat">Rubus fruticosus</em></th><td class="kind">Berry</td><td class="hab">Hedgerows and woodland edge, temperate Europe and N. America</td><td class="num">2</td><td class="num">8</td></tr>
+<tr><th scope="row"><span class="sp">Elderberry</span><em class="lat">Sambucus nigra</em></th><td class="kind">Berry</td><td class="hab">Riverbanks, scrub and hedgerow, across Europe</td><td class="num">3</td><td class="num">9</td></tr>
+<tr><th scope="row"><span class="sp">Field Mushroom</span><em class="lat">Agaricus campestris</em></th><td class="kind">Mushroom</td><td class="hab">Grazed grassland and pasture, late summer</td><td class="num">2</td><td class="num">7</td></tr>
+<tr><th scope="row"><span class="sp">Wood Ear</span><em class="lat">Auricularia auricula-judae</em></th><td class="kind">Mushroom</td><td class="hab">Dead and dying elder, year round</td><td class="num">3</td><td class="num">8</td></tr>
+<tr><th scope="row"><span class="sp">Hazelnut</span><em class="lat">Corylus avellana</em></th><td class="kind">Nut</td><td class="hab">Woodland understorey and hedgerow, Europe</td><td class="num">4</td><td class="num">10</td></tr>
+<tr><th scope="row"><span class="sp">Dandelion</span><em class="lat">Taraxacum officinale</em></th><td class="kind">Herb</td><td class="hab">Grassland, verges, disturbed ground — everywhere</td><td class="num">2</td><td class="num">6</td></tr></tbody>
+  </table>
+  </div>
+</section>
+<section class="band" style="--tier:var(--mint)">
+  <header class="bandhead">
+    <h3>Uncommon</h3>
+    <dl class="stats">
+      <div><dt>Energy / pick</dt><dd>4</dd></div>
+      <div><dt>Forage XP</dt><dd>26</dd></div>
+      <div><dt>Harvest XP</dt><dd>9</dd></div>
+      <div><dt>Brew XP</dt><dd>45</dd></div>
+    </dl>
+    
+  </header>
+  <div class="scroll">
+  <table class="guide">
+    <thead><tr><th scope="col">Species</th><th scope="col">Kind</th>
+      <th scope="col">Where it grows</th><th scope="col">Sells</th><th scope="col">Grows in</th></tr></thead>
+    <tbody><tr><th scope="row"><span class="sp">Bilberry</span><em class="lat">Vaccinium myrtillus</em></th><td class="kind">Berry</td><td class="hab">Acid heath and upland moor, northern Europe</td><td class="num">6</td><td class="num">18</td></tr>
+<tr><th scope="row"><span class="sp">Sea Buckthorn</span><em class="lat">Hippophae rhamnoides</em></th><td class="kind">Berry</td><td class="hab">Coastal dunes and shingle, salt-tolerant</td><td class="num">7</td><td class="num">20</td></tr>
+<tr><th scope="row"><span class="sp">Chanterelle</span><em class="lat">Cantharellus cibarius</em></th><td class="kind">Mushroom</td><td class="hab">Mossy beech and conifer woodland, mycorrhizal</td><td class="num">8</td><td class="num">22</td></tr>
+<tr><th scope="row"><span class="sp">Giant Puffball</span><em class="lat">Calvatia gigantea</em></th><td class="kind">Mushroom</td><td class="hab">Rich pasture and meadow edges, late summer</td><td class="num">5</td><td class="num">19</td></tr>
+<tr><th scope="row"><span class="sp">Sweet Chestnut</span><em class="lat">Castanea sativa</em></th><td class="kind">Nut</td><td class="hab">Warm deciduous woodland on acid soil</td><td class="num">6</td><td class="num">21</td></tr>
+<tr><th scope="row"><span class="sp">Wild Garlic</span><em class="lat">Allium ursinum</em></th><td class="kind">Herb</td><td class="hab">Damp deciduous woodland, spring carpets</td><td class="num">5</td><td class="num">17</td></tr></tbody>
+  </table>
+  </div>
+</section>
+<section class="band" style="--tier:var(--azure)">
+  <header class="bandhead">
+    <h3>Rare</h3>
+    <dl class="stats">
+      <div><dt>Energy / pick</dt><dd>9</dd></div>
+      <div><dt>Forage XP</dt><dd>65</dd></div>
+      <div><dt>Harvest XP</dt><dd>21</dd></div>
+      <div><dt>Brew XP</dt><dd>110</dd></div>
+    </dl>
+    
+  </header>
+  <div class="scroll">
+  <table class="guide">
+    <thead><tr><th scope="col">Species</th><th scope="col">Kind</th>
+      <th scope="col">Where it grows</th><th scope="col">Sells</th><th scope="col">Grows in</th></tr></thead>
+    <tbody><tr><th scope="row"><span class="sp">Cloudberry</span><em class="lat">Rubus chamaemorus</em></th><td class="kind">Berry</td><td class="hab">Arctic and subarctic peat bog, Scandinavia and Canada</td><td class="num">16</td><td class="num">42</td></tr>
+<tr><th scope="row"><span class="sp">Lingonberry</span><em class="lat">Vaccinium vitis-idaea</em></th><td class="kind">Berry</td><td class="hab">Boreal forest floor and tundra heath</td><td class="num">13</td><td class="num">38</td></tr>
+<tr><th scope="row"><span class="sp">Porcini</span><em class="lat">Boletus edulis</em></th><td class="kind">Mushroom</td><td class="hab">Mycorrhizal with oak, beech and pine; autumn</td><td class="num">18</td><td class="num">50</td></tr>
+<tr><th scope="row"><span class="sp">Morel</span><em class="lat">Morchella esculenta</em></th><td class="kind">Mushroom</td><td class="hab">Burn sites and disturbed ash and elm ground, spring</td><td class="num">17</td><td class="num">48</td></tr>
+<tr><th scope="row"><span class="sp">Pine Nut</span><em class="lat">Pinus pinea</em></th><td class="kind">Nut</td><td class="hab">Mediterranean stone pine, three years to ripen a cone</td><td class="num">12</td><td class="num">40</td></tr>
+<tr><th scope="row"><span class="sp">Arnica</span><em class="lat">Arnica montana</em></th><td class="kind">Herb</td><td class="hab">Mountain meadow on acid soil, protected in much of Europe</td><td class="num">15</td><td class="num">45</td></tr></tbody>
+  </table>
+  </div>
+</section>
+<section class="band" style="--tier:var(--gold)">
+  <header class="bandhead">
+    <h3>Ultra Rare</h3>
+    <dl class="stats">
+      <div><dt>Energy / pick</dt><dd>18</dd></div>
+      <div><dt>Forage XP</dt><dd>170</dd></div>
+      <div><dt>Harvest XP</dt><dd>55</dd></div>
+      <div><dt>Brew XP</dt><dd>280</dd></div>
+    </dl>
+    <span class="gate">Gold Shovel only</span>
+  </header>
+  <div class="scroll">
+  <table class="guide">
+    <thead><tr><th scope="col">Species</th><th scope="col">Kind</th>
+      <th scope="col">Where it grows</th><th scope="col">Sells</th><th scope="col">Grows in</th></tr></thead>
+    <tbody><tr><th scope="row"><span class="sp">Arctic Bramble</span><em class="lat">Rubus arcticus</em></th><td class="kind">Berry</td><td class="hab">Northern bog and damp meadow, far north only</td><td class="num">62</td><td class="num">110</td></tr>
+<tr><th scope="row"><span class="sp">Miracle Berry</span><em class="lat">Synsepalum dulcificum</em></th><td class="kind">Berry</td><td class="hab">West African forest understorey</td><td class="num">70</td><td class="num">120</td></tr>
+<tr><th scope="row"><span class="sp">White Truffle</span><em class="lat">Tuber magnatum</em></th><td class="kind">Mushroom</td><td class="hab">Oak and hazel roots, Piedmont; found only by trained animals</td><td class="num">85</td><td class="num">140</td></tr>
+<tr><th scope="row"><span class="sp">Matsutake</span><em class="lat">Tricholoma matsutake</em></th><td class="kind">Mushroom</td><td class="hab">Red pine forest, Japan and Korea; cannot be cultivated</td><td class="num">80</td><td class="num">135</td></tr>
+<tr><th scope="row"><span class="sp">Brazil Nut</span><em class="lat">Bertholletia excelsa</em></th><td class="kind">Nut</td><td class="hab">Undisturbed primary Amazon; needs its wild pollinator</td><td class="num">65</td><td class="num">115</td></tr>
+<tr><th scope="row"><span class="sp">Wild Ginseng</span><em class="lat">Panax quinquefolius</em></th><td class="kind">Herb</td><td class="hab">Appalachian hardwood understorey; decades to mature</td><td class="num">78</td><td class="num">130</td></tr></tbody>
+  </table>
+  </div>
+</section>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">Tools and the energy gate</p>
+  <h2>Shovels, Energy, and what a milestone is worth</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>Shovels</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Shovel</th><th>Yield</th><th>Can forage</th></tr></thead>
+        <tbody><tr><th scope="row">Common Shovel</th><td class="num">&times;1.00</td><td>Common, Uncommon, Rare</td></tr>
+<tr><th scope="row">Copper Shovel</th><td class="num">&times;1.30</td><td>Common, Uncommon, Rare</td></tr>
+<tr><th scope="row">Silver Shovel</th><td class="num">&times;1.70</td><td>Common, Uncommon, Rare</td></tr>
+<tr><th scope="row">Gold Shovel</th><td class="num">&times;2.20</td><td>Ultra Rare unlocked</td></tr></tbody></table></div>
+    </div>
+    <div class="sec">
+      <h3>Energy</h3>
+      <ul>
+        <li>Bar of <b>120</b>, refilling at <b>2 per minute</b> &mdash; a full bar in an hour,
+        whether you are online or not. That is what makes a two-hour session viable: you spend
+        the bar, log off, and it is full again tomorrow.</li>
+        <li>Two hours a day gives <b>360 Energy</b>: the 120 banked overnight plus 240 earned
+        while playing.</li>
+        <li>Costs rise faster than value &mdash; 2, 4, 9, 18 &mdash; so grinding Ultra Rare is
+        a choice with a price, not a free upgrade.</li>
+        <li><b>Every 25 Forage levels</b> one pick yields more for the same Energy:
+        &times;1.00, &times;1.25, &times;1.50, &times;1.75.</li>
+        <li><b>Harvesting costs no Energy.</b> Its XP is a quarter of foraging&rsquo;s &mdash;
+        otherwise it would be strictly better than the thing that supplies it and nobody would
+        forage twice.</li>
+        <li><b>Every 10 Harvest levels</b>: faster growth and more per patch. At 100 a patch
+        turns over in a little over half the time and returns roughly three times as much.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>Planting.</b> Foraging returns seed or spore 1:1. One seed plants one
+  patch, to a maximum of three patches of the same species. A patch grows one crop and then
+  stops &mdash; crops do not stack while you are offline, so each patch gives one banked crop
+  on login plus whatever cycles fit in the session. Modelling it as continuous regrowth had
+  twenty-four common patches yielding 1,080 harvests a day and took Harvest to level 98 inside
+  a week.</p>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">Alchemy Mastery</p>
+  <h2>Nineteen brews</h2>
+  <p class="note">Tier gating is the spec&rsquo;s, unchanged. Recipes for Rare and Ultra Rare
+  must be bought; Common and Uncommon need none. Every potion can be brewed at Alchemy&nbsp;1
+  once the recipe is owned &mdash; level buys <b>quantity and potency</b>, not access:
+  <b>one more potion per attempt every 10 levels</b> (1 at level&nbsp;1, 10 at level&nbsp;100)
+  and +6% potency per milestone. Ingredient lists are built so that
+  <b>all twenty-four species are used</b> &mdash; checked, not assumed.</p>
+  
+<section class="band" style="--tier:var(--sage)">
+  <header class="bandhead">
+    <h3>Common brews</h3>
+    <dl class="stats">
+      <div><dt>Ingredients each</dt><dd>3</dd></div>
+      <div><dt>Energy / brew</dt><dd>1</dd></div>
+      <div><dt>Sells for</dt><dd>14</dd></div>
+    </dl>
+    <span class="gate free">No recipe needed</span>
+  </header>
+  <div class="recs"><article class="rec"><h4>Health Potion</h4><p class="ing">Blackberry · Dandelion · Wood Ear</p></article>
+<article class="rec"><h4>Mana Potion</h4><p class="ing">Elderberry · Dandelion · Field Mushroom</p></article>
+<article class="rec"><h4>Attack &amp; Defence Tonic</h4><p class="ing">Hazelnut · Blackberry · Field Mushroom</p></article>
+<article class="rec"><h4>Mana Efficiency Draught</h4><p class="ing">Dandelion · Elderberry · Wood Ear</p></article>
+<article class="rec"><h4>Meme Attack &amp; Defence Tonic</h4><p class="ing">Hazelnut · Elderberry · Dandelion</p></article>
+<article class="rec"><h4>Critical Chance Elixir</h4><p class="ing">Wood Ear · Hazelnut · Blackberry</p></article>
+<article class="rec"><h4>Critical Damage Elixir</h4><p class="ing">Field Mushroom · Hazelnut · Wood Ear</p></article></div>
+</section>
+<section class="band" style="--tier:var(--mint)">
+  <header class="bandhead">
+    <h3>Uncommon brews</h3>
+    <dl class="stats">
+      <div><dt>Ingredients each</dt><dd>5</dd></div>
+      <div><dt>Energy / brew</dt><dd>2</dd></div>
+      <div><dt>Sells for</dt><dd>34</dd></div>
+    </dl>
+    <span class="gate free">No recipe needed</span>
+  </header>
+  <div class="recs"><article class="rec"><h4>Attack Amplitude Elixir</h4><p class="ing">Chanterelle · Sweet Chestnut · Bilberry · Blackberry · Hazelnut</p></article>
+<article class="rec"><h4>Defence Amplitude Elixir</h4><p class="ing">Giant Puffball · Sweet Chestnut · Sea Buckthorn · Wood Ear · Dandelion</p></article>
+<article class="rec"><h4>Meme Attack Amplitude Elixir</h4><p class="ing">Wild Garlic · Bilberry · Chanterelle · Elderberry · Hazelnut</p></article>
+<article class="rec"><h4>Meme Defence Amplitude Elixir</h4><p class="ing">Wild Garlic · Sea Buckthorn · Giant Puffball · Field Mushroom · Blackberry</p></article>
+<article class="rec"><h4>Haste Draught (attack speed)</h4><p class="ing">Bilberry · Wild Garlic · Sweet Chestnut · Dandelion · Elderberry</p></article></div>
+</section>
+<section class="band" style="--tier:var(--azure)">
+  <header class="bandhead">
+    <h3>Rare brews</h3>
+    <dl class="stats">
+      <div><dt>Ingredients each</dt><dd>8</dd></div>
+      <div><dt>Energy / brew</dt><dd>4</dd></div>
+      <div><dt>Sells for</dt><dd>95</dd></div>
+    </dl>
+    <span class="gate buy">Recipe costs 2,500 CashCoin</span>
+  </header>
+  <div class="recs"><article class="rec"><h4>Boss Slayer Elixir</h4><p class="ing">Porcini · Cloudberry · Arnica · Pine Nut · Chanterelle · Bilberry · Hazelnut · Blackberry</p></article>
+<article class="rec"><h4>Greater Health Elixir</h4><p class="ing">Cloudberry · Lingonberry · Morel · Arnica · Sweet Chestnut · Giant Puffball · Wood Ear · Dandelion</p></article>
+<article class="rec"><h4>Greater Mana Elixir</h4><p class="ing">Lingonberry · Morel · Pine Nut · Arnica · Wild Garlic · Sea Buckthorn · Elderberry · Field Mushroom</p></article>
+<article class="rec"><h4>Additional Damage Elixir</h4><p class="ing">Porcini · Pine Nut · Cloudberry · Morel · Chanterelle · Bilberry · Hazelnut · Wood Ear</p></article></div>
+</section>
+<section class="band" style="--tier:var(--gold)">
+  <header class="bandhead">
+    <h3>Ultra Rare brews</h3>
+    <dl class="stats">
+      <div><dt>Ingredients each</dt><dd>12</dd></div>
+      <div><dt>Energy / brew</dt><dd>7</dd></div>
+      <div><dt>Sells for</dt><dd>420</dd></div>
+    </dl>
+    <span class="gate buy">Recipe costs 18,000 CashCoin</span>
+  </header>
+  <div class="recs"><article class="rec"><h4>Memestone Resonance Elixir</h4><p class="ing">White Truffle · Wild Ginseng · Arctic Bramble · Matsutake · Porcini · Cloudberry · Arnica · Chanterelle · Bilberry · Sweet Chestnut · Hazelnut · Blackberry</p></article>
+<article class="rec"><h4>Swiftcast Elixir (casting duration)</h4><p class="ing">Matsutake · Miracle Berry · Wild Ginseng · Brazil Nut · Morel · Pine Nut · Lingonberry · Wild Garlic · Sea Buckthorn · Giant Puffball · Elderberry · Dandelion</p></article>
+<article class="rec"><h4>Coldsnap Elixir (skill cooldown)</h4><p class="ing">Brazil Nut · Arctic Bramble · White Truffle · Miracle Berry · Arnica · Porcini · Cloudberry · Chanterelle · Wild Garlic · Bilberry · Field Mushroom · Wood Ear</p></article></div>
+</section>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">The curve</p>
+  <h2>Levels 1 to 100</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>XP table &mdash; same curve for all three skills</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Level</th><th>XP for it</th><th>Cumulative</th></tr></thead>
+        <tbody><tr><td class="num">2</td><td class="num">40</td><td class="num">40</td></tr>
+<tr><td class="num">3</td><td class="num">50</td><td class="num">90</td></tr>
+<tr><td class="num">4</td><td class="num">60</td><td class="num">150</td></tr>
+<tr><td class="num">5</td><td class="num">80</td><td class="num">230</td></tr>
+<tr><td class="num">6</td><td class="num">90</td><td class="num">320</td></tr>
+<tr><td class="num">7</td><td class="num">110</td><td class="num">430</td></tr>
+<tr><td class="num">8</td><td class="num">130</td><td class="num">560</td></tr>
+<tr><td class="num">9</td><td class="num">150</td><td class="num">710</td></tr>
+<tr><td class="num">10</td><td class="num">170</td><td class="num">880</td></tr>
+<tr><td class="num">15</td><td class="num">280</td><td class="num">2,040</td></tr>
+<tr><td class="num">20</td><td class="num">400</td><td class="num">3,780</td></tr>
+<tr class="mile"><td class="num">25</td><td class="num">530</td><td class="num">6,150</td></tr>
+<tr><td class="num">30</td><td class="num">670</td><td class="num">9,210</td></tr>
+<tr><td class="num">35</td><td class="num">810</td><td class="num">12,970</td></tr>
+<tr><td class="num">40</td><td class="num">970</td><td class="num">17,490</td></tr>
+<tr><td class="num">45</td><td class="num">1,130</td><td class="num">22,800</td></tr>
+<tr class="mile"><td class="num">50</td><td class="num">1,290</td><td class="num">28,920</td></tr>
+<tr><td class="num">55</td><td class="num">1,460</td><td class="num">35,880</td></tr>
+<tr><td class="num">60</td><td class="num">1,630</td><td class="num">43,690</td></tr>
+<tr><td class="num">65</td><td class="num">1,810</td><td class="num">52,400</td></tr>
+<tr><td class="num">70</td><td class="num">2,000</td><td class="num">62,020</td></tr>
+<tr class="mile"><td class="num">75</td><td class="num">2,180</td><td class="num">72,560</td></tr>
+<tr><td class="num">80</td><td class="num">2,370</td><td class="num">84,050</td></tr>
+<tr><td class="num">85</td><td class="num">2,570</td><td class="num">96,500</td></tr>
+<tr><td class="num">90</td><td class="num">2,770</td><td class="num">109,950</td></tr>
+<tr><td class="num">95</td><td class="num">2,970</td><td class="num">124,400</td></tr>
+<tr class="mile"><td class="num">100</td><td class="num">3,170</td><td class="num">139,850</td></tr></tbody></table></div>
+    </div>
+    <div class="sec">
+      <h3>Why one curve</h3>
+      <p class="note">Three separate curves would be three sets of numbers to balance against
+      each other every time a tier price changed. One curve, with the XP <em>per action</em> doing
+      the differentiating, keeps the tuning in one place: foraging pays 10&nbsp;/&nbsp;26&nbsp;/&nbsp;65&nbsp;/&nbsp;170,
+      harvesting a quarter of that, brewing 18&nbsp;/&nbsp;45&nbsp;/&nbsp;110&nbsp;/&nbsp;280.</p>
+      <p class="note">Milestone levels are highlighted. Foraging pays out at every 25;
+      harvesting and alchemy at every 10, which is why those two feel like they are moving
+      even while foraging is the long grind.</p>
+      <h3>Levels 1&ndash;25 are one session</h3>
+      <p class="note">6,150 XP cumulative to reach 25 &mdash; about ninety minutes on Rare
+      nodes. That is deliberate: the first milestone has to land inside the first sitting or
+      the system reads as a wall.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="eyebrow">Decisions for Ahmad</p>
+  <h2>Four things I had to choose</h2>
+  <div class="two">
+    <div class="q"><h4>The week is not achievable</h4>
+      <p class="note">And an achievable one would end the content. I picked six weeks to a
+      maxed forager. Say the word and I&rsquo;ll move it &mdash; it is one coefficient.</p></div>
+    <div class="q"><h4>One XP curve, not three</h4>
+      <p class="note">XP per action differentiates the skills instead. Cheaper to balance and
+      it keeps the three progress bars legible against each other.</p></div>
+    <div class="q"><h4>Harvest XP is a quarter of forage</h4>
+      <p class="note">Harvesting costs no Energy. At parity it would dominate and foraging
+      would exist only as a seed tap.</p></div>
+    <div class="q"><h4>Ultra Rare is six species, not two</h4>
+      <p class="note">Three ultra recipes need twelve ingredients each. With a thin top tier
+      the Gold Shovel becomes a bottleneck rather than a reward.</p></div>
+  </div>
+</section>
+
+<footer>
+  Generated from design/forage_model.py &middot; 24 species &middot; 19 recipes &middot;
+  139,850 XP per skill &middot; prices anchored to roomsrc/trades.js<br>
+  Not yet implemented &mdash; this is the plan, not the build. The Grove currently ships six
+  forage kinds and no Energy, planting or Alchemy.
+</footer>
+
+</div>
