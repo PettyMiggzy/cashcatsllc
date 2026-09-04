@@ -822,21 +822,124 @@ jetty(DX + 16, 16, 4.2)
 /*
  * The harbour front.
  *
- * modular_urban_apartments_facade is not a building, it is a kit — 175 meshes
- * laid out across 51 metres, the way an asset pack presents its parts. Which
- * is also, exactly, what a waterfront is: a row of frontages side by side. So
- * it goes in as authored rather than being split up and reassembled, and one
- * model load buys the whole terrace.
+ * WHAT WAS HERE, AND WHY IT WENT.
  *
- * This is the first real architecture standing where a player actually is. The
- * Kenney city ring stays where it is, out at 125 metres, because at that
- * distance nothing it lacks is visible and it costs almost nothing.
+ * The Poly Haven modular_urban_apartments_facade -- 175 meshes across 51 metres
+ * of modern apartment terrace: grey render, balconies, shopfronts. The
+ * note that used to sit here argued that "a waterfront is a row of frontages
+ * side by side", which is true of a CITY waterfront and false of this one. This
+ * harbour has a timber watchtower, a wrecked ship, palm trees and a pile of
+ * pirate crates, and a block of flats behind it read as a different game.
+ *
+ * Detail was never the problem with it -- it is the best-made asset in the
+ * world. It was the wrong building.
+ *
+ * These are warehouses: stone footing, timber frame with pale infill, cargo
+ * doors big enough for a barrel, shuttered loading hatches on the upper floor
+ * and a hoist beam over the door. Gable end to the water, which is how a
+ * quayside terrace is actually built -- narrow frontage, deep plan, because
+ * quay frontage is the expensive part.
+ *
+ * Prims, because no kit here has a warehouse. Same approach as the campus
+ * frontages: the parts that repeat -- posts, braces, shutters -- are identical
+ * geometry across all five, so they collapse into single instanced draws.
  */
-// Measured, not eyeballed: the kit's bbox runs y -2..15 and z -6.2..0.4, so
-// its origin is two metres above its own footing and it builds backwards from
-// there. At y=0 it stood sunk to the shins; at y=2 it sits on the ground with
-// its frontage on z, facing the water the way a quayside terrace does.
-model('hq_modular_urban_apartments_facade', [DX, 2.0, SHORE_Z - 8], 0, 1.0, { near: [DX, SHORE_Z - 8, 95] })
+const WH_STONE = '#bdb6a4'
+const WH_WALL  = '#e3d9c1'
+const WH_TIMB  = '#5b452c'
+const WH_DOOR  = '#3d2f1d'
+const WH_ROOF  = '#8c5a3c'
+
+function warehouse(cx, cz, w, d, storeys, roofCol) {
+  const SH = 3.4                          // storey height
+  const h = SH * storeys
+  const y0 = 0.9                          // top of the stone footing
+
+  // stone footing, so the building meets the quay at an edge
+  prim('box', [w + 0.5, y0, d + 0.5], WH_STONE, [cx, y0 / 2, cz],
+       { tex: 'paving', rough: 0.92 })
+
+  // the body
+  prim('box', [w, h, d], WH_WALL, [cx, y0 + h / 2, cz], { tex: 'plaster', rough: 0.95 })
+
+  // corner posts and a rail at every floor -- this is what makes it timber
+  // framed rather than a painted box
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      prim('box', [0.34, h, 0.34], WH_TIMB,
+           [cx + sx * (w / 2 - 0.17), y0 + h / 2, cz + sz * (d / 2 - 0.17)], { tex: 'wood', rough: 0.9 })
+    }
+    // a brace up each flank, one per storey
+    for (let s = 0; s < storeys; s++) {
+      prim('box', [0.22, SH * 0.92, 0.22], WH_TIMB,
+           [cx + sx * (w / 2 - 0.02), y0 + SH * s + SH / 2, cz + d * 0.18],
+           { rotZ: sx * 0.30, tex: 'wood', rough: 0.9 })
+    }
+  }
+  for (let s = 1; s <= storeys; s++) {
+    prim('box', [w + 0.12, 0.26, d + 0.12], WH_TIMB, [cx, y0 + SH * s, cz], { tex: 'wood', rough: 0.9 })
+  }
+
+  // cargo door on the gable end, facing the water (+Z)
+  const dw = Math.min(2.9, w * 0.44)
+  const zf = cz + d / 2 + 0.06
+  prim('box', [dw + 0.5, 3.5, 0.16], WH_TIMB, [cx, y0 + 1.75, zf], { tex: 'wood', rough: 0.9 })
+  prim('box', [dw, 3.2, 0.14], WH_DOOR, [cx, y0 + 1.6, zf + 0.06], { tex: 'wood', rough: 0.88 })
+  prim('box', [0.1, 3.2, 0.1], WH_TIMB, [cx, y0 + 1.6, zf + 0.14], { rough: 0.9 })
+  prim('cylinder', [0.09, 0.09, 0.3], '#8d7b52', [cx + dw * 0.32, y0 + 1.6, zf + 0.18],
+       { rotX: Math.PI / 2, metal: 0.65, rough: 0.45 })
+
+  // shuttered loading hatches above it, one per upper storey
+  for (let s = 1; s < storeys; s++) {
+    const yy = y0 + SH * s + 1.5
+    prim('box', [1.9, 1.7, 0.14], WH_DOOR, [cx, yy, zf + 0.04], { tex: 'wood', rough: 0.9 })
+    for (const sx of [-1, 1])
+      prim('box', [0.9, 1.7, 0.12], WH_TIMB, [cx + sx * 0.52, yy, zf + 0.12], { tex: 'wood', rough: 0.88 })
+  }
+
+  // gable, stepped -- five slabs of falling width read as a pitch from the
+  // ground and cost nothing next to a real triangle
+  const rise = w * 0.42
+  for (let i = 0; i < 5; i++) {
+    const t = (i + 0.5) / 5
+    prim('box', [w * (1 - t) + 0.2, rise / 5 + 0.02, d + 0.1], WH_WALL,
+         [cx, y0 + h + rise * t - rise / 10, cz], { tex: 'plaster', rough: 0.95 })
+  }
+  // the two roof slopes over it
+  const pitch = Math.atan2(rise, w / 2)
+  const slope = Math.hypot(rise, w / 2)
+  for (const sx of [-1, 1]) {
+    prim('box', [slope, 0.22, d + 0.7], roofCol || WH_ROOF,
+         [cx + sx * w / 4, y0 + h + rise / 2, cz], { rotZ: -sx * pitch, tex: 'wood', rough: 0.9 })
+  }
+
+  // hoist beam out over the door, which is the detail that says warehouse
+  prim('box', [0.24, 0.24, 1.9], WH_TIMB, [cx, y0 + h + rise * 0.52, cz + d / 2 + 0.7],
+       { tex: 'wood', rough: 0.9 })
+  prim('cylinder', [0.16, 0.16, 0.22], '#6f6250', [cx, y0 + h + rise * 0.42, cz + d / 2 + 1.4],
+       { rotX: Math.PI / 2, metal: 0.6, rough: 0.5 })
+
+  // one collider for the lot
+  prim('box', [w, h + rise, d], '#ffffff', [cx, (h + rise) / 2, cz],
+       { physics: 'static', opacity: 0 })
+}
+
+/*
+ * Five of them along the shore, narrow frontage to the water. Widths and
+ * storeys vary because a terrace where every unit matches is a wall, and the
+ * roofs take three related browns so the row reads as separate buildings
+ * that grew up next to each other.
+ */
+const WH_ROW = [
+  [-21.5, 8.4, 3, '#8c5a3c'],
+  [-12.4, 7.2, 2, '#7d5236'],
+  [ -3.6, 9.0, 3, '#966343'],
+  [  5.4, 7.6, 2, '#8c5a3c'],
+  [ 14.6, 8.8, 3, '#7d5236'],
+]
+for (const [dx, ww, st, rc] of WH_ROW) {
+  warehouse(DX + dx, SHORE_Z - 10.5, ww, 12.5, st, rc)
+}
 
 model('p_towerBase', [DX + 8.5, 0, SHORE_Z - 4], -0.3, PIR)
 model('p_towerRoof', [DX + 8.5, 4.6, SHORE_Z - 4], -0.3, PIR)

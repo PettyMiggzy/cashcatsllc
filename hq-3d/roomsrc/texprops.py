@@ -6,6 +6,7 @@ the world asset store, then handed to each app as props so a script can do
 `props.plaster.url` without knowing any hashes.
 """
 import hashlib
+import re
 import os
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -367,14 +368,22 @@ def hq_used(*scripts):
     fort, pier and furniture that had been fetched for a look and left in. A
     hand-maintained list would drift again the first time something was moved,
     so this greps the source instead: the world's own code is the list.
+
+    Comments are stripped before the grep. Naming a model in a note about why
+    it was REMOVED would otherwise keep shipping it — which is exactly what
+    nearly happened when the apartment facade came off the harbour front: the
+    comment explaining its removal still contained its key, and 3.4MB would
+    have stayed in the blueprint for a building that is no longer placed.
     """
-    import re
     keys = set()
     for sc in scripts:
         try:
-            keys |= set(re.findall(r'hq_[A-Za-z0-9_]+', open(sc).read()))
+            src = open(sc).read()
         except OSError:
-            pass
+            continue
+        src = re.sub(r'/\*.*?\*/', ' ', src, flags=re.S)      # block comments
+        src = re.sub(r'(?m)//.*$', ' ', src)                   # line comments
+        keys |= set(re.findall(r'hq_[A-Za-z0-9_]+', src))
     return keys
 
 
