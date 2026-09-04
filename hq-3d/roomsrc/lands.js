@@ -897,19 +897,21 @@ function warehouse(cx, cz, w, d, storeys, roofCol) {
       prim('box', [0.9, 1.7, 0.12], WH_TIMB, [cx + sx * 0.52, yy, zf + 0.12], { tex: 'wood', rough: 0.88 })
   }
 
-  // gable, stepped -- five slabs of falling width read as a pitch from the
-  // ground and cost nothing next to a real triangle
-  const rise = w * 0.42
-  for (let i = 0; i < 5; i++) {
-    const t = (i + 0.5) / 5
-    prim('box', [w * (1 - t) + 0.2, rise / 5 + 0.02, d + 0.1], WH_WALL,
-         [cx, y0 + h + rise * t - rise / 10, cz], { tex: 'plaster', rough: 0.95 })
+  // The gable is a stepped stack, because there is no triangular prim. Five
+  // steps read as a literal staircase against the sky from the beach; twelve
+  // reads as a pitch. The roof slabs are also deeper and thicker than the
+  // rise so they cover the step edges instead of letting them show through.
+  const rise = w * 0.38
+  const STEPS = 12
+  for (let i = 0; i < STEPS; i++) {
+    const t = (i + 0.5) / STEPS
+    prim('box', [w * (1 - t) + 0.16, rise / STEPS + 0.03, d + 0.1], WH_WALL,
+         [cx, y0 + h + rise * t - rise / (STEPS * 2), cz], { tex: 'plaster', rough: 0.95 })
   }
-  // the two roof slopes over it
   const pitch = Math.atan2(rise, w / 2)
-  const slope = Math.hypot(rise, w / 2)
+  const slope = Math.hypot(rise, w / 2) + 0.35
   for (const sx of [-1, 1]) {
-    prim('box', [slope, 0.22, d + 0.7], roofCol || WH_ROOF,
+    prim('box', [slope, 0.34, d + 1.0], roofCol || WH_ROOF,
          [cx + sx * w / 4, y0 + h + rise / 2, cz], { rotZ: -sx * pitch, tex: 'wood', rough: 0.9 })
   }
 
@@ -937,8 +939,12 @@ const WH_ROW = [
   [  5.4, 7.6, 2, '#8c5a3c'],
   [ 14.6, 8.8, 3, '#7d5236'],
 ]
+// SHORE_Z - 14.5, not -10.5. The water prim starts at z 36 and the row's
+// front face was at 33.75 -- two and a quarter metres of quay, so the
+// buildings read as standing in the sea. Six and a quarter gives them a
+// frontage to load barrels across.
 for (const [dx, ww, st, rc] of WH_ROW) {
-  warehouse(DX + dx, SHORE_Z - 10.5, ww, 12.5, st, rc)
+  warehouse(DX + dx, SHORE_Z - 14.5, ww, 12.5, st, rc)
 }
 
 model('p_towerBase', [DX + 8.5, 0, SHORE_Z - 4], -0.3, PIR)
@@ -1168,9 +1174,23 @@ prim('cone', [0.26, 0.62], '#ff7a2a', [SX, 0.34, CAMP_Z + 9], { emissive: '#ff9a
  */
 const QUAY_Z = SHORE_Z - 3
 
-/* the quay wall along the shore, so land meets water at an edge */
-for (let i = 0; i < 16; i++)
-  model('t_block', [DX - 26 + i * 3.6, 0, QUAY_Z + 1.6], 0, 2.4)
+/*
+ * The quay wall, where land meets water at an edge.
+ *
+ * This was sixteen t_block models at scale 2.4, and from the beach they read
+ * as a row of white boards stood on end -- the kit block is a smooth pale
+ * cube and nothing about it says harbour masonry. One long prim with a coping
+ * course on top does the job, takes the paving texture, and costs one draw
+ * instead of sixteen model loads.
+ */
+prim('box', [58, 1.5, 2.2], '#b3ac99', [DX, 0.55, QUAY_Z + 1.6],
+     { tex: 'paving', rough: 0.95 })
+prim('box', [58.6, 0.28, 2.7], '#cfc9b8', [DX, 1.36, QUAY_Z + 1.6],
+     { tex: 'paving', rough: 0.9 })
+// bollards along it, so the edge has a rhythm and something to tie to
+for (let i = 0; i < 9; i++)
+  prim('cylinder', [0.22, 0.26, 0.75], '#4a4038',
+       [DX - 24 + i * 6, 1.72, QUAY_Z + 1.6], { metal: 0.35, rough: 0.7 })
 
 /* the warehouse behind it */
 // The two Kenney cottages that used to stand here are gone: the real terrace
