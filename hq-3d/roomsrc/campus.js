@@ -99,15 +99,19 @@ function planter(x,z){
 for(const x of [-20,-13,13,20]) planter(x,19.5)
 
 /* ---------------- nameplates over each door ---------------- */
-function plate(x,z,title,sub){
-  const u=panel(560,150,0.006,[x,4.9,z],0,'#0e1f18',GOLD)
+function plate(x,z,y,title,sub){
+  const u=panel(560,150,0.006,[x,y,z],0,'#0e1f18',GOLD)
   u.alignItems='center'
   text(u,title,54,GOLD_L,700)
   text(u,sub,26,DIM,400,6)
 }
-plate(-22, 6.3,  'THE HOMESTEAD', 'land · housing · farming')
-plate(  0, 8.3,  'THE FILING OFFICE', 'reception · swap · rewards')
-plate( 21, 5.8,  'THE WORKSHOP',  'gear · materials · NFT tiers')
+// Mounted ON the frontage, in the frieze between the window heads and the
+// cornice. These used to hang against a bare room wall at z+0.3; the facade
+// now stands 0.9m proud of that, so at the old depth all three signs were
+// inside the masonry with only their glow showing through.
+plate(-22, 7.05, 4.55, 'THE HOMESTEAD', 'land · housing · farming')
+plate(  0, 9.05, 4.55, 'THE FILING OFFICE', 'reception · swap · rewards')
+plate( 21, 6.55, 4.55, 'THE WORKSHOP',  'gear · materials · NFT tiers')
 
 /* ---------------- the directory, facing spawn ---------------- */
 const dir = panel(820,620,0.0052,[-9.5,2.9,15.0],0.35,'#0e1f18',GOLD)
@@ -195,6 +199,137 @@ app.on('update', dt => {
   chainSince += dt
   if(chainSince >= 30){ chainSince = 0; chainRefresh() }
 })
+
+/* ================================================================== *
+ * FRONTAGES                                                           *
+ * ==================================================================
+ *
+ * The three buildings on the plaza had no outside.
+ *
+ * Each room -- homestead.js, workshop.js, filing_office.js -- draws its own
+ * four walls, and what you saw from spawn was the BACK of one of them: a flat
+ * beige slab 15 metres wide with a wainscot stripe across it. Three of them in
+ * a row, with a nameplate floating in front. That is the first thing every
+ * player sees, and it is the "box shaped objects with no detail" complaint in
+ * its purest form -- there was literally no facade, not a bad one.
+ *
+ * This draws one. campus.js is the right home for it: the header has always
+ * said this file "only ever draws the outside", so a frontage here can be
+ * changed without opening a room.
+ *
+ * It is prims, not kit models. The town kit is a 2.7-scale cottage kit and
+ * these are 13-16 metre civic buildings -- a cottage wall panel repeated
+ * across one would read as a terrace, not a hall. Prims also take a texture,
+ * and plaster/marbleWall/wood are already in the atlas.
+ *
+ * The parts, and why each one is there:
+ *   plinth    a base course, so the wall meets the ground at an edge rather
+ *             than just stopping. Nothing looks more like a game object than
+ *             a wall with no footing.
+ *   pilasters vertical piers at intervals. These are what break a 16m
+ *             expanse into bays -- the single biggest reason the old wall
+ *             read as a slab was that nothing divided it.
+ *   windows   a recess, a dark pane, a sill and a head. Four parts each,
+ *             because a painted rectangle reads as a sticker.
+ *   door      a wider surround with a pediment, so the way in is obvious
+ *             from across the plaza without needing the sign to say so.
+ *   cornice   a projecting band at the top, and a parapet above it. The
+ *             projection is what casts the shadow line that tells you the
+ *             building has a top.
+ */
+const F_STONE  = '#d6cfbd'      // dressed stone: plinth, pilasters, cornice
+const F_STONE_D= '#b9b19c'
+const F_WALL   = '#e6dfc9'      // the infill between the piers
+const F_GLASS  = '#22323a'
+const F_TRIM   = GOLD_D
+
+function frontage(cx, zFront, width, bays, doorBay) {
+  const H = 5.2                       // a little taller than the room behind
+  const half = width / 2
+  const bayW = width / bays
+
+  /*
+   * zFront is the CENTRE of the room's own front wall, and that wall is 0.25
+   * thick -- so its outer face is at zFront + 0.125. The infill has to start
+   * beyond that or the two co-planar surfaces z-fight, which shows up as a
+   * flickering stripe across the whole building and looks like a broken
+   * texture rather than a modelling mistake.
+   *
+   * Measured on the Homestead before this was fixed: room wall 5.875..6.125,
+   * infill 5.925..6.275 -- twenty centimetres of overlap, on all three.
+   */
+  const WALL_T = 0.35
+  const z = zFront + 0.125 + WALL_T / 2 + 0.02
+
+  // the infill wall, set back behind the piers
+  prim('box', [width, H, WALL_T], F_WALL, [cx, H / 2, z],
+       { tex: 'plaster', rough: 0.95 })
+
+  // plinth
+  prim('box', [width + 0.7, 0.75, 0.95], F_STONE, [cx, 0.375, z + 0.30],
+       { tex: 'marbleWall', rough: 0.85 })
+  prim('box', [width + 0.9, 0.16, 1.15], F_STONE_D, [cx, 0.78, z + 0.30], { rough: 0.9 })
+
+  // pilasters at every bay edge
+  for (let i = 0; i <= bays; i++) {
+    const x = cx - half + i * bayW
+    prim('box', [0.62, H - 0.7, 0.62], F_STONE, [x, 0.75 + (H - 0.7) / 2, z + 0.30],
+         { tex: 'marbleWall', rough: 0.85 })
+    prim('box', [0.86, 0.22, 0.86], F_STONE_D, [x, H - 0.05, z + 0.30], { rough: 0.9 })   // capital
+    prim('box', [0.8, 0.2, 0.8], F_STONE_D, [x, 0.86, z + 0.30], { rough: 0.9 })          // base
+  }
+
+  // bays: a window in each, except the one the door is in
+  for (let b = 0; b < bays; b++) {
+    const x = cx - half + bayW * (b + 0.5)
+    if (b === doorBay) {
+      const dw = Math.min(3.6, bayW * 0.72)
+      prim('box', [dw + 1.1, 4.0, 0.5], F_STONE, [x, 2.0, z + 0.36],
+           { tex: 'marbleWall', rough: 0.85 })                       // surround
+      // #2a2118 was near-black and read as a doorway with nothing behind it.
+      // A door wants to look like timber, and the panels are what say "door"
+      // rather than "hole".
+      prim('box', [dw, 3.4, 0.3], '#5a4128', [x, 1.7, z + 0.58], { tex: 'wood', rough: 0.9 })
+      for (const sy of [-0.72, 0.72]) {
+        for (const sx of [-1, 1]) {
+          prim('box', [dw * 0.34, 1.15, 0.06], '#6d5033',
+               [x + sx * dw * 0.22, 1.7 + sy, z + 0.75], { tex: 'wood', rough: 0.9 })
+        }
+      }
+      prim('box', [0.14, 0.14, 0.22], F_TRIM, [x + dw * 0.34, 1.75, z + 0.8],
+           { metal: 0.8, rough: 0.3 })                                   // handle
+      prim('box', [dw + 0.3, 0.16, 0.62], F_TRIM, [x, 3.52, z + 0.50], { metal: 0.7, rough: 0.4 })
+      // pediment: two ramps meeting, which is cheaper than a real triangle
+      for (const s of [-1, 1]) {
+        prim('box', [dw * 0.62, 0.2, 0.55], F_STONE_D,
+             [x + s * dw * 0.28, 3.95, z + 0.46], { rotZ: s * 0.42, rough: 0.9 })
+      }
+      continue
+    }
+    const ww = Math.min(2.2, bayW * 0.5)
+    prim('box', [ww + 0.5, 3.0, 0.28], F_STONE_D, [x, 2.7, z + 0.30], { rough: 0.9 })  // recess
+    prim('box', [ww, 2.5, 0.14], F_GLASS, [x, 2.7, z + 0.46], { rough: 0.12, metal: 0.55 })
+    prim('box', [ww + 0.7, 0.2, 0.5], F_STONE, [x, 1.32, z + 0.40], { rough: 0.88 })   // sill
+    prim('box', [ww + 0.6, 0.18, 0.42], F_TRIM, [x, 4.08, z + 0.38], { metal: 0.7, rough: 0.4 })
+    // a mullion, so the pane is a window and not a dark rectangle
+    prim('box', [0.11, 2.5, 0.18], F_STONE, [x, 2.7, z + 0.50], { rough: 0.9 })
+    prim('box', [ww, 0.11, 0.18], F_STONE, [x, 2.7, z + 0.50], { rough: 0.9 })
+  }
+
+  // cornice and parapet
+  prim('box', [width + 1.2, 0.38, 1.25], F_STONE, [cx, H + 0.05, z + 0.28],
+       { tex: 'marbleWall', rough: 0.85 })
+  prim('box', [width + 0.8, 0.55, 0.75], F_WALL, [cx, H + 0.5, z],
+       { tex: 'plaster', rough: 0.95 })
+  prim('box', [width + 1.0, 0.14, 0.9], F_TRIM, [cx, H + 0.82, z], { metal: 0.75, rough: 0.35 })
+}
+
+// Doors face +Z onto the plaza; the bay counts are chosen so a bay lands
+// roughly 3.5m wide on each, which is what makes the three read as one street
+// rather than three unrelated sheds.
+frontage(-22, 6.0, 15.4, 4, 1)      // the Homestead
+frontage(  0, 8.0, 16.4, 5, 2)      // the Filing Office, door dead centre
+frontage( 21, 5.5, 13.4, 4, 2)      // the Workshop
 
 /* ---------------- the cast, out on the plaza ----------------
  * The protagonists, standing where everyone walks in. Standee planes rather
