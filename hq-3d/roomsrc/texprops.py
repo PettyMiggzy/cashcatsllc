@@ -123,6 +123,14 @@ def avatars(names=None):
 # Keyed m_<name> so a script can say props.m_towerA.url without knowing which
 # pack it came from or what the file is called.
 MODELS = {
+    # THE VIP FLOOR. Hand-picked from Sketchfab rather than fetched, because
+    # there is no CC0 casino pack -- Kenney's boardgame-pack is 2D sprites and
+    # nothing else close exists. These three are CC-BY-4.0, so they are
+    # committed (no script can re-download them) and credited both in
+    # packs/casino/CREDITS.md and on the wall of the room itself.
+    'v_roulette':   'casino/roulette-wheel.glb',
+    'v_chandelier': 'casino/chandelier.glb',
+
     # The bestiary. cube-pets is a set of chunky low-poly animals, which is
     # exactly the shape Ahmad's spec wants: a boss is one of these at scale,
     # and its chibi is the same model small. "The chibification of the boss

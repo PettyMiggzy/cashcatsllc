@@ -74,9 +74,12 @@ ok('and a winning hand at the high table', led().H.gold === hGold)
 ok('and told why', /10,000,000/.test(say('nH')), say('nH'))
 
 /* ---- stakes are always whole coins ---- */
+// Roulette's 2x, 3x and 36x cannot produce a fraction at any stake at all.
+// 1.9x on the dice is the only multiplier here that can, and it is the whole
+// reason the ladder is in twenties.
 const STAKES = [40, 200, 1000, 5000, 25000]
 let ragged = []
-for (const s of STAKES) for (const m of [1.9, 2.85, 11.4]) {
+for (const s of STAKES) for (const m of [1.9, 2, 3, 36]) {
   if (Math.abs(s * m - Math.round(s * m)) > 1e-9) ragged.push(s + ' x ' + m)
 }
 ok('every stake pays a whole number at every multiplier', ragged.length === 0, ragged.join(', '))
@@ -105,7 +108,7 @@ const deltaOf = (vals, fire) => {
   return led().V.coin - before
 }
 // d6 is 1 + floor(r * 6): 0.9 rolls a six, 0.0 rolls a one.
-// A pocket is 1 + floor(r * 12): 0.5 lands on 7, 0.0 lands on 1.
+// A pocket is floor(r * 37), so (n + 0.5) / 37 lands squarely in pocket n.
 ok('dice: a win pays 1.9x, so 40 returns 76',
    deltaOf([0.9, 0.9, 0.0, 0.0], () => handlers.vip_dice({s:0}, 'nV')) === 36)
 ok('dice: a loss costs the stake and no more',
@@ -113,16 +116,31 @@ ok('dice: a loss costs the stake and no more',
 ok('dice: a tie returns the stake untouched',
    deltaOf([0.5, 0.5, 0.5, 0.5], () => handlers.vip_dice({s:0}, 'nV')) === 0)
 
-ok('wheel: Gold on pocket 7 pays 1.9x',
-   deltaOf([0.5], () => handlers.vip_wheel({s:0, b:0}, 'nV')) === 36)
-ok('wheel: Black on pocket 7 loses',
-   deltaOf([0.5], () => handlers.vip_wheel({s:0, b:1}, 'nV')) === -40)
-ok('wheel: a trio on pocket 1 pays 2.85x',
-   deltaOf([0.0], () => handlers.vip_wheel({s:0, b:2}, 'nV')) === 74)
-ok('wheel: the number you backed pays 11.4x',
-   deltaOf([0.5], () => handlers.vip_wheel({s:0, b:5, n:7}, 'nV')) === 416)
+const pocket = n => (n + 0.5) / 37
+ok('wheel: Red on 7 (red) pays 2x',
+   deltaOf([pocket(7)], () => handlers.vip_wheel({s:0, b:0}, 'nV')) === 40)
+ok('wheel: Black on 7 loses',
+   deltaOf([pocket(7)], () => handlers.vip_wheel({s:0, b:1}, 'nV')) === -40)
+ok('wheel: Black on 8 (black) pays 2x',
+   deltaOf([pocket(8)], () => handlers.vip_wheel({s:0, b:1}, 'nV')) === 40)
+ok('wheel: a dozen pays 3x',
+   deltaOf([pocket(20)], () => handlers.vip_wheel({s:0, b:3}, 'nV')) === 80)
+ok('wheel: the wrong dozen pays nothing',
+   deltaOf([pocket(20)], () => handlers.vip_wheel({s:0, b:2}, 'nV')) === -40)
+ok('wheel: a straight-up number pays 36x',
+   deltaOf([pocket(17)], () => handlers.vip_wheel({s:0, b:5, n:17}, 'nV')) === 1400)
 ok('wheel: a number you did not back pays nothing',
-   deltaOf([0.5], () => handlers.vip_wheel({s:0, b:5, n:3}, 'nV')) === -40)
+   deltaOf([pocket(17)], () => handlers.vip_wheel({s:0, b:5, n:3}, 'nV')) === -40)
+
+/* ---- zero is the entire house edge, so it gets its own block ---- */
+ok('zero beats Red', deltaOf([pocket(0)], () => handlers.vip_wheel({s:0, b:0}, 'nV')) === -40)
+ok('zero beats Black', deltaOf([pocket(0)], () => handlers.vip_wheel({s:0, b:1}, 'nV')) === -40)
+for (let b = 2; b <= 4; b++) {
+  ok('zero beats dozen ' + (b - 1),
+     deltaOf([pocket(0)], () => handlers.vip_wheel({s:0, b:b}, 'nV')) === -40)
+}
+ok('but a straight-up on zero pays like any other number',
+   deltaOf([pocket(0)], () => handlers.vip_wheel({s:0, b:5, n:0}, 'nV')) === 1400)
 
 const goldOf = (vals, fire) => {
   const before = led().V.gold
@@ -164,8 +182,15 @@ for (let i = 0; i < 40000; i++) {
 }
 ok('the dice pit only ever pays +36, -40 or nothing', true,
    seen.win + ' won, ' + seen.lose + ' lost, ' + seen.push + ' pushed')
-ok('wins and losses are near enough even', Math.abs(seen.win - seen.lose) < 220,
-   seen.win + ' vs ' + seen.lose)
+// Three sigma, worked out rather than eyeballed. Each roll contributes +1, -1
+// or 0 to (wins - losses) with variance 2p = 0.8874, so over N rolls the count
+// gap carries a sigma of sqrt(N * 0.8874) -- 188 at forty thousand. A flat
+// threshold of 220 was left over from when this loop ran 4,000 rolls; at 40,000
+// it is 1.2 sigma and fails roughly one run in four for no reason at all.
+const gapSigma = Math.sqrt(40000 * 2 * 0.443675)
+ok('wins and losses are near enough even',
+   Math.abs(seen.win - seen.lose) < 3 * gapSigma,
+   seen.win + ' vs ' + seen.lose + ', 3 sigma = ' + Math.round(3 * gapSigma))
 const diceNet = led().V.coin - coin0
 const diceEdge = -diceNet / staked0
 const diceSigma = 0.895 / Math.sqrt(40000)
@@ -182,22 +207,24 @@ ok('the book kept exactly what the ledger lost', bookKept === -diceNet,
    'book ' + comma(bookKept) + ' vs ledger ' + comma(-diceNet))
 
 /* ---- the wheel: every bet type must return the same 95% ---- */
-const WHEEL_NAME = ['Gold', 'Black', '1 to 4', '5 to 8', '9 to 12', 'one number']
-// Sigma per spin differs enormously by bet type -- a 6-in-12 at 1.9x barely
-// moves, a 1-in-12 at 11.4x is mostly noise -- so each band is worked out from
+const WHEEL_NAME = ['Red', 'Black', '1 to 12', '13 to 24', '25 to 36', 'one number']
+// Sigma per spin differs enormously by bet type -- an 18-in-37 at 2x barely
+// moves, a 1-in-37 at 36x is mostly noise -- so each band is worked out from
 // that bet's own variance rather than one loose range reused three times.
-for (const t of [{ b:0, p:1.9, k:6 }, { b:2, p:2.85, k:4 }, { b:5, p:11.4, k:1 }]) {
+const RTP = 36 / 37
+for (const t of [{ b:0, p:2, k:18 }, { b:2, p:3, k:12 }, { b:5, p:36, k:1 }]) {
   const N = 30000
-  const q = t.k / 12
-  const sigma = Math.sqrt(q * t.p * t.p - 0.95 * 0.95) / Math.sqrt(N)
+  const q = t.k / 37
+  const sigma = Math.sqrt(q * t.p * t.p - RTP * RTP) / Math.sqrt(N)
   const start = led().V.coin
   let put = 0
   for (let i = 0; i < N; i++) { handlers.vip_wheel({s:0, b:t.b, n:7}, 'nV'); put += 40 }
   const back = (led().V.coin - start + put) / put
   // A fairness check, not a payout check -- the exact tests above own that.
   ok('the wheel is not biased on ' + WHEEL_NAME[t.b],
-     Math.abs(back - 0.95) < 3 * sigma,
-     (back * 100).toFixed(2) + '%, 3 sigma = ' + (3 * sigma * 100).toFixed(2) + '%')
+     Math.abs(back - RTP) < 3 * sigma,
+     (back * 100).toFixed(2) + '% vs ' + (RTP * 100).toFixed(2) +
+     '%, 3 sigma = ' + (3 * sigma * 100).toFixed(2) + '%')
 }
 
 /* ---- the wheel cannot be played for free, or for more than you hold ---- */

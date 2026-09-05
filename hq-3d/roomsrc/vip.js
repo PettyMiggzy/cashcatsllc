@@ -64,6 +64,31 @@ function prim(type, size, color, pos, opts) {
 }
 
 /*
+ * A GLB, hung in the room.
+ *
+ * world.load resolves to glb.toNodes(), which is a deep clone per call, so the
+ * holder goes in immediately and the mesh arrives whenever it arrives. A model
+ * that fails to load leaves an empty group rather than throwing and taking the
+ * rest of the room down with it.
+ */
+function model(key, pos, scale, opts) {
+  opts = opts || {}
+  const prop = props[key]
+  if (!prop || !prop.url) return null
+  const holder = app.create('group')
+  holder.position.set(pos[0], pos[1], pos[2])
+  if (opts.rotX) holder.rotation.x = opts.rotX
+  if (opts.rotY) holder.rotation.y = opts.rotY
+  app.add(holder)
+  world.load('model', prop.url).then(node => {
+    const k = scale === undefined ? 1 : scale
+    node.scale.set(k, k, k)
+    holder.add(node)
+  }).catch(() => {})
+  return holder
+}
+
+/*
  * A world-space panel, sized in METRES.
  *
  * ui.width and ui.height are the CANVAS size in pixels and `size` is the
@@ -218,6 +243,43 @@ text(note, 'anywhere else. The token is read once,', 21, '#e0a080', 700, 2)
 text(note, 'at the door, to check what you hold.', 21, '#e0a080', 700, 2)
 text(note, 'Nothing here can be cashed out, because', 20, DIM, 400, 14)
 text(note, 'there is nothing here to cash out to.', 20, DIM, 400, 2)
+
+/* ---------------- the chandeliers ----------------
+ *
+ * The model hangs DOWN from its own origin -- a pivot at the ceiling rose --
+ * so the position below is where it is fixed, not where it sits.
+ *
+ * THE SCALE IS 9.8, NOT 0.098. Reading the raw vertex bounds says this mesh is
+ * 18.3m tall, and it is -- but the glTF has a node with scale 0.01 above it, so
+ * at scale 1 the thing actually renders 18cm tall. Setting 0.098 off the vertex
+ * bounds produced a chandelier 1.8cm across: present, lit, correctly hung, and
+ * invisible from anywhere in the room. Vertex bounds are not size; the node
+ * transforms above them are part of the model.
+ *
+ * Off the centre line, not down it. Hung at x 0 they sat squarely between the
+ * rope and the High Table's board -- the one sightline every player walks in
+ * along -- and cut the top off the board they were lit for. At x +-3.4 they
+ * flank the aisle, the centre of the room stays clear, and they are still over
+ * the floor rather than tucked against a wall.
+ */
+for (const sx of [-1, 1]) {
+  model('v_chandelier', [sx * 3.4, 4.62, 0.5], 9.8)
+}
+
+/* ---------------- the credit ----------------
+ *
+ * CC-BY-4.0 is not a formality. Three models in this room were made by other
+ * people and released on terms that require the credit to travel with the
+ * work, so it hangs in the room they are in -- not only in a markdown file
+ * that never ships to a player. See roomsrc/packs/casino/CREDITS.md.
+ */
+const cred = panel(3.2, 1.5, 0.0042, [W / 2 - T - 0.06, 1.55, -5.4], -Math.PI / 2,
+                   'rgba(20,17,10,0.9)', GOLD_D)
+text(cred, 'THE FITTINGS', 24, GOLD_L, 700)
+text(cred, 'Roulette wheel by sipulitrade', 18, DIM, 400, 10)
+text(cred, 'Chandeliers by TUJM', 18, DIM, 400, 3)
+text(cred, 'Playing cards by Tycho Magnetic Anomaly', 18, DIM, 400, 3)
+text(cred, 'All three CC-BY-4.0, from Sketchfab.', 17, DIM, 400, 8)
 
 /* ---------------- a little wealth on the walls ---------------- */
 for (const sx of [-1, 1]) {

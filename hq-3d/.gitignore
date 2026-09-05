@@ -29,7 +29,17 @@ roomsrc/props/state.json
 
 # Fetched CC0 packs. Not committed — 31MB of someone else's assets, and
 # fetch_packs.py pulls them on demand. The script is the source of truth.
-roomsrc/packs/
+#
+# packs/* rather than packs/, so git will descend and the one exception below
+# can be un-ignored. With the directory itself ignored git never looks inside
+# it and a negation for a subfolder silently does nothing.
+roomsrc/packs/*
+# The exception: the casino models are hand-picked from Sketchfab, and no
+# script can re-fetch them — Sketchfab downloads need an account and a click.
+# If they are not committed the droplet simply never has them and the VIP room
+# quietly falls back to boxes. CC-BY-4.0, credited in roomsrc/packs/casino/
+# CREDITS.md and on the wall of the room itself.
+!roomsrc/packs/casino/
 # Poly Haven photoscans. The 188MB of raw downloads stay out; the 11MB of
 # decimated ones are committed, because they are the only geometry in the world
 # carrying a normal map and a deploy that quietly loses them looks like the

@@ -54,14 +54,15 @@ script = put(os.path.join(ROOT, 'vip.js'), 'js')
 model = put(os.path.join(ROOT, 'empty.glb'), 'glb')
 
 # Only what the room draws with. The tables are in trades.js and carry their
-# own props; this file is walls, and walls need two textures.
+# own props; this file is walls and light fittings.
 TEX = ['plaster', 'wainscot']
+MOD = ['v_chandelier']
 
 BP = 'cashcats-vip'
 bp = {'id': BP, 'version': 1, 'name': 'The VIP Floor',
       'image': None, 'author': None, 'url': None, 'desc': None,
       'model': model, 'script': script,
-      'props': texprops.props(TEX),
+      'props': dict(texprops.props(TEX), **texprops.models(MOD)),
       'preload': False, 'public': False, 'locked': False, 'frozen': False,
       'unique': False, 'scene': False, 'disabled': False}
 con = sqlite3.connect(DB)

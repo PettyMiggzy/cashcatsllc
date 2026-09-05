@@ -1009,11 +1009,12 @@ if (isServer) {
   const saveVip = () => world.set(VIP, vipBook)
 
   /*
-   * Stakes are multiples of 20 for a reason: every payout below is an exact
-   * whole number of CashCoin at every one of them. The wheel's trio pays 2.85x
-   * and 50 x 2.85 is 142.5, which either rounds -- quietly handing the player
-   * or the house half a coin a spin -- or turns the ledger into floats. 40,
-   * 200, 1000, 5000 and 25000 all divide cleanly by 20, so nothing rounds.
+   * Stakes are multiples of 20 because of the DICE, which pays 1.9x: at a
+   * stake of 50 that is 95, but the old 2.85x wheel paid 142.5, and a half
+   * coin a spin either rounds in somebody's favour or turns the ledger into
+   * floats. Real roulette pays 2x, 3x and 36x and cannot produce a fraction at
+   * any stake, so the constraint is now the dice's alone. It is kept anyway --
+   * one stake ladder, and 1.9x is still on the floor.
    */
   const VIP_STAKES = [40, 200, 1000, 5000, 25000]
   const DICE_PAY = 1.9              // on a win; a tie returns the stake
@@ -1021,22 +1022,36 @@ if (isServer) {
   const VIP_COOL = 600              // ms between plays, per player
 
   /*
-   * The wheel. Twelve pockets, and three ways to back one.
+   * The wheel: single-zero roulette, thirty-seven pockets.
    *
-   * Every payout is set so the return is 95% of the stake whichever way you
-   * bet -- 1.9x on a 6-in-12, 2.85x on a 4-in-12, 11.4x on a 1-in-12. A wheel
-   * whose outside bets are safer than its inside bets is a wheel that punishes
-   * people for the bet they find exciting, and there is no reason for it here.
+   * It was a made-up twelve-pocket wheel until there was a real roulette wheel
+   * standing on the floor to look at, and an invented game on a real wheel is
+   * a wheel that lies about itself -- the board would have said "pocket 7" of
+   * twelve while the thing in front of the player had thirty-seven numbers
+   * printed on it.
+   *
+   * The real game is also the better one. Red, a dozen and a straight-up all
+   * return 36/37 -- a 2.70% house edge, the same whichever way you bet, which
+   * is the property the invented wheel was reaching for and got to by picking
+   * numbers. And every payout is a whole multiple of the stake, so unlike the
+   * dice this table cannot produce a fractional coin at any stake at all.
+   *
+   * Zero is green and loses everything except a straight-up on zero. That is
+   * where the entire edge comes from, and it is the only reason the house wins
+   * in the long run.
    */
-  const WHEEL_N = 12
+  const WHEEL_N = 37                // 0..36
+  const RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+  const isRed = n => RED.indexOf(n) !== -1
   const WHEEL_BETS = [
-    { key: 'gold',  label: 'Gold',   pay: 1.9,  hits: n => n % 2 === 1 },
-    { key: 'black', label: 'Black',  pay: 1.9,  hits: n => n % 2 === 0 },
-    { key: 't1',    label: '1 to 4', pay: 2.85, hits: n => n <= 4 },
-    { key: 't2',    label: '5 to 8', pay: 2.85, hits: n => n >= 5 && n <= 8 },
-    { key: 't3',    label: '9 to 12', pay: 2.85, hits: n => n >= 9 },
-    { key: 'one',   label: 'One number', pay: 11.4, hits: (n, pick) => n === pick },
+    { key: 'red',   label: 'Red',        pay: 2,  hits: n => isRed(n) },
+    { key: 'black', label: 'Black',      pay: 2,  hits: n => n !== 0 && !isRed(n) },
+    { key: 'd1',    label: '1 to 12',    pay: 3,  hits: n => n >= 1 && n <= 12 },
+    { key: 'd2',    label: '13 to 24',   pay: 3,  hits: n => n >= 13 && n <= 24 },
+    { key: 'd3',    label: '25 to 36',   pay: 3,  hits: n => n >= 25 },
+    { key: 'one',   label: 'One number', pay: 36, hits: (n, pick) => n === pick },
   ]
+  const pocketColour = n => (n === 0 ? 'Green' : isRed(n) ? 'Red' : 'Black')
 
   const d6 = () => 1 + Math.floor(Math.random() * 6)
   const roll2 = () => d6() + d6()
@@ -1098,11 +1113,11 @@ if (isServer) {
     const L = seat.L
     const stake = stakeAt(d && d.s)
     const bet = WHEEL_BETS[Math.max(0, Math.min(WHEEL_BETS.length - 1, (d && d.b) | 0))]
-    const pick = Math.max(1, Math.min(WHEEL_N, (d && d.n) | 0 || 1))
+    const pick = Math.max(0, Math.min(WHEEL_N - 1, (d && d.n) | 0))
     if (L.coin < stake)
       return app.sendTo(pid, 'vip', { msg: 'That is ' + comma(stake) + ' CashCoin. You have ' + comma(L.coin) + '.' })
 
-    const pocket = 1 + Math.floor(Math.random() * WHEEL_N)
+    const pocket = Math.floor(Math.random() * WHEEL_N)     // 0..36, zero included
     const won = bet.hits(pocket, pick)
     const delta = won ? Math.round(stake * bet.pay) - stake : -stake
 
@@ -1112,8 +1127,9 @@ if (isServer) {
     vipBook.paid += stake + delta
     saveVip(); touch()
     app.sendTo(pid, 'vip', {
-      table: 'wheel', pocket: pocket, delta: delta, outcome: won ? 'win' : 'lose',
-      msg: 'Pocket ' + pocket + ' — ' + (pocket % 2 ? 'Gold' : 'Black') + '. ' +
+      table: 'wheel', pocket: pocket, colour: pocketColour(pocket),
+      delta: delta, outcome: won ? 'win' : 'lose',
+      msg: pocket + ' ' + pocketColour(pocket) + '. ' +
            (won ? '+' + comma(delta) + '.' : '-' + comma(stake) + '.'),
     })
     pushYou(pid, L); pushVipBook(); dirty = true
@@ -1729,13 +1745,15 @@ if (!isServer) {
    * standing in front of one selects it and nothing else.
    */
   const VIP_STAKES_C = [40, 200, 1000, 5000, 25000]
-  const WHEEL_LABELS = ['Gold', 'Black', '1 to 4', '5 to 8', '9 to 12', 'One number']
-  const WHEEL_PAYS   = ['1.9x', '1.9x', '2.85x', '2.85x', '2.85x', '11.4x']
-  const WHEEL_N_C = 12
+  const WHEEL_LABELS = ['Red', 'Black', '1 to 12', '13 to 24', '25 to 36', 'One number']
+  const WHEEL_PAYS   = ['2x', '2x', '3x', '3x', '3x', '36x']
+  const WHEEL_N_C = 37
   const GOLD_D_C = '#6b4f16', BLACK_C = '#26221b', FELT_C = '#123a2a'
 
   const vipSel = { stake: 0, bet: 0, num: 7 }
   let vipBookC = null
+  // seconds of spin left, and how fast. Zero when the wheel is at rest.
+  let spinLeft = 0, spinRate = 0
 
   const stakeText = () => comma(VIP_STAKES_C[vipSel.stake]) + ' CashCoin'
 
@@ -1772,37 +1790,30 @@ if (!isServer) {
 
   /* ---------------- the wheel ---------------- */
   const WH_X = 4.6, WH_Z = 0.5
-  prim('cylinder', [0.6, 0.75, 0.95], GOLD_D_C, [WH_X, 0.48, WH_Z], { metal: 0.7, rough: 0.42 })
-  prim('cylinder', [1.85, 1.85, 0.14], '#3a2f1e', [WH_X, 1.02, WH_Z], { rough: 0.8, solid: true })
-  prim('cylinder', [1.72, 1.72, 0.05], BLACK_C, [WH_X, 1.10, WH_Z], { rough: 0.7 })
-  prim('sphere', [0.22], GOLD_L, [WH_X, 1.2, WH_Z], { metal: 0.9, rough: 0.25 })
-  // the pointer, at the door side of the rim
-  // A cone's tip is +Y; -90 degrees about X lays it over to point -Z, which
-  // from the rim is inwards at the pockets.
-  prim('cone', [0.16, 0.34], GOLD_L, [WH_X, 1.32, WH_Z + 1.62],
-       { metal: 0.85, rough: 0.3, rotX: -Math.PI / 2 })
-
-  const pocketPos = []
-  for (let i = 1; i <= WHEEL_N_C; i++) {
-    // pocket 1 at the pointer and running round, so the number the board names
-    // is the one the marker is sitting in
-    const a = (i - 1) * (Math.PI * 2 / WHEEL_N_C) + Math.PI / 2
-    const px = WH_X + Math.cos(a) * 1.32, pz = WH_Z + Math.sin(a) * 1.32
-    pocketPos.push([px, pz])
-    // metal 0 on the dark pockets. A near-black metallic disc under an open
-    // roof is a mirror pointed at the sky, and six of the twelve came out blue.
-    prim('cylinder', [0.24, 0.24, 0.06], i % 2 ? GOLD_L : '#151310',
-         [px, 1.14, pz], { metal: i % 2 ? 0.8 : 0, rough: i % 2 ? 0.35 : 0.8 })
-  }
-  // one marker, moved onto the winning pocket, rather than recolouring twelve
-  // prims every spin
-  const wMark = prim('cylinder', [0.31, 0.31, 0.04], '#ff5a3a',
-                     [pocketPos[0][0], 1.19, pocketPos[0][1]], { emissive: '#ff4a2a' })
-  wMark.active = false
+  /*
+   * The real wheel, on a plinth. sipulitrade's model, CC-BY-4.0, credited on
+   * the wall of the room -- see roomsrc/packs/casino/CREDITS.md.
+   *
+   * It is modelled standing on its edge: the bounding box is 2.14 x 2.14 x
+   * 1.45, so the two equal axes are the diameter and the wheel's axis runs
+   * along Z. Minus ninety degrees about X lays it down. At 2.14m across raw,
+   * 0.62 brings it to a 1.33m wheel, which is about life size.
+   *
+   * NOTHING IS MARKED ON IT. The number is on the board instead. Dropping a
+   * highlight onto a pocket would mean claiming to know which way round this
+   * mesh's printed numbers run, and I do not -- a marker sitting on the 4 while
+   * the board says 17 is worse than no marker at all.
+   */
+  // No plinth. Laid flat the model stands 0.90m tall, which is a roulette
+  // table's own height -- it is a whole assembly, bowl and base, not a wheel to
+  // be set on top of something. The plinth it was mounted on simply buried the
+  // bottom half of it. Its origin sits 0.71 above its own base, hence 0.76.
+  const wheelSpin = model('v_roulette', [WH_X, 0.76, WH_Z], 0, 0.62, { rotX: Math.PI / 2 })
+  prim('cylinder', [0.78, 0.78, 0.06], GOLD_D_C, [WH_X, 0.08, WH_Z], { metal: 0.8, rough: 0.4 })
 
   const wBoard = panel(3.5, 2.8, 0.0044, [WH_X, 2.95, WH_Z - 2.1], 0, 'rgba(20,17,10,0.94)', GOLD)
   text(wBoard, 'THE WHEEL', 44, GOLD_L, 800)
-  text(wBoard, 'Twelve pockets. Every bet pays back 95%.', 20, DIM, 400, 4)
+  text(wBoard, 'Single zero. Every bet returns 36 of 37.', 20, DIM, 400, 4)
   const wStake = text(wBoard, '', 28, CREAM, 700, 14)
   const wBet   = text(wBoard, '', 26, GOLD_L, 700, 6)
   const wSpin  = text(wBoard, 'The wheel has not turned yet.', 24, CREAM, 400, 12)
@@ -1821,7 +1832,7 @@ if (!isServer) {
   // Round the back, so it is 3.6m from the nearest of the three above and
   // cannot steal their prompt. It only means anything on the single-number bet.
   action('Change the number', [WH_X + 2.4, 1.2, WH_Z - 1.8], 1.6, 0.2, () => {
-    vipSel.num = vipSel.num % WHEEL_N_C + 1
+    vipSel.num = (vipSel.num + 1) % WHEEL_N_C   // 0..36, zero included
     vipSel.bet = WHEEL_LABELS.length - 1        // picking a number means backing one
     paintVip()
   })
@@ -1839,6 +1850,18 @@ if (!isServer) {
     hiVis.push(prim('box', [0.26, 0.26, 0.26], '#f2ece0',
                     [HI_X - 0.5 + i * 0.5, 1.29, HI_Z + 0.35], { rough: 0.5, rotY: i * 0.7 }))
   }
+  /*
+   * NO CARDS ON THIS TABLE, and it is not for want of a model.
+   *
+   * The animated playing cards load and render fine -- but the fan IS the
+   * animation, and this engine only ever builds an AnimationMixer for a
+   * SkinnedMesh node. glbToNodes checks for a skinned child and that file is
+   * sixty ordinary meshes moved by node transforms, so no mixer is made and
+   * the clip can never play. Static, it is a dark closed deck: a black brick
+   * on green felt that reads as nothing, for 2.8MB.
+   *
+   * A STATIC fanned hand, or a stack of chips, would drop straight in here.
+   */
 
   const hBoard = panel(3.8, 2.4, 0.0044, [HI_X, 2.85, HI_Z - 1.2], 0, 'rgba(20,17,10,0.94)', GOLD)
   text(hBoard, 'THE HIGH TABLE', 44, GOLD_L, 800)
@@ -1894,6 +1917,17 @@ if (!isServer) {
     }
   }
 
+  // The wheel coasts to a stop. One handler, and it does nothing at all while
+  // spinLeft is zero, which is almost always.
+  app.on('update', dt => {
+    if (spinLeft <= 0 || !wheelSpin) return
+    spinLeft -= dt
+    if (spinLeft <= 0) { spinLeft = 0; return }
+    // Rotation is about the holder's local Y, and the holder is already tipped
+    // -90 about X to lay the wheel down -- so this turns it in its own plane.
+    wheelSpin.rotation.y += spinRate * (spinLeft / 2.1) * dt
+  })
+
   app.on('vipbook', d => { vipBookC = d; paintVip() })
   app.on('vip', d => {
     if (!d) return
@@ -1905,9 +1939,12 @@ if (!isServer) {
       dGain.color = d.outcome === 'win' ? LIME : d.outcome === 'lose' ? '#e0705a' : DIM
     }
     if (d.table === 'wheel') {
-      const pp = pocketPos[d.pocket - 1]
-      if (pp) { wMark.position.set(pp[0], 1.19, pp[1]); wMark.active = true }
-      wSpin.value = 'Pocket ' + d.pocket + '   ·   ' + (d.pocket % 2 ? 'Gold' : 'Black')
+      // Turn it. WHICH pocket ends up facing the player means nothing -- the
+      // number is on the board -- but a wheel that never moves reads as
+      // scenery, and how far it turns is at least driven by the result.
+      spinLeft = 2.1
+      spinRate = 9 + (d.pocket / WHEEL_N_C) * 6
+      wSpin.value = d.pocket + '   ·   ' + (d.colour || '')
       wGain.value = d.outcome === 'win' ? '+' + comma(d.delta) + ' CashCoin'
                                         : comma(d.delta) + ' CashCoin'
       wGain.color = d.outcome === 'win' ? LIME : '#e0705a'
