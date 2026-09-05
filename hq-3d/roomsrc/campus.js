@@ -36,7 +36,7 @@ const Y = 0.05                     // the plaza sits just above the terrain
  * the two and the deploy refuses to publish if they have drifted. Two copies of
  * a fact are fine as long as something fails loudly when they disagree.
  */
-const OFF = ['homestead', 'workshop', 'vault', 'pit', 'pets']
+const OFF = ['homestead', 'workshop', 'vault', 'pit', 'pets', 'office']
 const live = room => OFF.indexOf(room) === -1
 
 // prims take a texture across UV 0..1 of each face with no repeat control,
@@ -133,7 +133,12 @@ function plate(x,z,y,title,sub){
 // now stands 0.9m proud of that, so at the old depth all three signs were
 // inside the masonry with only their glow showing through.
 if (live('homestead')) plate(-22, 7.05, 4.55, 'THE HOMESTEAD', 'land · housing · farming')
-plate(  0, 9.05, 4.55, 'THE FILING OFFICE', 'reception · swap · rewards')
+// The centre building is not parked, it changed hands: the Filing Office is
+// the VIP Floor now, same walls, same frontage, new room script. So this plate
+// follows whichever room is actually behind the door.
+plate(  0, 9.05, 4.55,
+       live('office') ? 'THE FILING OFFICE' : 'THE VIP FLOOR',
+       live('office') ? 'reception · swap · rewards' : '10,000,000 holders only')
 if (live('workshop'))  plate( 21, 6.55, 4.55, 'THE WORKSHOP',  'gear · materials · NFT tiers')
 
 /* ---------------- the directory, facing spawn ---------------- */
@@ -147,7 +152,9 @@ function entry(name,desc,mt){
 // Only what a player can actually walk to. This board listed five places
 // when four of them were parked, which is the one thing a directory must
 // never do -- a sign that lies is worse than no sign.
-entry('▲  The Filing Office','Contract address, swap, rewards wall.',26)
+entry(live('office') ? '▲  The Filing Office' : '▲  The VIP Floor',
+      live('office') ? 'Contract address, swap, rewards wall.'
+                     : 'Members only. Three tables. 10,000,000.',26)
 entry('►  The Exchange','Sell what you catch. Buy what others land.',18)
 entry('◄◄ The Docks','Fishing. Cast, then fight what takes it.',18)
 if (live('homestead')) entry('◄  The Homestead','Buy land, build, and farm resources.',18)

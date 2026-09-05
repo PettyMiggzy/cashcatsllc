@@ -266,12 +266,15 @@ function prim(type, size, color, pos, opts) {
   const n = app.create('prim')
   n.type = type; n.size = size; n.color = color
   n.position.set(pos[0], pos[1], pos[2])
+  if (opts.rotX) n.rotation.x = opts.rotX
   if (opts.rotY) n.rotation.y = opts.rotY
+  if (opts.rotZ) n.rotation.z = opts.rotZ
   if (opts.emissive) n.emissive = opts.emissive
   if (opts.rough !== undefined) n.roughness = opts.rough
   if (opts.metal !== undefined) n.metalness = opts.metal
   if (opts.opacity !== undefined) n.opacity = opts.opacity
   if (opts.tex && props[opts.tex]) n.texture = props[opts.tex].url
+  if (opts.solid) n.physics = 'static'
   if (BUILDING) app.add(n)
   return n
 }
@@ -527,12 +530,15 @@ if (isServer) {
       // seller picks from what they actually have, and there is no keyboard in
       // this engine to type an item name into.
       bags: { fish: L.catches || {}, forage: L.kinds || {} },
+      // Told to the client so the VIP room can explain itself, never so the
+      // client can decide. Every bet handler re-reads p.tier on the server.
+      vip: (world.getPlayer(pid) || {}).tier === 'vip',
     })
   }
 
   app.on('hello', (d, pid) => {
     const p = world.getPlayer(pid); if (!p) return
-    pushYou(pid, ledgerFor(p)); pushWorld(pid); pushMarket(pid)
+    pushYou(pid, ledgerFor(p)); pushWorld(pid); pushMarket(pid); pushVipBook()
   })
 
   /* ---- fishing ---- */
@@ -972,6 +978,178 @@ if (isServer) {
     pushMarket(); dirty = true
   })
 
+
+  /* ================================================================== *
+   * THE VIP FLOOR — three tables, and the only tier check that is real  *
+   * ==================================================================
+   *
+   * The room is drawn by vip.js. The money is here, because the money is
+   * always here: ccl.ledger.v1 has one writer and this is it. See the header
+   * of vip.js for why a second app touching that key loses people's balances
+   * on a fresh world.
+   *
+   * WHAT "VIP" MEANS. holderGate reads the wallet's balance once, at the door,
+   * and puts 'vip' on the socket at 10,000,000 $CASHCATSLLC. Until now nothing
+   * could read that, so the Vault's gate was a prop. p.tier reads it now, and
+   * every handler below checks it before it moves a coin -- not the client,
+   * not the rope, not the walls. A player who walks in through the wall finds
+   * three tables that will not deal to them.
+   *
+   * With the gate switched off (GATE_ENABLED unset, which is every dev box)
+   * ServerNetwork hands everyone 'vip'. That is right: a world with no gate
+   * should not have one room nobody can enter.
+   *
+   * WHAT IS AT STAKE. CashCoin and Gold Cash Cats, both earned by playing,
+   * both living only in this server's ledger. Nothing here reads or writes a
+   * chain. The token is checked at the door and never touched again, and there
+   * is deliberately no path from a pile of CashCoin back out to anything.
+   */
+  const VIP = 'ccl.vip.v1'
+  let vipBook = world.get(VIP) || { staked: 0, paid: 0, plays: 0, goldIn: 0, goldOut: 0 }
+  const saveVip = () => world.set(VIP, vipBook)
+
+  /*
+   * Stakes are multiples of 20 for a reason: every payout below is an exact
+   * whole number of CashCoin at every one of them. The wheel's trio pays 2.85x
+   * and 50 x 2.85 is 142.5, which either rounds -- quietly handing the player
+   * or the house half a coin a spin -- or turns the ledger into floats. 40,
+   * 200, 1000, 5000 and 25000 all divide cleanly by 20, so nothing rounds.
+   */
+  const VIP_STAKES = [40, 200, 1000, 5000, 25000]
+  const DICE_PAY = 1.9              // on a win; a tie returns the stake
+  const HIGH_ANTE = 1               // Gold Cash Cats, per hand
+  const VIP_COOL = 600              // ms between plays, per player
+
+  /*
+   * The wheel. Twelve pockets, and three ways to back one.
+   *
+   * Every payout is set so the return is 95% of the stake whichever way you
+   * bet -- 1.9x on a 6-in-12, 2.85x on a 4-in-12, 11.4x on a 1-in-12. A wheel
+   * whose outside bets are safer than its inside bets is a wheel that punishes
+   * people for the bet they find exciting, and there is no reason for it here.
+   */
+  const WHEEL_N = 12
+  const WHEEL_BETS = [
+    { key: 'gold',  label: 'Gold',   pay: 1.9,  hits: n => n % 2 === 1 },
+    { key: 'black', label: 'Black',  pay: 1.9,  hits: n => n % 2 === 0 },
+    { key: 't1',    label: '1 to 4', pay: 2.85, hits: n => n <= 4 },
+    { key: 't2',    label: '5 to 8', pay: 2.85, hits: n => n >= 5 && n <= 8 },
+    { key: 't3',    label: '9 to 12', pay: 2.85, hits: n => n >= 9 },
+    { key: 'one',   label: 'One number', pay: 11.4, hits: (n, pick) => n === pick },
+  ]
+
+  const d6 = () => 1 + Math.floor(Math.random() * 6)
+  const roll2 = () => d6() + d6()
+  const roll3 = () => d6() + d6() + d6()
+
+  const vipCool = {}
+
+  /*
+   * One gate, one place. Returns the ledger to play off, or null having
+   * already told the player why not.
+   */
+  const vipSeat = (pid, cool) => {
+    const p = world.getPlayer(pid)
+    if (!p) return null
+    if (p.tier !== 'vip') {
+      app.sendTo(pid, 'vip', { msg: 'The tables only deal to 10,000,000 holders.' })
+      return null
+    }
+    if (cool !== false) {
+      const t = now()
+      if ((vipCool[pid] || 0) > t) return null
+      vipCool[pid] = t + VIP_COOL
+    }
+    return { p: p, L: ledgerFor(p) }
+  }
+
+  const stakeAt = i => VIP_STAKES[Math.max(0, Math.min(VIP_STAKES.length - 1, i | 0))]
+
+  app.on('vip_dice', (d, pid) => {
+    const seat = vipSeat(pid); if (!seat) return
+    const L = seat.L
+    const stake = stakeAt(d && d.s)
+    if (L.coin < stake)
+      return app.sendTo(pid, 'vip', { msg: 'That is ' + comma(stake) + ' CashCoin. You have ' + comma(L.coin) + '.' })
+
+    const you = roll2(), them = roll2()
+    let delta = 0, outcome = 'push'
+    if (you > them) { delta = Math.round(stake * DICE_PAY) - stake; outcome = 'win' }
+    else if (you < them) { delta = -stake; outcome = 'lose' }
+
+    L.coin += delta
+    // The book counts the whole stake through it, not the net -- a table that
+    // reports only its winnings is not reporting its edge.
+    vipBook.plays += 1
+    vipBook.staked += stake
+    vipBook.paid += stake + delta
+    saveVip(); touch()
+    app.sendTo(pid, 'vip', {
+      table: 'dice', you: you, them: them, delta: delta, outcome: outcome,
+      msg: outcome === 'win' ? 'You rolled ' + you + ' against ' + them + '. +' + comma(delta) + '.'
+         : outcome === 'lose' ? 'You rolled ' + you + ' against ' + them + '. -' + comma(stake) + '.'
+         : 'Both rolled ' + you + '. Your stake comes back.',
+    })
+    pushYou(pid, L); pushVipBook(); dirty = true
+  })
+
+  app.on('vip_wheel', (d, pid) => {
+    const seat = vipSeat(pid); if (!seat) return
+    const L = seat.L
+    const stake = stakeAt(d && d.s)
+    const bet = WHEEL_BETS[Math.max(0, Math.min(WHEEL_BETS.length - 1, (d && d.b) | 0))]
+    const pick = Math.max(1, Math.min(WHEEL_N, (d && d.n) | 0 || 1))
+    if (L.coin < stake)
+      return app.sendTo(pid, 'vip', { msg: 'That is ' + comma(stake) + ' CashCoin. You have ' + comma(L.coin) + '.' })
+
+    const pocket = 1 + Math.floor(Math.random() * WHEEL_N)
+    const won = bet.hits(pocket, pick)
+    const delta = won ? Math.round(stake * bet.pay) - stake : -stake
+
+    L.coin += delta
+    vipBook.plays += 1
+    vipBook.staked += stake
+    vipBook.paid += stake + delta
+    saveVip(); touch()
+    app.sendTo(pid, 'vip', {
+      table: 'wheel', pocket: pocket, delta: delta, outcome: won ? 'win' : 'lose',
+      msg: 'Pocket ' + pocket + ' — ' + (pocket % 2 ? 'Gold' : 'Black') + '. ' +
+           (won ? '+' + comma(delta) + '.' : '-' + comma(stake) + '.'),
+    })
+    pushYou(pid, L); pushVipBook(); dirty = true
+  })
+
+  app.on('vip_high', (d, pid) => {
+    const seat = vipSeat(pid); if (!seat) return
+    const L = seat.L
+    if ((L.gold || 0) < HIGH_ANTE)
+      return app.sendTo(pid, 'vip', { msg: 'The High Table wants a Gold Cash Cat. You have none.' })
+
+    const you = roll3(), them = roll3()
+    let delta = 0, outcome = 'push'
+    if (you > them) { delta = HIGH_ANTE; outcome = 'win' }
+    else if (you < them) { delta = -HIGH_ANTE; outcome = 'lose' }
+
+    L.gold = (L.gold || 0) + delta
+    vipBook.plays += 1
+    if (delta > 0) vipBook.goldOut += delta
+    if (delta < 0) vipBook.goldIn += -delta
+    saveVip(); touch()
+    app.sendTo(pid, 'vip', {
+      table: 'high', you: you, them: them, delta: delta, outcome: outcome,
+      msg: outcome === 'win' ? you + ' against ' + them + '. A Gold Cash Cat to you.'
+         : outcome === 'lose' ? you + ' against ' + them + '. The house takes it.'
+         : 'Both on ' + you + '. Nobody moves.',
+    })
+    if (outcome === 'win') world.chat(seat.p.name + ' took a Gold Cash Cat off the High Table.', true)
+    pushYou(pid, L); pushVipBook(); dirty = true
+  })
+
+  const pushVipBook = () => app.send('vipbook', {
+    plays: vipBook.plays, staked: vipBook.staked, paid: vipBook.paid,
+    goldIn: vipBook.goldIn, goldOut: vipBook.goldOut,
+  })
+
   /* ---- the shop ----
    * Bait costs CashCoin, which is only earned by playing. The Silver Rod is
    * crafted out of what the other two trades produce, so fishing better means
@@ -1061,7 +1239,7 @@ if (isServer) {
  * ================================================================== */
 if (!isServer) {
 
-  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0, shovel:0, bags:{} }
+  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0, shovel:0, bags:{}, vip:false }
   let board = []
   let nodeOn = [], veinLeft = []
   let fishing = -1, phase = 'idle', biteEnds = 0
@@ -1529,7 +1707,216 @@ if (!isServer) {
     mrows = (d && d.rows) || []
     for (let i = 0; i < mrows.length; i++) mrows[i].mine = !!uid && mrows[i].by === uid
     paintEx()
+    paintVip()
   })
+
+  /* ================================================================== *
+   * THE VIP FLOOR — the tables                                          *
+   * ==================================================================
+   *
+   * vip.js draws the room: walls, floor, roof, rope, the rules on the wall.
+   * Everything that can CHANGE is here, next to the handlers that change it.
+   *
+   * The room is 16 x 16 at the origin with its door in the +Z wall, and the
+   * rope crosses at z 4.6. Those numbers are shared with vip.js by being
+   * written down in both places; moving one without the other puts a table
+   * through a wall.
+   *
+   * WHY THE CONTROLS ARE SPREAD OUT. Only one action is ever live -- the
+   * engine picks the single nearest node within its own distance and ignores
+   * every other -- so a neat cluster of buttons is a cluster you cannot pick
+   * from. Each table gets a rail: controls 2.4m apart with a 1.6m reach, so
+   * standing in front of one selects it and nothing else.
+   */
+  const VIP_STAKES_C = [40, 200, 1000, 5000, 25000]
+  const WHEEL_LABELS = ['Gold', 'Black', '1 to 4', '5 to 8', '9 to 12', 'One number']
+  const WHEEL_PAYS   = ['1.9x', '1.9x', '2.85x', '2.85x', '2.85x', '11.4x']
+  const WHEEL_N_C = 12
+  const GOLD_D_C = '#6b4f16', BLACK_C = '#26221b', FELT_C = '#123a2a'
+
+  const vipSel = { stake: 0, bet: 0, num: 7 }
+  let vipBookC = null
+
+  const stakeText = () => comma(VIP_STAKES_C[vipSel.stake]) + ' CashCoin'
+
+  /* ---------------- the dice pit ---------------- */
+  const DICE_X = -4.6, DICE_Z = 0.5
+  prim('cylinder', [0.55, 0.7, 0.95], GOLD_D_C, [DICE_X, 0.48, DICE_Z], { metal: 0.7, rough: 0.42 })
+  prim('cylinder', [1.65, 1.65, 0.16], '#3a2f1e', [DICE_X, 1.02, DICE_Z], { rough: 0.8, solid: true })
+  prim('cylinder', [1.5, 1.5, 0.06], FELT_C, [DICE_X, 1.11, DICE_Z], { rough: 0.95 })
+  // A torus is modelled in the XY plane, so it stands up like a wheel unless
+  // it is laid down. This is the rim of a table.
+  prim('torus', [1.62, 0.09], GOLD, [DICE_X, 1.12, DICE_Z],
+       { metal: 0.85, rough: 0.3, rotX: Math.PI / 2 })
+  // two dice sitting on the felt, turned so they read as objects and not pips
+  const diceVis = []
+  for (let i = 0; i < 2; i++) {
+    diceVis.push(prim('box', [0.3, 0.3, 0.3], '#f2ece0',
+                      [DICE_X - 0.4 + i * 0.8, 1.29, DICE_Z + 0.3], { rough: 0.5, rotY: 0.5 + i }))
+  }
+
+  const dBoard = panel(3.5, 2.5, 0.0044, [DICE_X, 2.85, DICE_Z - 1.9], 0, 'rgba(20,17,10,0.94)', GOLD)
+  text(dBoard, 'THE DICE PIT', 44, GOLD_L, 800)
+  text(dBoard, 'Two dice against the house.', 21, DIM, 400, 4)
+  const dStake = text(dBoard, '', 30, CREAM, 700, 14)
+  const dRoll  = text(dBoard, 'No hand played yet.', 26, CREAM, 400, 12)
+  const dGain  = text(dBoard, '', 24, LIME, 700, 4)
+  text(dBoard, 'A win pays 1.9x. A tie comes back.', 19, DIM, 400, 12)
+
+  action('Change the stake', [DICE_X - 2.4, 1.2, DICE_Z + 1.8], 1.6, 0.2, () => {
+    vipSel.stake = (vipSel.stake + 1) % VIP_STAKES_C.length
+    paintVip()
+  })
+  action('Roll the dice', [DICE_X, 1.2, DICE_Z + 1.8], 1.6, 0.35,
+         () => app.send('vip_dice', { s: vipSel.stake }))
+
+  /* ---------------- the wheel ---------------- */
+  const WH_X = 4.6, WH_Z = 0.5
+  prim('cylinder', [0.6, 0.75, 0.95], GOLD_D_C, [WH_X, 0.48, WH_Z], { metal: 0.7, rough: 0.42 })
+  prim('cylinder', [1.85, 1.85, 0.14], '#3a2f1e', [WH_X, 1.02, WH_Z], { rough: 0.8, solid: true })
+  prim('cylinder', [1.72, 1.72, 0.05], BLACK_C, [WH_X, 1.10, WH_Z], { rough: 0.7 })
+  prim('sphere', [0.22], GOLD_L, [WH_X, 1.2, WH_Z], { metal: 0.9, rough: 0.25 })
+  // the pointer, at the door side of the rim
+  // A cone's tip is +Y; -90 degrees about X lays it over to point -Z, which
+  // from the rim is inwards at the pockets.
+  prim('cone', [0.16, 0.34], GOLD_L, [WH_X, 1.32, WH_Z + 1.62],
+       { metal: 0.85, rough: 0.3, rotX: -Math.PI / 2 })
+
+  const pocketPos = []
+  for (let i = 1; i <= WHEEL_N_C; i++) {
+    // pocket 1 at the pointer and running round, so the number the board names
+    // is the one the marker is sitting in
+    const a = (i - 1) * (Math.PI * 2 / WHEEL_N_C) + Math.PI / 2
+    const px = WH_X + Math.cos(a) * 1.32, pz = WH_Z + Math.sin(a) * 1.32
+    pocketPos.push([px, pz])
+    // metal 0 on the dark pockets. A near-black metallic disc under an open
+    // roof is a mirror pointed at the sky, and six of the twelve came out blue.
+    prim('cylinder', [0.24, 0.24, 0.06], i % 2 ? GOLD_L : '#151310',
+         [px, 1.14, pz], { metal: i % 2 ? 0.8 : 0, rough: i % 2 ? 0.35 : 0.8 })
+  }
+  // one marker, moved onto the winning pocket, rather than recolouring twelve
+  // prims every spin
+  const wMark = prim('cylinder', [0.31, 0.31, 0.04], '#ff5a3a',
+                     [pocketPos[0][0], 1.19, pocketPos[0][1]], { emissive: '#ff4a2a' })
+  wMark.active = false
+
+  const wBoard = panel(3.5, 2.8, 0.0044, [WH_X, 2.95, WH_Z - 2.1], 0, 'rgba(20,17,10,0.94)', GOLD)
+  text(wBoard, 'THE WHEEL', 44, GOLD_L, 800)
+  text(wBoard, 'Twelve pockets. Every bet pays back 95%.', 20, DIM, 400, 4)
+  const wStake = text(wBoard, '', 28, CREAM, 700, 14)
+  const wBet   = text(wBoard, '', 26, GOLD_L, 700, 6)
+  const wSpin  = text(wBoard, 'The wheel has not turned yet.', 24, CREAM, 400, 12)
+  const wGain  = text(wBoard, '', 24, LIME, 700, 4)
+
+  action('Change the stake', [WH_X - 2.4, 1.2, WH_Z + 1.8], 1.6, 0.2, () => {
+    vipSel.stake = (vipSel.stake + 1) % VIP_STAKES_C.length
+    paintVip()
+  })
+  action('Change what you back', [WH_X, 1.2, WH_Z + 1.8], 1.6, 0.2, () => {
+    vipSel.bet = (vipSel.bet + 1) % WHEEL_LABELS.length
+    paintVip()
+  })
+  action('Spin the wheel', [WH_X + 2.4, 1.2, WH_Z + 1.8], 1.6, 0.35,
+         () => app.send('vip_wheel', { s: vipSel.stake, b: vipSel.bet, n: vipSel.num }))
+  // Round the back, so it is 3.6m from the nearest of the three above and
+  // cannot steal their prompt. It only means anything on the single-number bet.
+  action('Change the number', [WH_X + 2.4, 1.2, WH_Z - 1.8], 1.6, 0.2, () => {
+    vipSel.num = vipSel.num % WHEEL_N_C + 1
+    vipSel.bet = WHEEL_LABELS.length - 1        // picking a number means backing one
+    paintVip()
+  })
+
+  /* ---------------- the high table ---------------- */
+  const HI_X = 0, HI_Z = -5.0
+  for (const sx of [-1, 1]) {
+    prim('cylinder', [0.28, 0.36, 0.95], GOLD, [HI_X + sx * 0.95, 0.48, HI_Z], { metal: 0.85, rough: 0.3 })
+  }
+  prim('box', [3.0, 0.16, 1.6], '#3a2f1e', [HI_X, 1.03, HI_Z], { rough: 0.8, solid: true })
+  prim('box', [2.8, 0.05, 1.42], FELT_C, [HI_X, 1.13, HI_Z], { rough: 0.95 })
+  prim('box', [3.12, 0.07, 1.72], GOLD, [HI_X, 1.05, HI_Z], { metal: 0.85, rough: 0.3 })
+  const hiVis = []
+  for (let i = 0; i < 3; i++) {
+    hiVis.push(prim('box', [0.26, 0.26, 0.26], '#f2ece0',
+                    [HI_X - 0.5 + i * 0.5, 1.29, HI_Z + 0.35], { rough: 0.5, rotY: i * 0.7 }))
+  }
+
+  const hBoard = panel(3.8, 2.4, 0.0044, [HI_X, 2.85, HI_Z - 1.2], 0, 'rgba(20,17,10,0.94)', GOLD)
+  text(hBoard, 'THE HIGH TABLE', 44, GOLD_L, 800)
+  text(hBoard, 'One Gold Cash Cat a hand. Three dice a side.', 20, DIM, 400, 4)
+  const hGold = text(hBoard, '', 28, GOLD_L, 700, 14)
+  const hHand = text(hBoard, 'The table is waiting.', 24, CREAM, 400, 12)
+  text(hBoard, 'Win one, lose one, a tie is a push.', 19, DIM, 400, 12)
+  text(hBoard, 'The house takes nothing from this table.', 19, LIME, 400, 2)
+
+  action('Play a hand', [HI_X, 1.2, HI_Z + 1.7], 1.7, 0.4, () => app.send('vip_high', {}))
+
+  /* ---------------- the house's book ----------------
+   * On the wall, unprompted. A room that takes stakes and will not show its
+   * own numbers is asking to be taken at its word, and it has not earned that.
+   */
+  const bBoard = panel(3.4, 2.2, 0.0044, [-8 + 0.25 + 0.06, 2.6, -4.0], Math.PI / 2,
+                       'rgba(18,24,20,0.94)', LIME)
+  text(bBoard, "THE HOUSE'S BOOK", 34, LIME, 800)
+  text(bBoard, 'Live, and not rounded in our favour.', 19, DIM, 400, 4)
+  const bPlays = text(bBoard, '', 24, CREAM, 700, 12)
+  const bTake  = text(bBoard, '', 24, CREAM, 400, 6)
+  const bEdge  = text(bBoard, '', 22, LIME, 700, 6)
+  const bGold  = text(bBoard, '', 21, GOLD_L, 400, 8)
+
+  /* ---------------- what it says when you are not a member ---------------- */
+  const vipMsg = panel(4.6, 1.1, 0.005, [0, 1.9, 4.5], Math.PI, 'rgba(20,17,10,0.92)', GOLD)
+  vipMsg.alignItems = 'center'
+  const vipLine = text(vipMsg, '', 26, CREAM, 600)
+
+  const paintVip = () => {
+    dStake.value = 'Stake: ' + stakeText()
+    wStake.value = 'Stake: ' + stakeText()
+    wBet.value = 'Backing: ' + (vipSel.bet === WHEEL_LABELS.length - 1
+      ? 'number ' + vipSel.num : WHEEL_LABELS[vipSel.bet]) + '   ' + WHEEL_PAYS[vipSel.bet]
+    hGold.value = (me.gold || 0) + ' Gold Cash Cat' + (me.gold === 1 ? '' : 's') + ' in hand'
+    vipLine.value = me.vip
+      ? comma(me.coin) + ' CashCoin on you. Good luck.'
+      : 'Members only — 10,000,000 $CASHCATSLLC. The tables will not deal.'
+    vipLine.color = me.vip ? CREAM : '#e0a080'
+
+    if (vipBookC) {
+      const b = vipBookC
+      bPlays.value = comma(b.plays) + ' hands played'
+      bTake.value = comma(b.staked) + ' staked  ·  ' + comma(b.paid) + ' paid out'
+      const kept = b.staked - b.paid
+      bEdge.value = b.staked
+        ? 'The house is ' + (kept >= 0 ? 'up ' : 'down ') + comma(Math.abs(kept)) +
+          '  (' + (kept / b.staked * 100).toFixed(1) + '%)'
+        : 'Nothing staked yet.'
+      bGold.value = (b.goldIn || b.goldOut)
+        ? 'Gold Cash Cats: ' + b.goldIn + ' in, ' + b.goldOut + ' out'
+        : ''
+    }
+  }
+
+  app.on('vipbook', d => { vipBookC = d; paintVip() })
+  app.on('vip', d => {
+    if (!d) return
+    if (d.msg) vipLine.value = d.msg
+    if (d.table === 'dice') {
+      dRoll.value = 'You ' + d.you + '   ·   House ' + d.them
+      dGain.value = d.outcome === 'win' ? '+' + comma(d.delta) + ' CashCoin'
+                  : d.outcome === 'lose' ? comma(d.delta) + ' CashCoin' : 'Push'
+      dGain.color = d.outcome === 'win' ? LIME : d.outcome === 'lose' ? '#e0705a' : DIM
+    }
+    if (d.table === 'wheel') {
+      const pp = pocketPos[d.pocket - 1]
+      if (pp) { wMark.position.set(pp[0], 1.19, pp[1]); wMark.active = true }
+      wSpin.value = 'Pocket ' + d.pocket + '   ·   ' + (d.pocket % 2 ? 'Gold' : 'Black')
+      wGain.value = d.outcome === 'win' ? '+' + comma(d.delta) + ' CashCoin'
+                                        : comma(d.delta) + ' CashCoin'
+      wGain.color = d.outcome === 'win' ? LIME : '#e0705a'
+    }
+    if (d.table === 'high') {
+      hHand.value = 'You ' + d.you + '   ·   House ' + d.them
+    }
+  })
+
 
   /* a sheet at each ground, so the rules are posted where you play */
   const dk = panel(3.8, 5.0, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
@@ -1624,6 +2011,7 @@ if (!isServer) {
     me.coin = d.coin || 0; me.bait = d.bait || {}; me.onLine = d.onLine; me.gold = d.gold || 0
     me.shovel = d.shovel || 0
     me.bags = d.bags || {}
+    me.vip = !!d.vip
     paint()
   })
   app.on('world', d => {

@@ -22,3 +22,10 @@ pit            # the arena. Good, but it is not a market
 pets           # Chibi Rating, boss field, shelves
 vault          # the 10M holder room
 workshop       # gear, materials, NFT tiers
+
+# --- parked, "no office -- make it VIP for holders of 10m or more" ----------
+# The building on the plaza is the VIP Floor now (roomsrc/vip.js). Filing was
+# never a place you went to anyway: a catch is credited the moment it is
+# landed, so the Office was a room about a mechanic that happens elsewhere.
+# install_office.py is still here and still works.
+office         # the Filing Office -- replaced in place by the VIP Floor

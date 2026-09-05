@@ -244,13 +244,17 @@ systemctl stop cashcats 2>/dev/null || true
 # with that whole room missing and said nothing. The boot check would not have
 # caught it either; it only looks at rooms that got installed.
 #
-# install.py first because it lays down the base world, install_brand.py last
-# because it writes the settings over the top. Everything between is in
-# whatever order the filesystem gives, which is fine — the rooms are
-# independent, and a new one now ships by existing.
+# install_brand.py runs last because it writes the settings over the top.
+# Everything before it goes in whatever order the filesystem gives, which is
+# fine — the rooms are independent, and a new one ships by existing.
+#
+# There is no longer an unskippable base installer. install.py was said to "lay
+# down the base world" and did no such thing: it installed the Filing Office and
+# nothing else, so it was a room installer wearing a special name, and the one
+# room in the world that could not be parked. It is install_office.py now and
+# parks like any other.
 run_installer() { python3 "roomsrc/$1.py" >/dev/null && echo "    $1"; }
 
-run_installer install
 # Rooms named in roomsrc/ROOMS_OFF.txt are skipped. The scan above still finds
 # every installer -- new rooms stay ON by default, which is the property that
 # stops one being silently missed -- and turning one off is one visible line.
@@ -262,10 +266,9 @@ fi
 for f in roomsrc/install_*.py; do
   s="$(basename "$f" .py)"
   [ "$s" = "install_brand" ] && continue
-  # Exact line match, not a substring: "pit" must not match "pits", and the
-  # base installer (install.py, room name "install") must never be skippable.
+  # Exact line match, not a substring: "pit" must not match "pits".
   room="${s#install_}"
-  if [ "$s" != "install" ] && printf '%s\n' "$OFF" | grep -qx -- "$room"; then
+  if printf '%s\n' "$OFF" | grep -qx -- "$room"; then
     echo "    $room — parked (ROOMS_OFF.txt)"
     continue
   fi

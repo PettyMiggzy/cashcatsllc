@@ -43,6 +43,14 @@ PACKS = {
     'cube-pets':           'small creatures',
 }
 
+# NOT HERE: casino props. The VIP Floor's tables, wheel, dice and chips are
+# modelled from prims in trades.js because there is no CC0 3D pack for them.
+# Kenney's boardgame-pack is the obvious candidate and it is 2D only -- 539
+# PNGs and twelve SVGs, no glTF at all, checked. The Unity Asset Store pack
+# that was suggested is licensed per seat and not redistributable, so it cannot
+# go in a public repo either. Drop real .glb files into roomsrc/packs/ and
+# texprops.MODELS will pick them up.
+
 UA = {'User-Agent': 'Mozilla/5.0 (cashcats world builder)'}
 
 

@@ -21,6 +21,23 @@ export function createPlayerProxy(entity, player) {
     get userId() {
       return player.data.userId
     },
+    /*
+     * The holder tier this player got past the gate with: 'vip', 'holder', or
+     * null. Server-side only, on purpose.
+     *
+     * holderGate works out the tier from a signed pass and ServerNetwork parks
+     * it on the SOCKET rather than the entity, so no client is ever trusted
+     * with it -- and until now nothing in the world could read it either, which
+     * made the 10,000,000 gate scenery. A room you can only reach by walking is
+     * not a gate.
+     *
+     * On the client there are no sockets and this reads null. That is the point:
+     * client code cannot answer this question, so it must not be the thing
+     * asking. Check it in the handler that moves the money.
+     */
+    get tier() {
+      return world.network?.sockets?.get(player.data.id)?.tier || null
+    },
     get local() {
       return player.data.id === world.network.id
     },

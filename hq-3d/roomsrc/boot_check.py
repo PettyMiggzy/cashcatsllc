@@ -40,6 +40,7 @@ OK = re.compile(r'triangles are too big|Couldn.t load texture blob', re.I)
 # room script -> the blueprint that carries it
 ROOMS = {
     'filing_office.js': 'cashcats-filing-office',
+    'vip.js':           'cashcats-vip',
     'workshop.js':      'cashcats-workshop',
     'homestead.js':     'cashcats-homestead',
     'vault.js':         'cashcats-vault',
