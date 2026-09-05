@@ -110,7 +110,7 @@ const baitByKey = k => { for (let i = 0; i < BAITS.length; i++) if (BAITS[i].key
 
 const RODS = [
   { key:'rodWood',   name:'Wooden Rod', window:1500, how:'yours from the first cast' },
-  { key:'rodSilver', name:'Silver Rod', window:1800, how:'crafted at the Workshop' },
+  { key:'rodSilver', name:'Silver Rod', window:1800, how:'crafted at the Docks shop' },
   { key:'rodGold',   name:'Gold Rod',   window:2150, how:'bought with a Gold Cash Cat' },
 ]
 // what the Silver Rod costs to craft, in what the other two trades produce
@@ -175,6 +175,12 @@ const FIGHT_MAX = 40000
 // Tension runs 0.35 to 1.0 and the quickest fill is the common's 0.70/sec, so
 // a perfect fight is 0.93s and nothing legitimate lands sooner.
 const FIGHT_MIN = 500
+// The Exchange's limits. Shared rather than server-only: the desk prints the
+// listing cap on its own board, and a cap the player is told is not the cap the
+// server enforces is worse than not saying.
+const MAX_LISTINGS = 6        // per seller, so one whale cannot wallpaper the board
+const MAX_PRICE = 1000000
+
 const REGROW = 40000          // ms before a gathered node comes back
 const BUNDLE = 15             // bonus for filing one of every kind
 
@@ -243,6 +249,18 @@ for (let i = 0; i < 8; i++) {
 /* ------------------------------------------------------------------ *
  * helpers                                                             *
  * ------------------------------------------------------------------ */
+/*
+ * PARKED GROUND — same switch as lands.js.
+ *
+ * "Just make a simple world and release it." The Grove, the Seam and the Cat
+ * Park are parked; the Docks and the Exchange stay. The helpers below build
+ * their node either way and only skip PUTTING it in the world, because
+ * callers chain straight off the return -- spotAct.push(action(...)) then
+ * set .label on it, text(panel(...)) and so on. Gating creation instead of
+ * placement threw on the first one of those.
+ */
+let BUILDING = true
+
 function prim(type, size, color, pos, opts) {
   opts = opts || {}
   const n = app.create('prim')
@@ -253,7 +271,9 @@ function prim(type, size, color, pos, opts) {
   if (opts.rough !== undefined) n.roughness = opts.rough
   if (opts.metal !== undefined) n.metalness = opts.metal
   if (opts.opacity !== undefined) n.opacity = opts.opacity
-  app.add(n); return n
+  if (opts.tex && props[opts.tex]) n.texture = props[opts.tex].url
+  if (BUILDING) app.add(n)
+  return n
 }
 function model(key, pos, rotY, scale) {
   const prop = props[key]
@@ -261,7 +281,7 @@ function model(key, pos, rotY, scale) {
   const holder = app.create('group')
   holder.position.set(pos[0], pos[1], pos[2])
   if (rotY) holder.rotation.y = rotY
-  app.add(holder)
+  if (BUILDING) app.add(holder)
   world.load('model', prop.url).then(node => {
     const k = scale === undefined ? 1 : scale
     node.scale.set(k, k, k)
@@ -296,7 +316,8 @@ function panel(wm, hm, size, pos, rotY, bg, border) {
   u.lit = false; u.doubleside = false
   u.position.set(pos[0], pos[1], pos[2])
   if (rotY) u.rotation.y = rotY
-  app.add(u); return u
+  if (BUILDING) app.add(u)
+  return u
 }
 function text(parent, val, px, color, weight, mt) {
   const t = app.create('uitext')
@@ -310,7 +331,8 @@ function action(label, pos, dist, dur, fn) {
   a.label = label; a.distance = dist; a.duration = dur
   a.position.set(pos[0], pos[1], pos[2])
   a.onTrigger = fn
-  app.add(a); return a
+  if (BUILDING) app.add(a)
+  return a
 }
 // no Intl in the sandbox, so toLocaleString gives unseparated digits
 function comma(n) {
@@ -501,12 +523,16 @@ if (isServer) {
       rod: rodTier(L), pick: pickTier(L), shovel: shovelTier(L), coin: L.coin, gold: L.gold || 0,
       bait: L.bait, onLine: L.onLine,
       kinds: Object.keys(L.kinds).length,
+      // What you are holding, per species. The Exchange desk needs this: a
+      // seller picks from what they actually have, and there is no keyboard in
+      // this engine to type an item name into.
+      bags: { fish: L.catches || {}, forage: L.kinds || {} },
     })
   }
 
   app.on('hello', (d, pid) => {
     const p = world.getPlayer(pid); if (!p) return
-    pushYou(pid, ledgerFor(p)); pushWorld(pid)
+    pushYou(pid, ledgerFor(p)); pushWorld(pid); pushMarket(pid)
   })
 
   /* ---- fishing ---- */
@@ -826,8 +852,6 @@ if (isServer) {
     fish:   { bag: 'catches', label: k => (FISH.find(f => f.key === k) || {}).name || k },
     forage: { bag: 'kinds',   label: k => (FORAGE.find(f => f.key === k) || {}).name || k },
   }
-  const MAX_LISTINGS = 6            // per seller, so one whale cannot wallpaper the board
-  const MAX_PRICE = 1000000
 
   const held = (L, kind, key) => {
     const g = GOODS[kind]
@@ -845,12 +869,43 @@ if (isServer) {
     bag[key] = (bag[key] || 0) + n
   }
 
+  /*
+   * A player id is not a user id.
+   *
+   * app.sendTo() and world.getPlayer() both key on the ENTITY id -- the
+   * per-session network id -- while the ledger and every market row key on the
+   * userId, so a tally survives a reconnect. Handing one to the other returns
+   * undefined and returns quietly, which is exactly what the seller's "your
+   * fish sold" notice was doing: nothing, every time, with no error.
+   */
+  const playerByUser = uid => {
+    if (!uid) return null
+    const ps = world.getPlayers()
+    for (let i = 0; i < ps.length; i++) if ((ps[i].userId || ps[i].id) === uid) return ps[i]
+    return null
+  }
+
+  // Eight, because there are eight stalls on the floor to put them on. The
+  // OLDEST listings are the ones that show -- surfacing the newest would let a
+  // seller bump their own row to the front by relisting.
+  //
+  // `mine` is worked out here, per recipient, rather than shipping every row's
+  // owner to every client and letting each one compare. The stall needs to know
+  // whose listing it is showing; nobody else's account id needs to be on the
+  // wire for that.
+  const marketRows = uid => market.rows.slice(0, 8).map(r => ({
+    id: r.id, name: r.name, qty: r.qty, price: r.price,
+    seller: r.byName, kind: r.kind, key: r.key, mine: r.by === uid,
+  }))
   const pushMarket = pid => {
-    const rows = market.rows.slice(-40).map(r => ({
-      id: r.id, name: r.name, qty: r.qty, price: r.price, by: r.byName, kind: r.kind,
-    }))
-    if (pid) app.sendTo(pid, 'market', { rows })
-    else app.send('market', { rows })
+    if (pid) {
+      const p = world.getPlayer(pid)
+      return app.sendTo(pid, 'market', { rows: marketRows(p && (p.userId || p.id)) })
+    }
+    const ps = world.getPlayers()
+    for (let i = 0; i < ps.length; i++) {
+      app.sendTo(ps[i].id, 'market', { rows: marketRows(ps[i].userId || ps[i].id) })
+    }
   }
 
   app.on('list', (d, pid) => {
@@ -911,9 +966,9 @@ if (isServer) {
     book[r.by].coin = (book[r.by].coin || 0) + total
     saveMkt(); touch()
     app.sendTo(pid, 'shop', { msg: 'Bought ' + r.qty + ' x ' + r.name + ' for ' + comma(total) + '.' })
-    const sp = world.getPlayer(r.by)
-    if (sp) app.sendTo(r.by, 'shop', { msg: p.name + ' bought your ' + r.name + ' — ' + comma(total) + ' CashCoin.' })
-    pushYou(pid, B); if (sp) pushYou(r.by, book[r.by])
+    const sp = playerByUser(r.by)
+    if (sp) app.sendTo(sp.id, 'shop', { msg: p.name + ' bought your ' + r.name + ' — ' + comma(total) + ' CashCoin.' })
+    pushYou(pid, B); if (sp) pushYou(sp.id, book[r.by])
     pushMarket(); dirty = true
   })
 
@@ -1006,7 +1061,7 @@ if (isServer) {
  * ================================================================== */
 if (!isServer) {
 
-  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0, shovel:0 }
+  const me = { fish:0, forage:0, ore:0, filed:0, best:0, rod:0, pick:0, kinds:0, coin:0, bait:{}, onLine:null, gold:0, shovel:0, bags:{} }
   let board = []
   let nodeOn = [], veinLeft = []
   let fishing = -1, phase = 'idle', biteEnds = 0
@@ -1085,6 +1140,21 @@ if (!isServer) {
     heldUntil = now() + 4200
   }
 
+  /*
+   * THE GROVE AND THE SEAM STAY OPEN.
+   *
+   * They were parked with everything else, and parking them broke the game
+   * shut. The Silver Rod costs 40 ore and 25 gathered; a Gold Cash Cat needs a
+   * Silver rod or better; the Gold Rod costs a Gold Cash Cat; Ultra Rare fish
+   * need the Gold Rod. With no ore and nothing to gather, every one of those
+   * is unreachable and a player tops out on the Wooden Rod during their first
+   * cast. The Exchange had the same hole -- it brokers fish AND forage, and
+   * half of it would have had no supply at all.
+   *
+   * They are also not what made the world feel crowded. Twelve nodes and eight
+   * veins, out on their own roads at x +-47, against a village of several
+   * hundred props on the plaza. The buildings were the weight.
+   */
   /* ---------------- the Grove ---------------- */
   for (let i = 0; i < NODES.length; i++) {
     const nd = NODES[i], kind = FORAGE[nd.kind]
@@ -1146,6 +1216,7 @@ if (!isServer) {
   action('Craft the next Pickaxe', [SX - 6, 1.2, SZ - 4.4], 3.4, 0.6,
          () => app.send('buy', { what: 'pick' }))
 
+  BUILDING = false   // parked
   /* ---------------- the Cat Park ---------------- */
   const boxVis = [], sunVis = [], knockVis = []
 
@@ -1181,6 +1252,11 @@ if (!isServer) {
     knockVis.push(g)
     action('Knock it off', [k.x, k.y + 0.5, k.z], 2.4, 0.3, () => app.send('knock', { i }))
   }
+  // The Cat Park ends HERE. This switch used to sit two hundred lines further
+  // down, past the register and every rule sheet in the world -- so parking the
+  // park quietly took the plaza's Register board and all four ground sheets
+  // with it. A park switch has to close on the thing it opened on.
+  BUILDING = true    // back on
 
   /* ---------------- the register on the plaza ---------------- */
   /* Beside the Filing Office door, because filing is what this is. */
@@ -1196,6 +1272,264 @@ if (!isServer) {
   text(reg, 'TOP FILERS', 28, GOLD_L, 800, 18)
   const rows = []
   for (let i = 0; i < 6; i++) rows.push(text(reg, '', 22, CREAM, 400, 5))
+
+  /* ================================================================== *
+   * THE EXCHANGE — the trading floor                                    *
+   * ==================================================================
+   *
+   * The market has had working handlers for a while -- list, unlist, buy,
+   * escrowed, conserved, tested -- and no way for a player to reach any of
+   * them. This is the floor those handlers were always for.
+   *
+   * It stands where the Workshop used to, on the open plaza rather than behind
+   * a door. A market you can see from spawn is a market people use; one you
+   * have to be told about is a menu.
+   *
+   * WHY STALLS AND NOT A LIST. Only ONE action can be active at a time in this
+   * engine -- ClientActions picks the single nearest node within its own
+   * distance and ignores the rest -- so eight "Buy" buttons stacked down the
+   * face of one board would be eight prompts fighting over the same metre of
+   * space. Giving every listing its own stall along a street turns choosing
+   * what to buy into walking up to it, which is the thing a 3D world can do
+   * that a list cannot.
+   *
+   * WHY EVERY NUMBER IS A CLICK. app.control() cannot bind a keyboard key in
+   * this engine -- the `key:` line in ClientControls' controlTypes is commented
+   * out -- so there is no way to type a price. The desk cycles through ladders
+   * instead: quantities you might actually hold, and prices as multiples of
+   * what the Filing Office pays for the same item. That last part is the whole
+   * economy in one line -- the Office is the floor, and the Exchange is where
+   * you beat it.
+   */
+  const EX_X = 21                       // the old Workshop's centre line
+  /*
+   * The aisle has to be wider than the camera is long.
+   *
+   * A canopied stall measures 2.7 x 3.3 x 2.7 at kit scale, and the chase
+   * camera sits about four metres behind the player. With the ranks 7.6m apart
+   * that put the camera INSIDE a stall the moment anyone turned to look at one
+   * -- the whole screen filled with the back of a green awning. Eleven metres
+   * between ranks leaves eight metres of clear aisle, which is the first number
+   * here that was measured rather than guessed.
+   */
+  const EX_L = 15.6, EX_R = 26.4        // the two ranks, 10.8m apart
+  const EX_ROW = [5.4, 1.8, -1.8, -5.4] // four stalls a side, eight listings
+  const DESK_Z = -9.6
+  const KIT = 2.7                       // the town kit's world scale
+
+  /* the street */
+  prim('box', [15.4, 0.3, 20.2], '#c8c1ae', [EX_X, -0.10, -1.3], { tex: 'paving', rough: 0.95 })
+  prim('box', [16.1, 0.06, 20.8], '#b3ac99', [EX_X, -0.02, -1.3], { rough: 1.0 })
+  for (let i = 0; i < 6; i++)
+    prim('box', [15.4, 0.04, 0.26], '#b3ac99', [EX_X, 0.06, -9.6 + i * 3.4])
+
+  /* the way in — an arch you walk under, so the street has a threshold */
+  for (const sx of [-1, 1]) {
+    const x = EX_X + sx * 5.4              // in line with the ranks behind them
+    prim('box', [1.15, 0.5, 1.15], '#cfc9b8', [x, 0.25, 7.8], { rough: 0.9 })
+    prim('cylinder', [0.42, 0.42, 5.1], '#d6cfbd', [x, 3.05, 7.8], { rough: 0.85 })
+    prim('box', [1.05, 0.34, 1.05], '#cfc9b8', [x, 5.77, 7.8], { rough: 0.9 })
+    model('t_lantern', [x + sx * 1.0, 0, 7.8], 0, KIT)
+  }
+  prim('box', [12.4, 0.62, 1.0], '#d6cfbd', [EX_X, 6.25, 7.8], { rough: 0.85 })
+  prim('box', [12.8, 0.16, 1.2], GOLD, [EX_X, 6.64, 7.8], { metal: 0.75, rough: 0.35 })
+
+  const exSign = panel(5.6, 0.9, 0.005, [EX_X, 6.25, 8.33], 0, 'rgba(24,20,10,0.94)', GOLD)
+  exSign.alignItems = 'center'
+  text(exSign, 'THE EXCHANGE', 58, GOLD_L, 800)
+
+  /* what it is, angled at whoever is walking up to it */
+  const exHow = panel(3.6, 2.9, 0.005, [EX_X - 9.6, 2.7, 7.2], 0.55, 'rgba(12,18,15,0.93)', GOLD)
+  text(exHow, 'THE EXCHANGE', 40, GOLD_L, 800)
+  text(exHow, 'Players sell to players here.', 22, CREAM, 400, 10)
+  text(exHow, 'Every stall on the street is one', 21, CREAM, 400, 10)
+  text(exHow, 'listing. Walk up to it and buy it.', 21, CREAM, 400, 2)
+  text(exHow, 'The desk at the end is where you', 21, CREAM, 400, 10)
+  text(exHow, 'put something up yourself.', 21, CREAM, 400, 2)
+  text(exHow, 'The Filing Office pays a fixed price', 20, LIME, 400, 12)
+  text(exHow, 'for everything. That is the floor.', 20, LIME, 400, 2)
+  text(exHow, 'This is where you beat it.', 20, LIME, 700, 2)
+  text(exHow, 'Listing holds the goods in escrow', 19, DIM, 400, 10)
+  text(exHow, 'until it sells or you take it back.', 19, DIM, 400, 2)
+
+  /* ---- the stalls, one per listing ---- */
+  const EX_KIT = ['t_stallGrn', 't_stallRed', 't_stall', 't_stallGrn']
+  const exStall = []
+  let mrows = []
+
+  const exBuy = i => {
+    const r = mrows[i]; if (!r) return
+    // Your own stall is where you take it back from. A separate "cancel"
+    // control at the desk would need you to remember which of six rows you
+    // meant, with no way to point at one.
+    if (r.mine) app.send('unlist', { id: r.id })
+    else app.send('buy_listing', { id: r.id })
+  }
+
+  for (let side = 0; side < 2; side++) {
+    const sx = side ? 1 : -1
+    const x = side ? EX_R : EX_L
+    /*
+     * A UI plane and a kit model do NOT share a forward axis.
+     *
+     * A ui node is a plane whose normal is +Z, so at rotY 0 it faces +Z. The
+     * town kit's stalls are modelled facing -Z, so the same rotY turns them the
+     * opposite way. Rotating both by one angle put every awning's back to the
+     * aisle: a long beige wall behind eight readable price boards.
+     */
+    const rot = sx * -Math.PI / 2          // panels: face the aisle
+    const mrot = rot + Math.PI             // models: same heading, other axis
+    for (let j = 0; j < EX_ROW.length; j++) {
+      const z = EX_ROW[j], idx = side * EX_ROW.length + j
+      model(EX_KIT[j], [x, 0, z], mrot, KIT)
+      // No bench in front of each one. Rotated, the kit bench is 2.5m long and
+      // reached halfway across the aisle, and eight of them in two facing rows
+      // made the street read as a waiting room rather than a market.
+      // The stall's own counter is what the player walks up to.
+      // Mounted ON the stall's front, not hung two metres out in the aisle.
+      // At 2.7 x 1.8 and standing proud of the canopy these boards hid the
+      // stalls they were labelling -- the street read as eight black slabs
+      // floating over empty paving. The canopy face is 1.35m from the rank
+      // line, so 1.5 clears it by a hand's width and no more.
+      // 3.6, not 2.85: the awning peaks at 3.3, and a board hung at counter
+      // height covered the one part of the stall that says which stall it is.
+      // A market sign goes above the canopy.
+      const u = panel(2.4, 1.35, 0.0038, [x - sx * 1.5, 3.6, z], rot,
+                      'rgba(18,26,22,0.92)', GOLD)
+      const s = {
+        name: text(u, '', 34, GOLD_L, 800),
+        qty:  text(u, '', 26, CREAM, 700, 8),
+        tot:  text(u, '', 22, DIM, 400, 4),
+        who:  text(u, '', 20, DIM, 400, 6),
+        act:  action('', [x - sx * 2.3, 1.3, z], 2.6, 0.4, () => exBuy(idx)),
+      }
+      exStall.push(s)
+    }
+  }
+
+  /* ---- the desk, at the head of the street ---- */
+  model('t_stall',     [EX_X, 0, DESK_Z], 0, KIT)
+  model('t_stallBnch', [EX_X, 0, DESK_Z + 1.5], 0, KIT)
+  model('crate',  [EX_X - 3.4, 0, DESK_Z + 0.6], 0.4, 1.0)
+  model('barrel', [EX_X + 3.4, 0, DESK_Z + 0.6], 0.2, 1.05)
+
+  const desk = panel(4.6, 3.5, 0.005, [EX_X, 3.1, DESK_Z + 0.35], 0,
+                     'rgba(24,20,10,0.94)', GOLD)
+  text(desk, 'THE DESK', 46, GOLD_L, 800)
+  text(desk, 'Put something on a stall.', 22, DIM, 400, 4)
+  const dItem  = text(desk, '', 32, CREAM, 700, 14)
+  const dHave  = text(desk, '', 22, DIM, 400, 4)
+  const dDeal  = text(desk, '', 28, LIME, 700, 12)
+  const dFloor = text(desk, '', 21, DIM, 400, 4)
+  const dSlots = text(desk, '', 21, DIM, 400, 10)
+  const dMsg   = text(desk, 'Nothing listed yet.', 21, CREAM, 400, 10)
+
+  /*
+   * The ladders. Quantity in steps someone might actually hold, price as a
+   * multiple of what the Office pays -- so the seller is choosing a margin
+   * rather than guessing at a number in the dark.
+   */
+  const EX_QTY = [1, 3, 5, 10, 25, 0]        // 0 means all of them
+  const EX_MULT = [0.5, 0.8, 1, 1.25, 1.5, 2, 3, 5, 10]
+  let selItem = 0, selQty = 0, selMult = 4
+
+  // Walk the tables, not the bag: the order stays put as counts change, so
+  // "next item" does not jump around underneath you mid-click. Anything in the
+  // bag that is not a listed good simply never appears, which is correct.
+  const stock = () => {
+    const out = []
+    const bags = me.bags || {}
+    const add = (kind, table) => {
+      const bag = bags[kind] || {}
+      for (let i = 0; i < table.length; i++) {
+        const t = table[i]
+        if (bag[t.key] > 0) out.push({ kind: kind, key: t.key, name: t.name, v: t.v, r: t.r, have: bag[t.key] })
+      }
+    }
+    add('fish', FISH)
+    add('forage', FORAGE)
+    return out
+  }
+  const askQty = it => {
+    const n = EX_QTY[selQty]
+    return Math.max(1, Math.min(it.have, n === 0 ? it.have : n))
+  }
+  const askPrice = it => Math.max(1, Math.round(it.v * EX_MULT[selMult]))
+
+  const cycle = (which) => {
+    const st = stock()
+    if (which === 'item') selItem = st.length ? (selItem + 1) % st.length : 0
+    if (which === 'qty') selQty = (selQty + 1) % EX_QTY.length
+    if (which === 'price') selMult = (selMult + 1) % EX_MULT.length
+    paint()
+  }
+  action('Show me the next thing I have', [EX_X - 3.3, 1.3, DESK_Z + 2.1], 2.4, 0.2, () => cycle('item'))
+  action('Change how many',               [EX_X - 1.1, 1.3, DESK_Z + 2.1], 2.4, 0.2, () => cycle('qty'))
+  action('Change the price',              [EX_X + 1.1, 1.3, DESK_Z + 2.1], 2.4, 0.2, () => cycle('price'))
+  action('Put it on a stall',             [EX_X + 3.3, 1.3, DESK_Z + 2.1], 2.4, 0.5, () => {
+    const st = stock()
+    const it = st[selItem]
+    if (!it) return
+    app.send('list', { kind: it.kind, key: it.key, qty: askQty(it), price: askPrice(it) })
+  })
+
+  const paintEx = () => {
+    /* the stalls */
+    let mine = 0
+    for (let i = 0; i < exStall.length; i++) {
+      const s = exStall[i], r = mrows[i]
+      if (!r) {
+        s.name.value = '— OPEN —'; s.name.color = DIM
+        s.qty.value = 'Anything listed at the'
+        s.tot.value = 'desk shows up here.'
+        s.who.value = ''
+        s.act.active = false
+        continue
+      }
+      if (r.mine) mine++
+      const total = r.qty * r.price
+      s.name.value = r.name
+      s.name.color = r.mine ? LIME : GOLD_L
+      s.qty.value = r.qty + ' at ' + comma(r.price) + ' each'
+      s.tot.value = comma(total) + ' CashCoin the lot'
+      s.who.value = r.mine ? 'yours' : r.seller
+      s.act.active = true
+      s.act.label = r.mine ? ('Take your ' + r.name + ' back')
+                           : ('Buy ' + r.qty + ' × ' + r.name + ' — ' + comma(total))
+    }
+
+    /* the desk */
+    const st = stock()
+    if (selItem >= st.length) selItem = 0
+    const it = st[selItem]
+    if (!it) {
+      dItem.value = 'Nothing to sell yet'
+      dItem.color = DIM
+      dHave.value = 'Fish at the Docks, gather at the Grove.'
+      dDeal.value = ''
+      dFloor.value = ''
+    } else {
+      const q = askQty(it), pr = askPrice(it)
+      dItem.value = it.name
+      dItem.color = RARITY_COLOR[it.r] || CREAM
+      dHave.value = it.have + ' in hand' + (st.length > 1 ? '  ·  ' + st.length + ' kinds to choose from' : '')
+      dDeal.value = q + ' at ' + comma(pr) + ' each  —  ' + comma(q * pr) + ' CashCoin'
+      dFloor.value = 'The Office pays ' + comma(it.v) + ' each, so ' +
+                     comma(it.v * q) + ' for the same lot.'
+    }
+    dSlots.value = mine + ' of your ' + MAX_LISTINGS + ' stalls in use'
+  }
+
+  // The server answers every market action on the 'shop' channel, and the only
+  // place that showed was the sign at the Docks -- forty metres from where the
+  // player who caused it is standing. Both boards say it now.
+  app.on('shop', d => { if (d && d.msg) dMsg.value = d.msg })
+  app.on('market', d => {
+    const uid = (world.getPlayer() || {}).userId
+    mrows = (d && d.rows) || []
+    for (let i = 0; i < mrows.length; i++) mrows[i].mine = !!uid && mrows[i].by === uid
+    paintEx()
+  })
 
   /* a sheet at each ground, so the rules are posted where you play */
   const dk = panel(3.8, 5.0, 0.005, [DX + 8.5, 2.6, SHORE - 5.6], Math.PI, 'rgba(10,26,34,0.92)', BLUE)
@@ -1280,6 +1614,7 @@ if (!isServer) {
       const b = board[i]
       rows[i].value = b ? ((i + 1) + '. ' + b.n + '   ' + comma(b.t)) : ''
     }
+    paintEx()
   }
   paint()
 
@@ -1288,6 +1623,7 @@ if (!isServer) {
     me.best = d.best; me.rod = d.rod; me.pick = d.pick; me.kinds = d.kinds
     me.coin = d.coin || 0; me.bait = d.bait || {}; me.onLine = d.onLine; me.gold = d.gold || 0
     me.shovel = d.shovel || 0
+    me.bags = d.bags || {}
     paint()
   })
   app.on('world', d => {

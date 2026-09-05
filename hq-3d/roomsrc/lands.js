@@ -51,6 +51,7 @@ const WHITE='#ffffff'
  * helpers                                                             *
  * ------------------------------------------------------------------ */
 function prim(type, size, color, pos, opts) {
+  if (!BUILDING) return
   opts = opts || {}
   const n = app.create('prim')
   n.type = type; n.size = size; n.color = color
@@ -131,6 +132,22 @@ function ground(cx, cz, w, d, y, tex, color, opts) {
  * Server side there is no local player and nothing to draw, so it just loads
  * immediately — the server needs the geometry for collision regardless.
  */
+/*
+ * PARKED GROUND.
+ *
+ * "Just make a simple world and release it." The Lands had a village, a
+ * grove, a quarry, a cat park and the Docks, and a player gave up before
+ * seeing most of it. The broker world is the plaza and the Docks.
+ *
+ * Nothing is deleted. Setting BUILDING = false makes the placement helpers
+ * no-ops, so the sections still RUN -- every const they declare still exists,
+ * and later sections that reference their coordinates still resolve -- they
+ * just put nothing in the world. Cutting the code out instead would mean
+ * hunting every cross-reference, and putting it back would mean doing that
+ * again in reverse.
+ */
+let BUILDING = true
+
 const LAZY = []
 function whenNear(cx, cz, r, fn) {
   if (isServer) return fn()
@@ -204,6 +221,7 @@ const STREAM_R = 45
 let building = false
 
 function model(key, pos, rotY, scale, opts) {
+  if (!BUILDING) return
   const prop = props[key]
   if (!prop || !prop.url) return
   opts = opts || {}
@@ -275,7 +293,7 @@ function panel(wm, hm, size, pos, rotY, bg, border) {
   u.lit = false; u.doubleside = false
   u.position.set(pos[0], pos[1], pos[2])
   if (rotY) u.rotation.y = rotY
-  app.add(u); return u
+  if (BUILDING) app.add(u); return u
 }
 function text(parent, val, px, color, weight, mt) {
   const t = app.create('uitext')
@@ -319,16 +337,25 @@ function road(x1, z1, x2, z2, w) {
           [px + off * Math.cos(ang), 0, pz - off * Math.sin(ang)], rr(0, 6.28), NAT * rr(0.5, 0.9))
   }
 }
-road(-26,  9, -44,  -8, 6)     // to the Fields
-road( 26,  9,  44,  -8, 6)     // to the Seam
+/*
+ * The Fields are parked, so the road out to them goes too. A stone road
+ * running four hundred metres to an empty paddock, with a sign at the head of
+ * it naming the paddock, is the most expensive way there is to tell a player
+ * they wasted the walk. The other three grounds are open and keep theirs.
+ */
+// Leaves from the plaza's east corner, not from x 26 -- the Exchange's floor
+// now runs to x 28.7 at that end, and the two slabs were laid at exactly the
+// same height, which does not look like an overlap. It looks like the texture
+// is broken.
+road( 31,  9,  46,  -6, 6)     // to the Seam
 road(-26, 24, -44,  40, 6)     // to the Docks
 road( 26, 24,  44,  40, 6)     // to the Grove
 
-marker('THE FIELDS', 'Farmland · the Homestead', [-27.5, 0, 10.5], -0.5, '#7ac14a')
-marker('THE SEAM',   'Quarry · ore and stone',   [ 27.5, 0, 10.5],  0.5, '#c98b3a')
+marker('THE SEAM',   'Quarry · ore and stone',   [ 30.0, 0, 10.5],  0.5, '#c98b3a')
 marker('THE DOCKS',  'The lake · fishing',       [-27.5, 0, 23.0], -2.6, '#4fb3d9')
 marker('THE GROVE',  'Woodland · foraging',      [ 27.5, 0, 23.0],  2.6, '#8fd07a')
 
+BUILDING = false   // parked — see the note at the top
 /* ------------------------------------------------------------------ *
  * THE FIELDS — a village, not five houses in a paddock                *
  * ------------------------------------------------------------------ */
@@ -616,7 +643,7 @@ function villager(x, z, rotY, cat, emote) {
   av.rotation.y = rotY
   av.scale.set(1.05, 1.05, 1.05)
   if (emote !== false) av.emote = TALK
-  app.add(av)
+  if (BUILDING) app.add(av)
   return av
 }
 
@@ -660,9 +687,12 @@ for (let i = 0; i < 22; i++) {
 
 /* the market square at the head of the street */
 const MKT = [['t_stallGrn', -7], ['t_stallRed', -2.5], ['t_stall', 2], ['t_stallGrn', 6.5]]
+// rotY 0, not PI. The kit's stalls are modelled facing -Z, so PI turned all
+// four of them to face away down the street, with their own benches behind
+// them. Same axis mistake as the Exchange's first cut.
 for (let i = 0; i < MKT.length; i++) {
-  model(MKT[i][0], [FX + MKT[i][1], 0, FZ + 19.5], Math.PI, TOWN)
-  model('t_stallBnch', [FX + MKT[i][1], 0, FZ + 17.8], Math.PI, TOWN)
+  model(MKT[i][0], [FX + MKT[i][1], 0, FZ + 19.5], 0, TOWN)
+  model('t_stallBnch', [FX + MKT[i][1], 0, FZ + 17.8], 0, TOWN)
   if (i % 2 === 0) model('t_bannerGrn', [FX + MKT[i][1] - 1.9, 0, FZ + 20.2], Math.PI, TOWN)
 }
 ob('well',   [FX,      0, FZ + 12.5], 0.3, 2.4)
@@ -760,6 +790,7 @@ for (let i = 0; i < 7; i++)
   model(pick(['hq_fern_02', 'hq_dandelion_01', 'hq_potted_plant_02', 'hq_dead_tree_trunk']),
         [FX + rr(-28, 28), 0, FZ + rr(-23, 23)], rr(0, 6.28), rr(0.8, 1.4))
 
+BUILDING = true   // back on
 /* ------------------------------------------------------------------ *
  * THE DOCKS — the lake                                                *
  * ------------------------------------------------------------------ */
@@ -998,6 +1029,10 @@ for (let i = 0; i < 16; i++)
   model(rnd() > 0.5 ? 'n_lily' : 'n_lilySm',
         [DX + rr(-28, 28), 0.24, SHORE_Z + rr(4, 34)], rr(0, 6.28), NAT * rr(0.8, 1.4))
 
+/* The Grove and the Seam are open -- see the note in trades.js. They supply
+ * the Silver Rod and half of what the Exchange brokers, so parking them shut
+ * the game. This is the ground under them: without it the nodes and veins
+ * stand on bare terrain. */
 /* ------------------------------------------------------------------ *
  * THE GROVE — woodland                                                *
  * ------------------------------------------------------------------ */
@@ -1269,6 +1304,7 @@ for (let i = 0; i < 44; i++) {
         [Math.sin(a) * r, 0, Math.cos(a) * r], rr(0, 6.28), NAT * rr(0.5, 1.0))
 }
 
+BUILDING = false   // parked — see the note at the top
 /* ------------------------------------------------------------------ *
  * THE CAT PARK                                                        *
  * ------------------------------------------------------------------ */
@@ -1368,6 +1404,7 @@ for (let i = 0; i < 16; i++)
 road(-12, 26, -12, 44, 5)
 road(-12, 44, PX - 2, 52, 5)
 
+BUILDING = true   // back on
 /* ------------------------------------------------------------------ *
  * the dedication                                                      *
  * ------------------------------------------------------------------ */
@@ -1399,7 +1436,7 @@ lines(ded, ['robinlab.io'], 24, '#c9a94e', 700)
  * them to exactly one unit tall with its base on y=0, so the last argument
  * here is simply how many metres tall the thing should be.
  */
-function ob(key, pos, rotY, height) { return model(key, pos, rotY, height) }
+function ob(key, pos, rotY, height) { return model(key, pos, rotY, height) }   // model() gates itself
 
 /* ---- the plaza: a centre worth standing in ---- */
 /* Spawn is at [0,0,17] facing the Filing Office, so the middle of the plaza is

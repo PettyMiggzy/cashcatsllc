@@ -1,0 +1,24 @@
+# Rooms that are deliberately parked.
+#
+# One name per line, matching the installer basename without install_ or .py.
+# Anything listed here is SKIPPED by deploy/setup.sh, loudly, with the reason.
+#
+# WHY OPT-OUT AND NOT OPT-IN. setup.sh finds installers by scanning roomsrc
+# rather than reading a list, because a hand-written list went stale the moment
+# a room was added -- install_pets.py was written, committed, and simply not in
+# it, so a deploy would have published a world with the whole Chibi Rating
+# missing and said nothing. Scanning keeps new rooms ON by default. Turning one
+# off has to be an explicit, visible, single line here.
+#
+# Nothing is deleted. Every room below is still in the repo, still installable,
+# one line away from coming back.
+
+# --- parked 2026-09-05, "just make a simple world and release it" ------------
+# The world had eight grounds and no player could see most of them before
+# giving up. A broker world needs somewhere to stand, something to sell, and
+# somewhere to sell it. These are the rest.
+homestead      # land, housing, farming -- a whole second game
+pit            # the arena. Good, but it is not a market
+pets           # Chibi Rating, boss field, shelves
+vault          # the 10M holder room
+workshop       # gear, materials, NFT tiers

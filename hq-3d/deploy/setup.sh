@@ -251,12 +251,36 @@ systemctl stop cashcats 2>/dev/null || true
 run_installer() { python3 "roomsrc/$1.py" >/dev/null && echo "    $1"; }
 
 run_installer install
+# Rooms named in roomsrc/ROOMS_OFF.txt are skipped. The scan above still finds
+# every installer -- new rooms stay ON by default, which is the property that
+# stops one being silently missed -- and turning one off is one visible line.
+OFF=""
+if [ -f roomsrc/ROOMS_OFF.txt ]; then
+  OFF=$(sed 's/#.*//' roomsrc/ROOMS_OFF.txt | tr -d ' \t' | grep -v '^$' || true)
+  [ -n "$OFF" ] && echo "    parked: $(echo $OFF | tr '\n' ' ')"
+fi
 for f in roomsrc/install_*.py; do
   s="$(basename "$f" .py)"
   [ "$s" = "install_brand" ] && continue
+  # Exact line match, not a substring: "pit" must not match "pits", and the
+  # base installer (install.py, room name "install") must never be skippable.
+  room="${s#install_}"
+  if [ "$s" != "install" ] && printf '%s\n' "$OFF" | grep -qx -- "$room"; then
+    echo "    $room — parked (ROOMS_OFF.txt)"
+    continue
+  fi
   run_installer "$s"
 done
 run_installer install_brand
+
+# Skipping an installer does not remove a room. world/db.sqlite survives the
+# deploy, so a room parked today keeps loading from whatever the last deploy
+# that included it wrote -- the world would look unchanged and the park list
+# would look broken. This deletes those blueprints and their entities.
+python3 roomsrc/park_rooms.py || {
+  echo "    parked rooms could not be removed cleanly — refusing to publish it"
+  exit 1
+}
 
 # node --check proves a script parses; it does not prove it runs, and both
 # faults that actually shipped in this build were runtime — a room installed

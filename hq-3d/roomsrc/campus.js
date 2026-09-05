@@ -20,6 +20,25 @@ const STONE='#cfc9b8', STONE_D='#b3ac99', LIME='#2ecc71'
 
 const Y = 0.05                     // the plaza sits just above the terrain
 
+/* ---------------- what is actually here ----------------
+ *
+ * PARKING A ROOM DELETES ITS WALLS. Each room draws its own four walls, and
+ * this file draws only the outside -- so a parked room leaves the frontage
+ * below standing in front of open air, with a door that opens onto nothing and
+ * a nameplate over it. That is worse than either having the room or not: it
+ * reads as a building that failed to load.
+ *
+ * So the plaza is built from this list. A room named here gets no frontage, no
+ * plate, no path and no line in the directory.
+ *
+ * IT MUST MATCH roomsrc/ROOMS_OFF.txt. It cannot read that file -- this is a
+ * sandboxed app script with no filesystem -- so roomsrc/park_rooms.py compares
+ * the two and the deploy refuses to publish if they have drifted. Two copies of
+ * a fact are fine as long as something fails loudly when they disagree.
+ */
+const OFF = ['homestead', 'workshop', 'vault', 'pit', 'pets']
+const live = room => OFF.indexOf(room) === -1
+
 // prims take a texture across UV 0..1 of each face with no repeat control,
 // so the tiling is baked into the images themselves (see roomsrc/tile.py).
 function prim(type,size,color,pos,opts={}){
@@ -78,9 +97,13 @@ function path(x, fromZ, toZ, w){
   prim('box',[w,0.3,len],'#c8c1ae',[x,Y-0.15,toZ+len/2],{tex:'paving',rough:0.9})
   prim('box',[w+0.5,0.06,len],STONE_D,[x,Y-0.02,toZ+len/2])
 }
-path(-22, 9.0, 5.5, 4)        // to the Homestead
-path(  0, 9.0, 7.5, 5)        // to the Filing Office
-path( 21, 9.0, 5.0, 4)        // to the Workshop
+// A path is a promise that there is somewhere to walk to.
+if (live('homestead')) path(-22, 9.0, 5.5, 4)
+path(  0, 9.0, 7.5, 5)                        // to the Filing Office
+if (live('workshop'))  path( 21, 9.0, 5.0, 4)
+// The Exchange stands where the Workshop was, out on the open plaza rather
+// than behind a door -- see trades.js. This is the walk to it.
+if (!live('workshop')) path( 21, 9.5, 6.0, 5)
 
 /* ---------------- lamp posts ---------------- */
 function lamp(x,z){
@@ -109,9 +132,9 @@ function plate(x,z,y,title,sub){
 // cornice. These used to hang against a bare room wall at z+0.3; the facade
 // now stands 0.9m proud of that, so at the old depth all three signs were
 // inside the masonry with only their glow showing through.
-plate(-22, 7.05, 4.55, 'THE HOMESTEAD', 'land · housing · farming')
+if (live('homestead')) plate(-22, 7.05, 4.55, 'THE HOMESTEAD', 'land · housing · farming')
 plate(  0, 9.05, 4.55, 'THE FILING OFFICE', 'reception · swap · rewards')
-plate( 21, 6.55, 4.55, 'THE WORKSHOP',  'gear · materials · NFT tiers')
+if (live('workshop'))  plate( 21, 6.55, 4.55, 'THE WORKSHOP',  'gear · materials · NFT tiers')
 
 /* ---------------- the directory, facing spawn ---------------- */
 const dir = panel(820,620,0.0052,[-9.5,2.9,15.0],0.35,'#0e1f18',GOLD)
@@ -121,11 +144,16 @@ function entry(name,desc,mt){
   text(dir,name,32,CREAM,600,mt)
   text(dir,desc,24,DIM,400,4)
 }
-entry('◄  The Homestead','Buy land, build, and farm resources.',26)
-entry('▲  The Filing Office','Contract address, swap, rewards wall.',18)
-entry('►  The Workshop','Gear, materials, classes, NFT tiers.',18)
-entry('▲▲ The Vault','10,000,000 holders only. Behind the gate.',18)
-entry('►► The Pit','The arena. Last cat standing takes the purse.',18)
+// Only what a player can actually walk to. This board listed five places
+// when four of them were parked, which is the one thing a directory must
+// never do -- a sign that lies is worse than no sign.
+entry('▲  The Filing Office','Contract address, swap, rewards wall.',26)
+entry('►  The Exchange','Sell what you catch. Buy what others land.',18)
+entry('◄◄ The Docks','Fishing. Cast, then fight what takes it.',18)
+if (live('homestead')) entry('◄  The Homestead','Buy land, build, and farm resources.',18)
+if (live('workshop'))  entry('►  The Workshop','Gear, materials, classes, NFT tiers.',18)
+if (live('vault'))     entry('▲▲ The Vault','10,000,000 holders only. Behind the gate.',18)
+if (live('pit'))       entry('►► The Pit','The arena. Last cat standing takes the purse.',18)
 
 /* ---------------- house rules of the campus, facing spawn ---------------- */
 const board = panel(760,520,0.0052,[9.5,2.8,15.0],-0.35,PAPER,GOLD)
@@ -327,9 +355,9 @@ function frontage(cx, zFront, width, bays, doorBay) {
 // Doors face +Z onto the plaza; the bay counts are chosen so a bay lands
 // roughly 3.5m wide on each, which is what makes the three read as one street
 // rather than three unrelated sheds.
-frontage(-22, 6.0, 15.4, 4, 1)      // the Homestead
+if (live('homestead')) frontage(-22, 6.0, 15.4, 4, 1)
 frontage(  0, 8.0, 16.4, 5, 2)      // the Filing Office, door dead centre
-frontage( 21, 5.5, 13.4, 4, 2)      // the Workshop
+if (live('workshop'))  frontage( 21, 5.5, 13.4, 4, 2)
 
 /* ---------------- the cast, out on the plaza ----------------
  * The protagonists, standing where everyone walks in. Standee planes rather
@@ -396,35 +424,39 @@ for (const c of CAST) {
 }
 
 /* ---------------- the gate to The Vault ---------------- */
+// A gate is only worth building when there is something behind it to be kept
+// out of. With the Vault parked this was a locked door onto an empty field.
 const GZ = 24.5
-prim('box',[19,0.4,1.2],STONE_D,[0,Y+0.2,GZ])
-for(const x of [-4.6,4.6]){                       // gate piers
-  prim('box',[1.6,5.2,1.6],STONE,[x,Y+2.6,GZ])
-  prim('box',[2.0,0.3,2.0],GOLD,[x,Y+5.3,GZ],{metal:0.85,rough:0.3})
-}
-prim('box',[10.8,0.9,1.3],STONE,[0,Y+5.6,GZ])     // lintel
-for(const x of [-8.6,8.6]){                       // low wing walls, not a barrier
-  prim('box',[6.4,1.5,0.9],STONE_D,[x,Y+0.75,GZ])
-  prim('box',[6.6,0.16,1.1],GOLD_D,[x,Y+1.58,GZ])
-  prim('sphere',[0.75],GREEN,[x,Y+2.1,GZ],{rough:0.95})
-}
+if (live('vault')) {
+  prim('box',[19,0.4,1.2],STONE_D,[0,Y+0.2,GZ])
+  for(const x of [-4.6,4.6]){                       // gate piers
+    prim('box',[1.6,5.2,1.6],STONE,[x,Y+2.6,GZ])
+    prim('box',[2.0,0.3,2.0],GOLD,[x,Y+5.3,GZ],{metal:0.85,rough:0.3})
+  }
+  prim('box',[10.8,0.9,1.3],STONE,[0,Y+5.6,GZ])     // lintel
+  for(const x of [-8.6,8.6]){                       // low wing walls, not a barrier
+    prim('box',[6.4,1.5,0.9],STONE_D,[x,Y+0.75,GZ])
+    prim('box',[6.6,0.16,1.1],GOLD_D,[x,Y+1.58,GZ])
+    prim('sphere',[0.75],GREEN,[x,Y+2.1,GZ],{rough:0.95})
+  }
 
-const gate = panel(700,330,0.0060,[0,3.1,GZ-0.75],Math.PI,'#1d1010','#7a3b2a')
-gate.alignItems='center'
-gate.doubleside=false
-text(gate,'THE VAULT',52,'#e8c25a',700)
-text(gate,'10,000,000 $CASHCATSLLC',30,'#e0a080',600,10)
-text(gate,'Checked on the server at join, not here.',22,'#a08078',400,10)
+  const gate = panel(700,330,0.0060,[0,3.1,GZ-0.75],Math.PI,'#1d1010','#7a3b2a')
+  gate.alignItems='center'
+  gate.doubleside=false
+  text(gate,'THE VAULT',52,'#e8c25a',700)
+  text(gate,'10,000,000 $CASHCATSLLC',30,'#e0a080',600,10)
+  text(gate,'Checked on the server at join, not here.',22,'#a08078',400,10)
 
-/* The gate leaf: railings, not a slab. You are meant to see the Vault behind
- * it and know what you are short of. A solid wall just reads as scenery. */
-for(let i=-7;i<=7;i++) prim('cylinder',[0.06,0.06,3.9],GOLD_L,[i*0.5,Y+2.0,GZ],{metal:0.9,rough:0.28})
-prim('box',[7.4,0.2,0.26],GOLD,[0,Y+3.95,GZ],{metal:0.9,rough:0.28})
-prim('box',[7.4,0.2,0.26],GOLD,[0,Y+0.12,GZ],{metal:0.9,rough:0.28})
-prim('box',[7.4,0.14,0.24],GOLD_D,[0,Y+2.6,GZ])
+  /* The gate leaf: railings, not a slab. You are meant to see the Vault behind
+   * it and know what you are short of. A solid wall just reads as scenery. */
+  for(let i=-7;i<=7;i++) prim('cylinder',[0.06,0.06,3.9],GOLD_L,[i*0.5,Y+2.0,GZ],{metal:0.9,rough:0.28})
+  prim('box',[7.4,0.2,0.26],GOLD,[0,Y+3.95,GZ],{metal:0.9,rough:0.28})
+  prim('box',[7.4,0.2,0.26],GOLD,[0,Y+0.12,GZ],{metal:0.9,rough:0.28})
+  prim('box',[7.4,0.14,0.24],GOLD_D,[0,Y+2.6,GZ])
+}
 
 /* the path beyond, so the gate reads as leading somewhere */
-prim('box',[6,0.3,2.0],'#c8c1ae',[0,Y-0.15,25.6],{tex:'paving',rough:0.9})
+if (live('vault')) prim('box',[6,0.3,2.0],'#c8c1ae',[0,Y-0.15,25.6],{tex:'paving',rough:0.9})
 
 /* ------------------------------------------------------------------ *
  * The city around the campus.
