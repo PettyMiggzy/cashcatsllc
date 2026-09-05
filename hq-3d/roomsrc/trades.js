@@ -792,6 +792,131 @@ if (isServer) {
     pushYou(pid, L); dirty = true
   })
 
+  /* ================================================================== *
+   * THE EXCHANGE — brokers, and the first player-to-player trade         *
+   * ==================================================================
+   *
+   * Everything in this world until now was player-to-NPC: you sold to a
+   * counter at a fixed price the code decided. A world of brokers is the other
+   * thing entirely -- players setting their own prices and buying from each
+   * other -- and none of that existed.
+   *
+   * WHY IT LIVES IN trades.js AND NOT ITS OWN ROOM FILE.
+   *
+   * The market moves goods and coin between ledgers, and the ledger is
+   * ccl.ledger.v1, which this app owns. Two apps writing one storage key
+   * clobber each other: each holds its own copy in memory and saves on its own
+   * clock, so the later save silently reverts the earlier one. A market in a
+   * separate app would lose trades at random and look like theft. One app, one
+   * writer. The listings get their own key, which is fine -- one app writing
+   * two keys is safe, two apps writing one key is not.
+   *
+   * ESCROW. Listing removes the goods from the seller's ledger immediately.
+   * Without that a seller can list the same fish on ten stalls and sell it ten
+   * times, and the tenth buyer pays for nothing. The goods sit in the listing
+   * until it sells or is cancelled.
+   */
+  const MKT = 'ccl.market.v1'
+  let market = world.get(MKT) || { seq: 1, rows: [] }
+  const saveMkt = () => world.set(MKT, market)
+
+  // What can be brokered, and where it lives on a ledger. Coin is deliberately
+  // absent -- coin is the price, not the goods.
+  const GOODS = {
+    fish:   { bag: 'catches', label: k => (FISH.find(f => f.key === k) || {}).name || k },
+    forage: { bag: 'kinds',   label: k => (FORAGE.find(f => f.key === k) || {}).name || k },
+  }
+  const MAX_LISTINGS = 6            // per seller, so one whale cannot wallpaper the board
+  const MAX_PRICE = 1000000
+
+  const held = (L, kind, key) => {
+    const g = GOODS[kind]
+    if (!g) return 0
+    const bag = L[g.bag] || {}
+    return bag[key] || 0
+  }
+  const take = (L, kind, key, n) => {
+    const bag = L[GOODS[kind].bag] || (L[GOODS[kind].bag] = {})
+    bag[key] = (bag[key] || 0) - n
+    if (bag[key] <= 0) delete bag[key]
+  }
+  const give = (L, kind, key, n) => {
+    const bag = L[GOODS[kind].bag] || (L[GOODS[kind].bag] = {})
+    bag[key] = (bag[key] || 0) + n
+  }
+
+  const pushMarket = pid => {
+    const rows = market.rows.slice(-40).map(r => ({
+      id: r.id, name: r.name, qty: r.qty, price: r.price, by: r.byName, kind: r.kind,
+    }))
+    if (pid) app.sendTo(pid, 'market', { rows })
+    else app.send('market', { rows })
+  }
+
+  app.on('list', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const kind = d && d.kind, key = d && d.key
+    const qty = Math.max(1, Math.min(999, Math.floor(Number(d && d.qty) || 0)))
+    const price = Math.max(1, Math.min(MAX_PRICE, Math.floor(Number(d && d.price) || 0)))
+    if (!GOODS[kind] || !key || !qty || !price) return
+    const L = ledgerFor(p)
+    if (held(L, kind, key) < qty)
+      return app.sendTo(pid, 'shop', { msg: 'You do not have ' + qty + ' of those.' })
+    if (market.rows.filter(r => r.by === uid).length >= MAX_LISTINGS)
+      return app.sendTo(pid, 'shop', { msg: 'Six listings at a time. Cancel one first.' })
+    take(L, kind, key, qty)                       // escrow, before anything else
+    market.rows.push({ id: market.seq++, by: uid, byName: p.name || '?',
+                       kind, key, name: GOODS[kind].label(key), qty, price, at: now() })
+    saveMkt(); touch()
+    app.sendTo(pid, 'shop', { msg: 'Listed ' + qty + ' x ' + GOODS[kind].label(key) +
+                                   ' at ' + price + ' each.' })
+    pushYou(pid, L); pushMarket()
+  })
+
+  app.on('unlist', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const i = market.rows.findIndex(r => r.id === (d && d.id | 0))
+    if (i < 0) return
+    const r = market.rows[i]
+    if (r.by !== uid) return app.sendTo(pid, 'shop', { msg: 'Not your listing.' })
+    market.rows.splice(i, 1)
+    give(ledgerFor(p), r.kind, r.key, r.qty)      // escrow comes home
+    saveMkt(); touch()
+    app.sendTo(pid, 'shop', { msg: 'Pulled ' + r.qty + ' x ' + r.name + ' off the board.' })
+    pushYou(pid, ledgerFor(p)); pushMarket()
+  })
+
+  app.on('buy_listing', (d, pid) => {
+    const p = world.getPlayer(pid); if (!p) return
+    const uid = p.userId || p.id
+    const i = market.rows.findIndex(r => r.id === (d && d.id | 0))
+    if (i < 0) return app.sendTo(pid, 'shop', { msg: 'Gone — someone got there first.' })
+    const r = market.rows[i]
+    if (r.by === uid) return app.sendTo(pid, 'shop', { msg: 'That is your own listing.' })
+    const B = ledgerFor(p)
+    const total = r.qty * r.price
+    if (B.coin < total)
+      return app.sendTo(pid, 'shop', { msg: 'That costs ' + comma(total) + ' CashCoin. You have ' + comma(B.coin) + '.' })
+    // Remove the row BEFORE moving anything. Two buyers hitting the same
+    // listing in one tick would otherwise both pass the checks above and both
+    // get paid out of one escrow.
+    market.rows.splice(i, 1)
+    B.coin -= total
+    give(B, r.kind, r.key, r.qty)
+    // The seller is credited whether or not they are online -- the goods left
+    // their ledger when they listed, so not paying them would be taking it.
+    if (!book[r.by]) book[r.by] = blank()
+    book[r.by].coin = (book[r.by].coin || 0) + total
+    saveMkt(); touch()
+    app.sendTo(pid, 'shop', { msg: 'Bought ' + r.qty + ' x ' + r.name + ' for ' + comma(total) + '.' })
+    const sp = world.getPlayer(r.by)
+    if (sp) app.sendTo(r.by, 'shop', { msg: p.name + ' bought your ' + r.name + ' — ' + comma(total) + ' CashCoin.' })
+    pushYou(pid, B); if (sp) pushYou(r.by, book[r.by])
+    pushMarket(); dirty = true
+  })
+
   /* ---- the shop ----
    * Bait costs CashCoin, which is only earned by playing. The Silver Rod is
    * crafted out of what the other two trades produce, so fishing better means
